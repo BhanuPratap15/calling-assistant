@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -10,7 +11,8 @@ import { PrismaService } from '../src/prisma/prisma.service.js';
 describe('Auth & RBAC (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  const suffix = Date.now();
+  // Har test file ka unique suffix — files parallel chalti hain, Date.now() same aa sakta hai
+  const suffix = randomUUID().slice(0, 8);
   const manager = {
     email: `e2e-manager-${suffix}@test.local`,
     password: 'Manager@123',

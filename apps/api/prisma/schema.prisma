@@ -44,6 +44,25 @@ enum Availability {
   @@map("availability")
 }
 
+/// Customer ki calling status
+enum CustomerStatus {
+  ACTIVE // call kar sakte hain
+  DO_NOT_CALL // customer ne mana kiya — kabhi assign nahi hoga
+  INVALID // galat/band number
+
+  @@map("customer_status")
+}
+
+/// Customer priority — assignment engine pehle HIGH/URGENT uthayega (Phase 2)
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@map("priority")
+}
+
 // ---------------------------------------------------------------------
 // Staff — CRM me LOGIN karne wale log (assistants, TL, managers, admins)
 // Note: jinko call kiya jaata hai (customers) wo alag table hoga (Step 1.5)
@@ -62,6 +81,8 @@ model Staff {
   team   Team?   @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
 
   ledTeams Team[] @relation("TeamLeader") // agar ye TEAM_LEADER hai to kaunsi teams lead karta hai
+
+  customersCreated Customer[] @relation("CustomerCreatedBy")
 
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -91,4 +112,30 @@ model Team {
 
   @@index([leaderId])
   @@map("teams")
+}
+
+// ---------------------------------------------------------------------
+// Customer — jinko CALL kiya jaata hai (casino platform ke users, ~20k+)
+// Design doc me inhe "users" kaha gaya hai; code me "customers" taaki staff se confusion na ho.
+// ---------------------------------------------------------------------
+model Customer {
+  id             String         @id @default(uuid()) @db.Uuid
+  externalId     String?        @unique @map("external_id") // casino platform ki user ID (import/match ke liye)
+  name           String
+  phone          String         @unique // E.164 format me normalize: +919876543210 → duplicate check pakka
+  alternatePhone String?        @map("alternate_phone")
+  email          String?
+  status         CustomerStatus @default(ACTIVE)
+  priority       Priority       @default(NORMAL)
+  notes          String? // general notes (call ke notes alag table me aayenge — Phase 2)
+
+  createdById String? @map("created_by_id") @db.Uuid
+  createdBy   Staff?  @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, priority]) // "call karne layak, high priority pehle" query fast
+  @@index([name])
+  @@map("customers")
 }

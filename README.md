@@ -82,7 +82,9 @@ calling-assistant/
 │   │   ├── src/        #   main.ts = entry point, app.module.ts = root module
 │   │   │   ├── prisma/ #   PrismaService (DB connection)
 │   │   │   ├── auth/   #   login, JWT, guards, @Public/@Roles
-│   │   │   └── staff/  #   staff APIs
+│   │   │   ├── staff/  #   staff APIs
+│   │   │   ├── customers/ # customers APIs (jinko call karna hai)
+│   │   │   └── common/ #   shared helpers (phone, pagination)
 │   │   └── test/       #   e2e tests
 │   └── web/            # Next.js frontend (@crm/web, port 3000)
 │       └── src/app/    #   pages (App Router)

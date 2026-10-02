@@ -51,3 +51,11 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Seed                              | DB me shuruaati zaroori data (pehla Super Admin)                                             | `prisma/seed.ts`                              |
 | Timing attack                     | Response time se secret ka andaza lagana — isliye email na mile tab bhi hash compare         | `auth.service.ts`                             |
 | `.http` file                      | VS Code se API requests bhejne ki file (Postman jaisa)                                       | `apps/api/api.http`                           |
+| E.164 phone format                | International standard: `+919876543210` — ek number ka ek hi roop                            | `common/phone.ts`                             |
+| Pagination                        | Bada data pages me: `?page=2&pageSize=20` + `meta.total`                                     | `common/pagination.dto.ts`                    |
+| Query params vs Body              | GET me filters URL me (`?search=`), POST/PATCH me data body (JSON) me                        | Customers API                                 |
+| POST vs PATCH                     | POST = naya banao (201); PATCH = sirf diye hue fields badlo (200)                            | Customers API                                 |
+| 409 Conflict                      | Request sahi hai par data clash (duplicate phone)                                            | `customers.service.ts`                        |
+| Unique constraint                 | DB khud duplicate rokta hai — app me bug ho tab bhi                                          | `phone @unique`                               |
+| Soft status (no delete)           | Delete ki jagah `DO_NOT_CALL` / `INVALID` — history bachi rahe                               | `CustomerStatus`                              |
+| Test isolation                    | Parallel tests apna-apna unique data use karein, ek doosre ka delete na karein               | `test/*.e2e-spec.ts`                          |

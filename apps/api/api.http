@@ -37,3 +37,47 @@ Content-Type: application/json
 {
   "email": "not-an-email"
 }
+
+# ---------------------------------------------------------------------
+# Customers (MANAGER create/update; MANAGER + TEAM_LEADER read)
+# ---------------------------------------------------------------------
+
+### 7. Customer banao (phone kisi bhi format me — +91 E.164 me save hoga)
+# @name createCustomer
+POST {{baseUrl}}/customers
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Rahul Sharma",
+  "phone": "98765 43210",
+  "priority": "HIGH",
+  "notes": "Test customer"
+}
+
+### 8. Same number dobara (alag format) → 409 Conflict
+POST {{baseUrl}}/customers
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Duplicate Rahul",
+  "phone": "+91-98765-43210"
+}
+
+### 9. List + search + pagination
+GET {{baseUrl}}/customers?search=rahul&page=1&pageSize=20
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 10. Ek customer
+GET {{baseUrl}}/customers/{{createCustomer.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 11. Update (sirf jo badalna hai wahi bhejo)
+PATCH {{baseUrl}}/customers/{{createCustomer.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "status": "DO_NOT_CALL"
+}

@@ -26,6 +26,7 @@ Requirements: **Node.js 24 LTS** (npm 11 ke saath aata hai), Docker Desktop, Git
 cp .env.example .env          # local config
 npm install                   # saare apps ki dependencies (root se hi chalana)
 npm run infra:up              # Postgres + Redis start (docker compose up -d)
+npm run db:migrate            # DB me tables banao (migrations apply)
 npm run dev:api               # Backend  → http://localhost:4000/api/health
 npm run dev:web               # Frontend → http://localhost:3000   (dusre terminal me)
 ```
@@ -54,7 +55,9 @@ npm run format && npm run lint && npm run typecheck && npm test
 calling-assistant/
 ├── apps/
 │   ├── api/            # NestJS backend  (@crm/api, port 4000)
+│   │   ├── prisma/     #   schema.prisma + migrations/ (database)
 │   │   ├── src/        #   main.ts = entry point, app.module.ts = root module
+│   │   │   └── prisma/ #   PrismaService (DB connection)
 │   │   └── test/       #   e2e tests
 │   └── web/            # Next.js frontend (@crm/web, port 3000)
 │       └── src/app/    #   pages (App Router)

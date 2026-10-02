@@ -15,11 +15,12 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
+  // Ye test REAL database use karta hai (local: docker, CI: postgres service)
   it('/health (GET)', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
-      .expect({ status: 'ok', service: 'calling-crm-api' });
+      .expect({ status: 'ok', service: 'calling-crm-api', database: 'up' });
   });
 
   afterEach(async () => {

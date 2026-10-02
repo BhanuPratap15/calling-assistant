@@ -19,6 +19,25 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # CI ke andar ek temporary Postgres container (e2e tests real DB pe chalte hain)
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: crm
+          POSTGRES_PASSWORD: crm_ci_password
+          POSTGRES_DB: calling_crm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U crm -d calling_crm"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/calling_crm
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,6 +62,9 @@ jobs:
 
       - name: Unit tests (API)
         run: npm test
+
+      - name: Apply DB migrations
+        run: npm run db:deploy -w @crm/api
 
       - name: E2E tests (API)
         run: npm run test:e2e -w @crm/api

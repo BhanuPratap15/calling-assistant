@@ -1,0 +1,94 @@
+// =====================================================================
+// Calling CRM — Database Schema
+// Yahi file database ka "source of truth" hai.
+// Change karne ke baad:  npm run db:migrate -- --name <change_ka_naam>
+// Docs: https://pris.ly/d/prisma-schema
+//
+// Time: saare timestamps "timestamptz" (timezone ke saath) — follow-up "4 PM" galat timezone me na jaaye.
+//
+// Naming convention:
+//   - Prisma/TypeScript me camelCase  (createdAt, teamId)
+//   - Database me snake_case          (created_at, team_id)  ← @map / @@map se
+// =====================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------
+// Enums — fixed list of values (DB bhi galat value reject karega)
+// ---------------------------------------------------------------------
+
+/// Staff ke roles (design doc section 13). Decision: docs/decisions/0002-database-and-roles.md
+enum StaffRole {
+  SUPER_ADMIN
+  MANAGER
+  TEAM_LEADER
+  ASSISTANT
+
+  @@map("staff_role")
+}
+
+/// Assistant availability (design doc section 8.2) — assignment/follow-up engine isko dekhega
+enum Availability {
+  AVAILABLE
+  ON_CALL
+  BREAK
+  OFFLINE
+
+  @@map("availability")
+}
+
+// ---------------------------------------------------------------------
+// Staff — CRM me LOGIN karne wale log (assistants, TL, managers, admins)
+// Note: jinko call kiya jaata hai (customers) wo alag table hoga (Step 1.5)
+// ---------------------------------------------------------------------
+model Staff {
+  id           String       @id @default(uuid()) @db.Uuid
+  name         String
+  email        String       @unique
+  phone        String?
+  passwordHash String       @map("password_hash") // plain password KABHI save nahi hota
+  role         StaffRole    @default(ASSISTANT)
+  availability Availability @default(OFFLINE)
+  isActive     Boolean      @default(true) @map("is_active") // delete ki jagah deactivate (history bachi rahe)
+
+  teamId String? @map("team_id") @db.Uuid
+  team   Team?   @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
+
+  ledTeams Team[] @relation("TeamLeader") // agar ye TEAM_LEADER hai to kaunsi teams lead karta hai
+
+  lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([teamId])
+  @@index([role, availability]) // "kaunse assistants AVAILABLE hain" query fast hogi
+  @@map("staff")
+}
+
+// ---------------------------------------------------------------------
+// Team — assistants ka group, ek Team Leader ke under
+// ---------------------------------------------------------------------
+model Team {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true) @map("is_active")
+
+  leaderId String? @map("leader_id") @db.Uuid
+  leader   Staff?  @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+
+  members Staff[] @relation("TeamMembers")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([leaderId])
+  @@map("teams")
+}

@@ -1,0 +1,2 @@
+# Prisma Client yahan generate hota hai (npm run db:generate) — commit nahi karte
+/src/generated/prisma

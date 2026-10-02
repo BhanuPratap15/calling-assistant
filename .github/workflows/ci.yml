@@ -1,0 +1,51 @@
+# CI = Continuous Integration
+# Har push aur pull request pe GitHub ke server pe ye checks chalte hain.
+# Koi bhi step fail → commit pe red ❌, sab pass → green ✅.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Same branch pe naya push aaye to purana chalta hua run cancel
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, Typecheck, Test, Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node (version .nvmrc se)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies (exact versions from package-lock.json)
+        run: npm ci
+
+      - name: Format check (Prettier)
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests (API)
+        run: npm test
+
+      - name: E2E tests (API)
+        run: npm run test:e2e -w @crm/api
+
+      - name: Build (API + Web)
+        run: npm run build

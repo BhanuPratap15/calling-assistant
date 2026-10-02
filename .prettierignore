@@ -1,0 +1,10 @@
+# Generated / dependency files — inko format nahi karna
+node_modules
+dist
+.next
+coverage
+package-lock.json
+apps/web/next-env.d.ts
+# Next.js khud generate karta hai
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

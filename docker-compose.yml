@@ -11,11 +11,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      - '${POSTGRES_PORT:-5433}:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data   # data container restart pe bhi bacha rahe
+      - postgres_data:/var/lib/postgresql/data # data container restart pe bhi bacha rahe
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -24,13 +24,13 @@ services:
     image: redis:7-alpine
     container_name: crm-redis
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]   # data disk pe bhi save ho
+    command: ['redis-server', '--appendonly', 'yes'] # data disk pe bhi save ho
     ports:
-      - "${REDIS_PORT:-6380}:6379"
+      - '${REDIS_PORT:-6380}:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10

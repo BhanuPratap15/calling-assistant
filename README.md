@@ -5,18 +5,21 @@ mandatory call form bhare bina next user nahi milta, follow-ups automatic schedu
 aur managers ko live dashboard milta hai.
 
 ## Docs
-| File | Kya hai |
-|---|---|
-| [docs/design-v1-summary.md](docs/design-v1-summary.md) | Business design ka summary |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Step-by-step plan + progress |
-| [docs/decisions/](docs/decisions/) | Tech decisions (ADRs) — kya aur kyun |
-| [docs/CONCEPTS.md](docs/CONCEPTS.md) | Seekhne ke notes / glossary |
+
+| File                                                   | Kya hai                              |
+| ------------------------------------------------------ | ------------------------------------ |
+| [docs/design-v1-summary.md](docs/design-v1-summary.md) | Business design ka summary           |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                     | Step-by-step plan + progress         |
+| [docs/decisions/](docs/decisions/)                     | Tech decisions (ADRs) — kya aur kyun |
+| [docs/CONCEPTS.md](docs/CONCEPTS.md)                   | Seekhne ke notes / glossary          |
 
 ## Tech Stack
+
 TypeScript · NestJS · Next.js · PostgreSQL · Prisma · Redis + BullMQ · Docker Compose
 (Reason: [ADR 0001](docs/decisions/0001-tech-stack.md))
 
 ## Local Setup
+
 Requirements: **Node.js 24 LTS** (npm 11 ke saath aata hai), Docker Desktop, Git
 
 ```bash
@@ -27,18 +30,26 @@ npm run dev:api               # Backend  → http://localhost:4000/api/health
 npm run dev:web               # Frontend → http://localhost:3000   (dusre terminal me)
 ```
 
+## Commit se pehle (CI yahi checks chalata hai)
+
+```bash
+npm run format && npm run lint && npm run typecheck && npm test
+```
+
 ## Useful Commands (root se chalao)
-| Command | Kya karta hai |
-|---|---|
-| `npm run dev:api` | NestJS backend watch mode me (file save → auto restart) |
-| `npm run dev:web` | Next.js frontend dev server |
-| `npm run build` | Dono apps ka production build |
-| `npm test` | Backend unit tests |
-| `npm run test:e2e -w @crm/api` | Backend end-to-end tests |
-| `npm run lint` | Code quality check (dono apps) |
-| `npm run infra:up` / `infra:down` | Docker infra start / stop |
+
+| Command                           | Kya karta hai                                           |
+| --------------------------------- | ------------------------------------------------------- |
+| `npm run dev:api`                 | NestJS backend watch mode me (file save → auto restart) |
+| `npm run dev:web`                 | Next.js frontend dev server                             |
+| `npm run build`                   | Dono apps ka production build                           |
+| `npm test`                        | Backend unit tests                                      |
+| `npm run test:e2e -w @crm/api`    | Backend end-to-end tests                                |
+| `npm run lint`                    | Code quality check (dono apps)                          |
+| `npm run infra:up` / `infra:down` | Docker infra start / stop                               |
 
 ## Folder Structure
+
 ```
 calling-assistant/
 ├── apps/

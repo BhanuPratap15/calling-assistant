@@ -1,0 +1,39 @@
+# =====================================================================
+# API manually test karne ki file (VS Code extension: "REST Client")
+# Har request ke upar "Send Request" link aata hai — click karo.
+# Pehle: npm run dev:api  +  npm run db:seed
+# =====================================================================
+
+@baseUrl = http://localhost:4000/api
+
+### 1. Health (public — token nahi chahiye)
+GET {{baseUrl}}/health
+
+### 2. Login → response me accessToken milega
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@crm.local",
+  "password": "ChangeMe@123"
+}
+
+### 3. Me — login (request 2) ka token automatically use hota hai
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 4. Staff list (sirf MANAGER / SUPER_ADMIN)
+GET {{baseUrl}}/staff
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 5. Bina token → 401
+GET {{baseUrl}}/staff
+
+### 6. Galat body → 400 (validation)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "not-an-email"
+}

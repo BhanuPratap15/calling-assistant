@@ -37,6 +37,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/calling_crm
+      JWT_SECRET: ci-only-test-secret-not-used-anywhere-else
 
     steps:
       - name: Checkout code

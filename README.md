@@ -24,12 +24,23 @@ Requirements: **Node.js 24 LTS** (npm 11 ke saath aata hai), Docker Desktop, Git
 
 ```bash
 cp .env.example .env          # local config
-npm install                   # saare apps ki dependencies (root se hi chalana)
+npm ci                        # saare apps ki dependencies (lockfile se exact versions)
 npm run infra:up              # Postgres + Redis start (docker compose up -d)
 npm run db:migrate            # DB me tables banao (migrations apply)
+npm run db:seed               # pehla Super Admin (email/password .env me)
 npm run dev:api               # Backend  → http://localhost:4000/api/health
 npm run dev:web               # Frontend → http://localhost:3000   (dusre terminal me)
 ```
+
+## Har `git pull` ke baad
+
+```bash
+npm ci                # dependencies sync (lockfile nahi badalta)
+npm run db:migrate    # naye DB changes apply
+```
+
+> `npm install <package>` sirf tab jab nayi library add karni ho.
+> Windows pe `EPERM` aaye: saare dev servers band karo, `node_modules` delete karo, phir `npm ci`.
 
 ## Commit se pehle (CI yahi checks chalata hai)
 
@@ -49,6 +60,18 @@ npm run format && npm run lint && npm run typecheck && npm test
 | `npm run lint`                    | Code quality check (dono apps)                          |
 | `npm run infra:up` / `infra:down` | Docker infra start / stop                               |
 
+## API Endpoints (abhi tak)
+
+| Method | URL               | Access                                                   |
+| ------ | ----------------- | -------------------------------------------------------- |
+| GET    | `/api/health`     | Public                                                   |
+| POST   | `/api/auth/login` | Public — `{ email, password }` → `{ accessToken, user }` |
+| GET    | `/api/auth/me`    | Koi bhi logged-in staff                                  |
+| GET    | `/api/staff`      | MANAGER, SUPER_ADMIN                                     |
+
+Test karne ke liye: `apps/api/api.http` (VS Code "REST Client" extension).
+Auth design: [ADR 0003](docs/decisions/0003-authentication.md)
+
 ## Folder Structure
 
 ```
@@ -57,7 +80,9 @@ calling-assistant/
 │   ├── api/            # NestJS backend  (@crm/api, port 4000)
 │   │   ├── prisma/     #   schema.prisma + migrations/ (database)
 │   │   ├── src/        #   main.ts = entry point, app.module.ts = root module
-│   │   │   └── prisma/ #   PrismaService (DB connection)
+│   │   │   ├── prisma/ #   PrismaService (DB connection)
+│   │   │   ├── auth/   #   login, JWT, guards, @Public/@Roles
+│   │   │   └── staff/  #   staff APIs
 │   │   └── test/       #   e2e tests
 │   └── web/            # Next.js frontend (@crm/web, port 3000)
 │       └── src/app/    #   pages (App Router)

@@ -16,8 +16,8 @@ Phases design doc (section 25) se liye gaye hain.
 
 - [x] 1.1 Prisma setup + DB connection (health endpoint DB check)
 - [x] 1.2 Schema: roles (enum), staff, teams — migration `init_staff_and_teams`
-- [ ] 1.3 Auth: login (JWT), password hashing
-- [ ] 1.4 RBAC: Super Admin / Manager / Team Leader / Assistant guards
+- [x] 1.3 Auth: login (JWT), password hashing (bcrypt), seed Super Admin
+- [x] 1.4 RBAC: global JwtAuthGuard + RolesGuard, `@Public()` / `@Roles()` decorators
 - [ ] 1.5 Users (customers) table + basic CRUD API
 - [ ] 1.6 Audit log base
 - [ ] 1.7 Frontend: login page + role-based layout

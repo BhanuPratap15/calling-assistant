@@ -42,3 +42,12 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Global module                     | NestJS me ek baar register, har jagah available                                              | `PrismaModule`                                |
 | Mock                              | Test me asli cheez (DB) ki jagah nakli object                                                | `app.controller.spec.ts`                      |
 | CI service container              | CI job ke saath chalne wala temporary DB                                                     | `ci.yml` → `services: postgres`               |
+| Password hashing (bcrypt)         | Password ko one-way "hash" me badalna; DB leak ho to bhi password nahi milta                 | `auth/password.ts`                            |
+| JWT (practical)                   | Login pe server signed token deta hai; har request me `Authorization: Bearer <token>`        | `auth.service.ts`                             |
+| Guard (NestJS)                    | Route se pehle chalne wala check — allow/deny                                                | `auth/guards/`                                |
+| Secure by default                 | Har route pe login zaroori; khula route explicitly `@Public()`                               | `JwtAuthGuard`                                |
+| 401 vs 403                        | 401 = login nahi / token galat; 403 = login hai par permission nahi                          | Guards                                        |
+| DTO + ValidationPipe              | Request body ka shape + rules; galat body → 400                                              | `auth/dto/login.dto.ts`                       |
+| Seed                              | DB me shuruaati zaroori data (pehla Super Admin)                                             | `prisma/seed.ts`                              |
+| Timing attack                     | Response time se secret ka andaza lagana — isliye email na mile tab bhi hash compare         | `auth.service.ts`                             |
+| `.http` file                      | VS Code se API requests bhejne ki file (Postman jaisa)                                       | `apps/api/api.http`                           |

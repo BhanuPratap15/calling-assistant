@@ -4,6 +4,7 @@
     "esbenp.prettier-vscode",
     "Prisma.prisma",
     "ms-azuretools.vscode-docker",
-    "bradlc.vscode-tailwindcss"
+    "bradlc.vscode-tailwindcss",
+    "humao.rest-client"
   ]
 }

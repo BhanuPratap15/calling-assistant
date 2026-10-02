@@ -21,7 +21,8 @@
     "typecheck": "npm run typecheck --workspaces",
     "db:migrate": "npm run db:migrate -w @crm/api --",
     "db:studio": "npm run db:studio -w @crm/api",
-    "db:generate": "npm run db:generate -w @crm/api"
+    "db:generate": "npm run db:generate -w @crm/api",
+    "db:seed": "npm run db:seed -w @crm/api"
   },
   "devDependencies": {
     "prettier": "^3.9.9"

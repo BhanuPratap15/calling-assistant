@@ -59,3 +59,10 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Unique constraint                 | DB khud duplicate rokta hai — app me bug ho tab bhi                                          | `phone @unique`                               |
 | Soft status (no delete)           | Delete ki jagah `DO_NOT_CALL` / `INVALID` — history bachi rahe                               | `CustomerStatus`                              |
 | Test isolation                    | Parallel tests apna-apna unique data use karein, ek doosre ka delete na karein               | `test/*.e2e-spec.ts`                          |
+| Privilege escalation              | Kam permission wala khud ko/doosre ko zyada power de de — isse rokna                         | `staff-permissions.ts`                        |
+| Lockout protection                | Admin galti se khud ko deactivate/demote na kar de                                           | `staff.service.ts`                            |
+| `select` (whitelist columns)      | Response me sirf chune hue columns — sensitive data kabhi leak nahi                          | `staff.select.ts`                             |
+| `_count`                          | Related rows gino bina unhe laaye (team ke members kitne)                                    | `teams.service.ts`                            |
+| 204 No Content                    | Kaam ho gaya, wapas bhejne ko kuch nahi (password reset)                                     | reset/change password                         |
+| null vs undefined (PATCH)         | `null` = value hatao (team se nikalo); field hi na bhejo = mat chhedo                        | `UpdateStaffDto.teamId`                       |
+| Data scoping                      | Ek hi API, role ke hisaab se alag data (TL ko sirf apni teams)                               | `teams.service.ts`                            |

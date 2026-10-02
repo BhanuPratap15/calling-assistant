@@ -66,7 +66,7 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 1.3 Auth: login (JWT), password hashing (bcrypt), seed Super Admin
 - [x] 1.4 RBAC: global JwtAuthGuard + RolesGuard, `@Public()` / `@Roles()` decorators
 - [x] 1.5 Customers (jinko call karna hai) table + CRUD API, phone normalize + duplicate check
-- [ ] 1.6 Staff & Team management APIs (staff banao, password set, team assign)
+- [x] 1.6 Staff & Team management APIs (staff banao, password set, team assign)
 - [ ] 1.7 Audit log base (kisne kya kab kiya)
 - [ ] 1.8 Frontend: login page, auth state, role-based layout
 - [ ] 1.9 Frontend: admin screens — staff, teams, customers

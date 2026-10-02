@@ -1,16 +1,19 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import type { Paginated } from '../common/pagination.dto.js';
 import { normalizePhone } from '../common/phone.js';
-import { Prisma, type Customer } from '../generated/prisma/client.js';
+import { withUniqueConflict } from '../common/prisma-errors.js';
+import type { Customer, Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateCustomerDto } from './dto/create-customer.dto.js';
 import type { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
 import type { UpdateCustomerDto } from './dto/update-customer.dto.js';
+
+const DUPLICATE_MESSAGE =
+  'A customer with this phone number or external ID already exists';
 
 @Injectable()
 export class CustomersService {
@@ -24,7 +27,10 @@ export class CustomersService {
       email: dto.email?.trim().toLowerCase(),
       createdById,
     };
-    return this.saveOrConflict(() => this.prisma.customer.create({ data }));
+    return withUniqueConflict(
+      () => this.prisma.customer.create({ data }),
+      DUPLICATE_MESSAGE,
+    );
   }
 
   async findAll(query: ListCustomersQueryDto): Promise<Paginated<Customer>> {
@@ -79,8 +85,9 @@ export class CustomersService {
           : this.optionalPhone(dto.alternatePhone),
       email: dto.email?.trim().toLowerCase(),
     };
-    return this.saveOrConflict(() =>
-      this.prisma.customer.update({ where: { id }, data }),
+    return withUniqueConflict(
+      () => this.prisma.customer.update({ where: { id }, data }),
+      DUPLICATE_MESSAGE,
     );
   }
 
@@ -96,22 +103,5 @@ export class CustomersService {
   private optionalPhone(value?: string): string | null {
     if (!value?.trim()) return null;
     return this.requireValidPhone(value, 'alternatePhone');
-  }
-
-  /** DB unique constraint toota (same phone/externalId) → 409 Conflict, 500 nahi */
-  private async saveOrConflict<T>(save: () => Promise<T>): Promise<T> {
-    try {
-      return await save();
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException(
-          'A customer with this phone number or external ID already exists',
-        );
-      }
-      throw error;
-    }
   }
 }

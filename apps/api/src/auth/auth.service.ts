@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthUser, JwtPayload } from './auth.types.js';
-import { verifyPassword } from './password.js';
+import { hashPassword, verifyPassword } from './password.js';
 
 // Email na mile tab bhi bcrypt compare chalao — warna response time se attacker
 // pata laga sakta hai ki kaunsa email exist karta hai ("timing attack").
@@ -48,5 +48,23 @@ export class AuthService {
         role: staff.role,
       },
     };
+  }
+
+  /** Logged-in staff apna password khud badle (purana password zaroori) */
+  async changePassword(
+    staffId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const staff = await this.prisma.staff.findUniqueOrThrow({
+      where: { id: staffId },
+    });
+    if (!(await verifyPassword(currentPassword, staff.passwordHash))) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    await this.prisma.staff.update({
+      where: { id: staffId },
+      data: { passwordHash: await hashPassword(newPassword) },
+    });
   }
 }

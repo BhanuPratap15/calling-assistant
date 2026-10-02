@@ -82,7 +82,8 @@ calling-assistant/
 │   │   ├── src/        #   main.ts = entry point, app.module.ts = root module
 │   │   │   ├── prisma/ #   PrismaService (DB connection)
 │   │   │   ├── auth/   #   login, JWT, guards, @Public/@Roles
-│   │   │   ├── staff/  #   staff APIs
+│   │   │   ├── staff/  #   staff APIs (create, roles, password reset)
+│   │   │   ├── teams/  #   teams APIs
 │   │   │   ├── customers/ # customers APIs (jinko call karna hai)
 │   │   │   └── common/ #   shared helpers (phone, pagination)
 │   │   └── test/       #   e2e tests

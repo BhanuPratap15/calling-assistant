@@ -81,3 +81,82 @@ Content-Type: application/json
 {
   "status": "DO_NOT_CALL"
 }
+
+# ---------------------------------------------------------------------
+# Staff & Teams (MANAGER; Team Leader sirf apni teams dekh sakta hai)
+# ---------------------------------------------------------------------
+
+### 12. Team Leader banao
+# @name createLeader
+POST {{baseUrl}}/staff
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Priya TL",
+  "email": "priya@crm.local",
+  "password": "Leader@123",
+  "role": "TEAM_LEADER"
+}
+
+### 13. Team banao (leader = upar wala TL)
+# @name createTeam
+POST {{baseUrl}}/teams
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Team Alpha",
+  "description": "Casino new users calling team",
+  "leaderId": "{{createLeader.response.body.id}}"
+}
+
+### 14. Assistant banao, seedha team me
+# @name createAssistant
+POST {{baseUrl}}/staff
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Amit",
+  "email": "amit@crm.local",
+  "password": "Assistant@123",
+  "role": "ASSISTANT",
+  "teamId": "{{createTeam.response.body.id}}"
+}
+
+### 15. Team detail (members ke saath)
+GET {{baseUrl}}/teams/{{createTeam.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 16. Staff list — filter: ?role=ASSISTANT&teamId=...&isActive=true
+GET {{baseUrl}}/staff?role=ASSISTANT
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 17. Assistant update (team se hatao: "teamId": null; deactivate: "isActive": false)
+PATCH {{baseUrl}}/staff/{{createAssistant.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "phone": "9876543210"
+}
+
+### 18. Assistant ka password reset (Manager) → 204
+POST {{baseUrl}}/staff/{{createAssistant.response.body.id}}/reset-password
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "newPassword": "NewPass@456"
+}
+
+### 19. Apna password badlo (Super Admin: seed wala default password badal do!)
+POST {{baseUrl}}/auth/change-password
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "ChangeMe@123",
+  "newPassword": "MyNewStrong@2026"
+}

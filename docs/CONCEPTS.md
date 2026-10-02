@@ -16,3 +16,13 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Environment variables | Config/secrets code ke bahar (`.env`) | DB password, JWT secret |
 | Healthcheck | Container ready hai ya nahi, check karne ka command | docker-compose |
 | ADR | Architecture decision ka record | `docs/decisions/` |
+| npm workspaces | Root `package.json` se saare apps ki dependencies ek saath install/manage | `"workspaces": ["apps/*"]` |
+| package-lock.json | Exact installed versions ka record — sabki machine pe same versions | Root pe, hamesha commit karo |
+| Module (NestJS) | Ek feature ka box: controller + service ek saath | `app.module.ts` |
+| Controller | URL/route sunta hai (GET /api/health) aur response deta hai | `app.controller.ts` |
+| Service | Asli business logic; controller isko call karta hai | `app.service.ts` |
+| Decorator | `@Get()`, `@Controller()` — function/class pe label jo framework ko batata hai kya karna hai | NestJS everywhere |
+| Dependency Injection | Class khud object nahi banati, framework bana ke deta hai (constructor me) | `constructor(private appService: AppService)` |
+| CORS | Browser security: ek origin (3000) dusre (4000) ko call kar sake, uski permission | `main.ts` |
+| Unit test vs e2e test | Unit = ek class akeli; e2e = poora app HTTP request se | `*.spec.ts`, `test/*.e2e-spec.ts` |
+| App Router (Next.js) | `src/app/` me folder = URL page (`app/login/page.tsx` → `/login`) | `apps/web/src/app` |

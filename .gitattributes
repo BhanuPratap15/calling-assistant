@@ -1,0 +1,2 @@
+# Windows/Linux/Mac sab pe line endings LF rahein (Windows pe CRLF issue nahi hoga)
+* text=auto eol=lf

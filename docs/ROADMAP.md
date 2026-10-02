@@ -7,8 +7,8 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 0.1 Repo + README + .gitignore + design summary
 - [x] 0.2 Tech stack decision (ADR 0001), roadmap, concepts doc
 - [x] 0.3 Docker Compose: PostgreSQL + Redis
-- [ ] 0.4 Monorepo skeleton (npm workspaces): `apps/api` (NestJS), `apps/web` (Next.js)
-- [ ] 0.5 Code quality: ESLint + Prettier
+- [x] 0.4 Monorepo skeleton (npm workspaces): `apps/api` (NestJS), `apps/web` (Next.js)
+- [ ] 0.5 Code quality: Prettier (root) + lint check (api: oxlint, web: ESLint — scaffold se already aaye)
 - [ ] 0.6 CI: GitHub Actions (lint + test har push pe)
 
 ## Phase 1 — Foundation

@@ -17,21 +17,38 @@ TypeScript · NestJS · Next.js · PostgreSQL · Prisma · Redis + BullMQ · Doc
 (Reason: [ADR 0001](docs/decisions/0001-tech-stack.md))
 
 ## Local Setup
-Requirements: Node.js 22 LTS+, Docker Desktop, Git
+Requirements: **Node.js 24 LTS** (npm 11 ke saath aata hai), Docker Desktop, Git
 
 ```bash
 cp .env.example .env          # local config
-docker compose up -d          # Postgres + Redis start
-docker compose ps             # dono "healthy" dikhne chahiye
+npm install                   # saare apps ki dependencies (root se hi chalana)
+npm run infra:up              # Postgres + Redis start (docker compose up -d)
+npm run dev:api               # Backend  → http://localhost:4000/api/health
+npm run dev:web               # Frontend → http://localhost:3000   (dusre terminal me)
 ```
 
-## Folder Structure (planned)
+## Useful Commands (root se chalao)
+| Command | Kya karta hai |
+|---|---|
+| `npm run dev:api` | NestJS backend watch mode me (file save → auto restart) |
+| `npm run dev:web` | Next.js frontend dev server |
+| `npm run build` | Dono apps ka production build |
+| `npm test` | Backend unit tests |
+| `npm run test:e2e -w @crm/api` | Backend end-to-end tests |
+| `npm run lint` | Code quality check (dono apps) |
+| `npm run infra:up` / `infra:down` | Docker infra start / stop |
+
+## Folder Structure
 ```
 calling-assistant/
 ├── apps/
-│   ├── api/            # NestJS backend        (step 0.4)
-│   └── web/            # Next.js frontend      (step 0.4)
+│   ├── api/            # NestJS backend  (@crm/api, port 4000)
+│   │   ├── src/        #   main.ts = entry point, app.module.ts = root module
+│   │   └── test/       #   e2e tests
+│   └── web/            # Next.js frontend (@crm/web, port 3000)
+│       └── src/app/    #   pages (App Router)
 ├── docs/               # design, roadmap, ADRs, concepts
+├── package.json        # root: npm workspaces + common scripts
 ├── docker-compose.yml  # local Postgres + Redis
 └── .env.example        # config template
 ```

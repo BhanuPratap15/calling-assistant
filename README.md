@@ -91,9 +91,9 @@ calling-assistant/
 │   │   └── test/       #   e2e tests
 │   └── web/            # Next.js frontend (@crm/web, port 3000)
 │       └── src/
-│           ├── app/          # pages (App Router): login/, (app)/dashboard, ...
-│           ├── components/   # AppShell (sidebar + header), ComingSoon
-│           ├── lib/          # api.ts, auth-context.tsx, navigation.ts (role menu)
+│           ├── app/          # pages: login/, (app)/dashboard, staff, teams, teams/[id], customers, audit-logs
+│           ├── components/   # ui/ (Button, Field, Modal, Table, Badge, Pagination), AppShell, feature modals
+│           ├── lib/          # api.ts, auth-context, use-api (data hook), navigation (role menu), permissions
 │           └── proxy.ts      # login nahi → /login redirect
 ├── docs/               # design, roadmap, ADRs, concepts
 ├── package.json        # root: npm workspaces + common scripts

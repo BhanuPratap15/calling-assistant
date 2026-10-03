@@ -69,7 +69,7 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 1.6 Staff & Team management APIs (staff banao, password set, team assign)
 - [x] 1.7 Audit log base (kisne kya kab kiya)
 - [x] 1.8 Frontend: login page, auth state, role-based layout
-- [ ] 1.9 Frontend: admin screens — staff, teams, customers
+- [x] 1.9 Frontend: admin screens — staff, teams, customers
 
 ## Phase 2 — Calling Workflow (core)
 

@@ -84,3 +84,12 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Rewrite                           | URL ko chupchaap doosri jagah bhejna (`/api` → backend)                                      | `next.config.ts`                              |
 | httpOnly cookie                   | Browser cookie jo JavaScript nahi padh sakti                                                 | Login token                                   |
 | Hydration                         | Server ka HTML browser me React se "zinda" hona; dono same hone chahiye                      | Next.js                                       |
+| Reusable UI components            | Button, Input, Modal, Table — ek baar banao, har page pe use                                 | `components/ui/`                              |
+| Custom hook                       | Apna `useXyz()` function jo state/effect logic share kare                                    | `lib/use-api.ts`, `use-debounce.ts`           |
+| Derived state                     | Jo value calculate ho sakti hai use alag state me mat rakho                                  | `useApi` ka `loading`                         |
+| Race condition                    | Purani request ka jawab nayi ke baad aaye — `cancelled` flag se ignore                       | `useApi`                                      |
+| Debounce                          | Typing rukne ke baad hi action (search API call)                                             | Customers search                              |
+| Dynamic route `[id]`              | URL ka hissa variable: `/teams/abc` → `id = 'abc'`                                           | `app/(app)/teams/[id]`                        |
+| Controlled input                  | Input ki value React state se: `value={x} onChange={...}`                                    | Saare forms                                   |
+| Accessibility (a11y)              | Label ↔ input jode (`htmlFor` + `id`), screen reader / keyboard users ke liye                | `components/ui/form.tsx`                      |
+| UI vs backend permission          | Button chhupana = sirf UX; asli rok backend `@Roles()` me                                    | `lib/permissions.ts`                          |

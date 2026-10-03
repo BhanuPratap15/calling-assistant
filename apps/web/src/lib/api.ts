@@ -21,7 +21,7 @@ export const BACKEND_UNREACHABLE_MESSAGE =
   'Backend (API) se connect nahi ho paya. Check karein: `npm run dev:api` chal raha hai aur uske terminal me koi error to nahi?';
 
 interface ApiOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
 }
 

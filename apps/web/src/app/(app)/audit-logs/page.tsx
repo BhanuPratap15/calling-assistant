@@ -22,8 +22,21 @@ const ACTIONS = [
   'team.updated',
   'customer.created',
   'customer.updated',
+  'call_outcome.created',
+  'call_outcome.updated',
+  'next_action.created',
+  'next_action.updated',
+  'setting.updated',
 ];
-const ENTITY_TYPES = ['auth', 'staff', 'team', 'customer'];
+const ENTITY_TYPES = [
+  'auth',
+  'staff',
+  'team',
+  'customer',
+  'call_outcome',
+  'next_action',
+  'setting',
+];
 
 const show = (value: unknown) =>
   value === null || value === undefined || value === '' ? '∅' : String(value);

@@ -12,6 +12,7 @@ const DESCRIPTIONS: Record<string, string> = {
   '/teams': 'Teams aur unke members',
   '/staff': 'Assistants aur Team Leaders manage karo',
   '/audit-logs': 'Kisne kya kab kiya — poori history',
+  '/settings': 'Call outcomes, next actions, mandatory fields',
 };
 
 export default function DashboardPage() {

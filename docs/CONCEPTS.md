@@ -93,3 +93,9 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Controlled input                  | Input ki value React state se: `value={x} onChange={...}`                                    | Saare forms                                   |
 | Accessibility (a11y)              | Label ↔ input jode (`htmlFor` + `id`), screen reader / keyboard users ke liye                | `components/ui/form.tsx`                      |
 | UI vs backend permission          | Button chhupana = sirf UX; asli rok backend `@Roles()` me                                    | `lib/permissions.ts`                          |
+| Configuration over code           | Business rules DB/settings me, taaki bina deploy badal sakein                                | `call_outcomes`, `system_settings`            |
+| Data migration                    | Migration me sirf tables nahi, default data bhi (`INSERT ... ON CONFLICT DO NOTHING`)        | `add_call_form_config` migration              |
+| Idempotent                        | Kitni baar bhi chalao, result same (duplicate nahi)                                          | `ON CONFLICT DO NOTHING`, seed                |
+| Upsert                            | Hai to update, nahi to insert                                                                | `systemSetting.upsert`                        |
+| PUT vs PATCH                      | PUT = poori cheez replace; PATCH = sirf kuch fields                                          | `/call-config/required-fields`                |
+| Code vs label                     | Code = permanent ID (reports), label = dikhne wala naam (badal sakte)                        | Call outcomes                                 |

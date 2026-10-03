@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/teams', label: 'Teams', roles: ['MANAGER', 'TEAM_LEADER'] },
   { href: '/staff', label: 'Staff', roles: ['MANAGER'] },
   { href: '/audit-logs', label: 'Audit Logs', roles: ['MANAGER'] },
+  { href: '/settings', label: 'Settings', roles: ['MANAGER'] },
 ];
 
 export function canSee(item: NavItem, role: StaffRole): boolean {

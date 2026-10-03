@@ -13,11 +13,25 @@ export const AuditAction = {
   TEAM_UPDATED: 'team.updated',
   CUSTOMER_CREATED: 'customer.created',
   CUSTOMER_UPDATED: 'customer.updated',
+  CALL_OUTCOME_CREATED: 'call_outcome.created',
+  CALL_OUTCOME_UPDATED: 'call_outcome.updated',
+  NEXT_ACTION_CREATED: 'next_action.created',
+  NEXT_ACTION_UPDATED: 'next_action.updated',
+  SETTING_UPDATED: 'setting.updated',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
-export type AuditEntityType = 'auth' | 'staff' | 'team' | 'customer';
+export const AUDIT_ENTITY_TYPES = [
+  'auth',
+  'staff',
+  'team',
+  'customer',
+  'call_outcome',
+  'next_action',
+  'setting',
+] as const;
+export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
 /** { phone: { from: "+91...", to: "+91..." } } */
 export type AuditChanges = Record<string, { from: unknown; to: unknown }>;

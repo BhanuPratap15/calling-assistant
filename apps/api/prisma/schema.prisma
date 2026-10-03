@@ -165,3 +165,49 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// =====================================================================
+// CALL FORM CONFIGURATION (Phase 2.1)
+// Hard-coded nahi — Manager Settings screen se badal sakta hai.
+// Default values migration me daali gayi hain (har environment me same).
+// =====================================================================
+
+/// Call ka nateeja: Connected, No Answer, Busy... (design doc section 6)
+model CallOutcome {
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique // e.g. "NO_ANSWER" — kabhi nahi badalta (reports isi se)
+  label       String // screen pe dikhne wala naam — badal sakte hain
+  isConnected Boolean @default(false) @map("is_connected") // customer se baat hui? (connected = notes/rating maange ja sakte hain)
+  isActive    Boolean @default(true) @map("is_active")
+  sortOrder   Int     @default(0) @map("sort_order") // dropdown me kis order me
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("call_outcomes")
+}
+
+/// Call ke baad kya karna hai: No Further Action, Follow-up, Call Again...
+model NextAction {
+  id               String  @id @default(uuid()) @db.Uuid
+  code             String  @unique
+  label            String
+  requiresFollowUp Boolean @default(false) @map("requires_follow_up") // true → follow-up date/time mandatory
+  isActive         Boolean @default(true) @map("is_active")
+  sortOrder        Int     @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("next_actions")
+}
+
+/// Key-value settings (JSON). e.g. key "call_form.required_fields"
+model SystemSetting {
+  key         String   @id
+  value       Json
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("system_settings")
+}

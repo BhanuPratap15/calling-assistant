@@ -93,3 +93,36 @@ export interface Paginated<T> {
   data: T[];
   meta: { page: number; pageSize: number; total: number; totalPages: number };
 }
+
+// ---- Call form configuration (Step 2.1) ----
+export type RequiredRule = 'always' | 'connected' | 'optional';
+
+export interface CallOutcome {
+  id: string;
+  code: string;
+  label: string;
+  isConnected: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface NextAction {
+  id: string;
+  code: string;
+  label: string;
+  requiresFollowUp: boolean;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface RequiredFieldsConfig {
+  userResponse: RequiredRule;
+  notes: RequiredRule;
+  interestRating: RequiredRule;
+}
+
+export interface CallConfig {
+  outcomes: CallOutcome[];
+  nextActions: NextAction[];
+  requiredFields: RequiredFieldsConfig;
+}

@@ -180,3 +180,38 @@ Authorization: Bearer {{login.response.body.accessToken}}
 ### 23. Date range (from / to)
 GET {{baseUrl}}/audit-logs?from=2026-10-01&to=2026-12-31&entityType=staff
 Authorization: Bearer {{login.response.body.accessToken}}
+
+# ---------------------------------------------------------------------
+# Call form settings (Step 2.1)
+# ---------------------------------------------------------------------
+
+### 24. Call form config (koi bhi logged-in — assistant ka form isse banega)
+GET {{baseUrl}}/call-config
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 25. Admin view (inactive options bhi) — MANAGER
+GET {{baseUrl}}/call-config/admin
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 26. Naya call outcome — MANAGER
+POST {{baseUrl}}/call-config/outcomes
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "code": "CALLBACK_REQUESTED",
+  "label": "Callback Requested",
+  "isConnected": true,
+  "sortOrder": 25
+}
+
+### 27. Mandatory fields badlo — rule: "always" | "connected" | "optional"
+PUT {{baseUrl}}/call-config/required-fields
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "userResponse": "connected",
+  "notes": "always",
+  "interestRating": "connected"
+}

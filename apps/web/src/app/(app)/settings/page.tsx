@@ -5,6 +5,7 @@ import {
   OptionFormModal,
   type OptionFormConfig,
 } from '@/components/settings/option-form-modal';
+import { FollowUpTimingCard } from '@/components/settings/follow-up-timing-card';
 import { RequiredFieldsCard } from '@/components/settings/required-fields-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -148,6 +149,13 @@ export default function SettingsPage() {
                 </tr>
               ))}
             </Table>
+          </Section>
+
+          <Section title="Follow-up timing">
+            <FollowUpTimingCard
+              initial={config.data.followUpTiming}
+              onSaved={config.reload}
+            />
           </Section>
 
           <Section title="Mandatory fields">

@@ -108,3 +108,15 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Pure function                     | Sirf input → output, koi DB/network nahi — test aasaan                                       | `validateCallForm`                            |
 | State machine                     | Fixed states + allowed transitions (ASSIGNED → IN_PROGRESS → COMPLETED/CANCELLED)            | `AssignmentStatus`                            |
 | Concurrency test                  | Ek saath kai requests bhej ke duplicate na hone ka proof                                     | `test/calling.e2e-spec.ts`                    |
+| Background job                    | Request ke bahar chalne wala kaam (reminders, escalation)                                    | `scheduler/` module                           |
+| Queue (BullMQ)                    | Redis me jobs ki line; worker uthata hai, retry karta hai                                    | `follow-ups` queue                            |
+| Job scheduler / repeatable job    | "Har 30 sec ye job" — Redis me ek hi schedule, chahe kitne servers                           | `upsertJobScheduler`                          |
+| Worker / Processor                | Queue se job leke kaam karne wala code                                                       | `FollowUpProcessor`                           |
+| Polling (DB as source of truth)   | Har tick DB se poochho "kya baaki hai" — job miss ho to bhi agla tick pakad le               | `FollowUpSchedulerService.tick()`             |
+| Time travel testing               | Function ko `now` parameter do, tests me future time pass karo                               | `tick(now)` e2e                               |
+| Heartbeat / presence              | Har request pe "abhi online hoon" — band browser pakadne ke liye                             | `last_seen_at`                                |
+| Escalation                        | Kaam time pe na ho to aage badhana (doosra assistant / TL)                                   | Follow-up engine                              |
+| Feature flag (env)                | Env variable se feature on/off                                                               | `SCHEDULER_ENABLED`                           |
+| Smoke test                        | Built app chala ke basic health check — "dhuaan to nahi nikal raha"                          | CI last step                                  |
+| Optimistic update (UI)            | Pehle UI badlo, server fail ho to wapas                                                      | Availability dropdown                         |
+| `@Optional()` injection           | Dependency ho to do, na ho to undefined (crash nahi)                                         | Health check queue                            |

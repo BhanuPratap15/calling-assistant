@@ -31,6 +31,13 @@ const ACTIONS = [
   'assignment.reassigned',
   'assignment.cancelled',
   'call.completed',
+  'staff.availability_changed',
+  'follow_up.created',
+  'follow_up.completed',
+  'follow_up.rescheduled',
+  'follow_up.reassigned',
+  'follow_up.escalated',
+  'follow_up.cancelled',
 ];
 const ENTITY_TYPES = [
   'auth',
@@ -42,6 +49,7 @@ const ENTITY_TYPES = [
   'setting',
   'assignment',
   'call',
+  'follow_up',
 ];
 
 const show = (value: unknown) =>

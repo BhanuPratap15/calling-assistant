@@ -21,7 +21,11 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Start Calling',
     roles: ['ASSISTANT', 'TEAM_LEADER'],
   },
-  { href: '/follow-ups', label: 'My Follow-ups', roles: ['ASSISTANT'] },
+  {
+    href: '/follow-ups',
+    label: 'Follow-ups',
+    roles: ['MANAGER', 'TEAM_LEADER', 'ASSISTANT'],
+  },
   { href: '/customers', label: 'Customers', roles: ['MANAGER', 'TEAM_LEADER'] },
   {
     href: '/assignments',

@@ -23,6 +23,7 @@ interface AuthContextValue {
   sessionError: string | null; // session check hi fail hua (e.g. backend band) — 401 nahi
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>; // e.g. availability server ne badli (ON_CALL)
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -64,8 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: { email, password },
     });
-    setUser(result.user);
-    return result.user;
+    // login response me availability nahi — /auth/me se poora user (login ne AVAILABLE kiya hoga)
+    const fresh = await api<AuthUser>('/auth/me').catch(() => result.user);
+    setUser(fresh);
+    return fresh;
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const fresh = await api<AuthUser>('/auth/me').catch(() => null);
+    if (fresh) setUser(fresh);
   }, []);
 
   const logout = useCallback(async () => {
@@ -75,8 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ user, loading, sessionError, login, logout }),
-    [user, loading, sessionError, login, logout],
+    () => ({ user, loading, sessionError, login, logout, refreshUser }),
+    [user, loading, sessionError, login, logout, refreshUser],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

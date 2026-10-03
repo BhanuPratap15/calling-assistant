@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
+import { AvailabilitySelect } from '@/components/layout/availability-select';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import { useAuth } from '@/lib/auth-context';
 import { canSee, findNavItem, NAV_ITEMS } from '@/lib/navigation';
 import { ROLE_LABELS } from '@/lib/types';
@@ -80,6 +82,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-end gap-4 border-b border-slate-200 bg-white px-6 py-3">
+          {(user.role === 'ASSISTANT' || user.role === 'TEAM_LEADER') &&
+            user.availability && (
+              <AvailabilitySelect
+                key={user.availability}
+                initial={user.availability}
+              />
+            )}
+          <NotificationBell />
           <div className="text-right">
             <p className="text-sm font-medium text-slate-900">{user.name}</p>
             <p className="text-xs text-slate-500">{user.email}</p>

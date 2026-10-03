@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: StaffRole;
+  availability?: Availability; // /auth/me se (login response me nahi)
 }
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
@@ -128,12 +129,13 @@ export interface CallConfig {
   outcomes: CallOutcome[];
   nextActions: NextAction[];
   requiredFields: RequiredFieldsConfig;
+  followUpTiming: FollowUpTimingConfig;
 }
 
 // ---- Calling workflow (Phase 2) ----
 export type AssignmentStatus =
   'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type AssignmentSource = 'AUTO' | 'MANUAL';
+export type AssignmentSource = 'AUTO' | 'MANUAL' | 'FOLLOW_UP';
 
 export interface CallRecord {
   id: string;
@@ -166,6 +168,13 @@ export interface CurrentAssignment {
   id: string;
   source: AssignmentSource;
   startedAt: string | null;
+  followUp: {
+    id: string;
+    dueAt: string;
+    escalationCount: number;
+    originalOwner: { id: string; name: string };
+    sourceCall: { userResponse: string | null; notes: string | null };
+  } | null;
   customer: CustomerProfile;
 }
 
@@ -188,4 +197,53 @@ export interface AssignableStaff {
   role: StaffRole;
   availability: Availability;
   team: { name: string } | null;
+}
+
+// ---- Follow-ups + notifications (Phase 3) ----
+export type FollowUpStatus =
+  'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type FollowUpBucket =
+  'open' | 'upcoming' | 'due' | 'overdue' | 'completed' | 'cancelled';
+
+export interface FollowUp {
+  id: string;
+  status: FollowUpStatus;
+  dueAt: string;
+  escalationCount: number;
+  escalatedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  customer: { id: string; name: string; phone: string; priority: Priority };
+  owner: { id: string; name: string };
+  originalOwner: { id: string; name: string };
+  sourceCall: {
+    userResponse: string | null;
+    notes: string | null;
+    interestRating: number | null;
+    outcome: { label: string };
+  };
+}
+
+export interface FollowUpSummary {
+  upcoming: number;
+  due: number;
+  overdue: number;
+  completedToday: number;
+}
+
+export interface FollowUpTimingConfig {
+  reminderMinutesBefore: number;
+  gracePeriodMinutes: number;
+  presenceTimeoutMinutes: number;
+}
+
+export interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
 }

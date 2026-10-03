@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { FollowUpSummaryCards } from '@/components/follow-ups/follow-up-summary-cards';
 import { useAuth } from '@/lib/auth-context';
 import { canSee, NAV_ITEMS } from '@/lib/navigation';
-import { ROLE_LABELS } from '@/lib/types';
+import { ROLE_LABELS, type FollowUpSummary } from '@/lib/types';
+import { useApi } from '@/lib/use-api';
 
 const DESCRIPTIONS: Record<string, string> = {
   '/calling': 'Agla customer lo, call karo, form bharo — Save & Next',
@@ -18,6 +20,7 @@ const DESCRIPTIONS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const followUps = useApi<FollowUpSummary>('/follow-ups/summary');
   if (!user) return null;
 
   const shortcuts = NAV_ITEMS.filter(
@@ -32,6 +35,20 @@ export default function DashboardPage() {
       <p className="mt-1 text-slate-500">
         Aap {ROLE_LABELS[user.role]} ke roop me logged in hain.
       </p>
+
+      {followUps.data && (
+        <div className="mt-6">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Follow-ups{' '}
+            {user.role === 'ASSISTANT'
+              ? '(mere)'
+              : user.role === 'TEAM_LEADER'
+                ? '(team)'
+                : ''}
+          </h2>
+          <FollowUpSummaryCards summary={followUps.data} />
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {shortcuts.map((item) => (
@@ -49,7 +66,8 @@ export default function DashboardPage() {
       </div>
 
       <p className="mt-8 text-sm text-slate-400">
-        Live numbers (calls, follow-ups, categories) Phase 8 me yahan aayenge.
+        Calls, categories aur team performance ke live numbers Phase 8 me yahan
+        aayenge.
       </p>
     </div>
   );

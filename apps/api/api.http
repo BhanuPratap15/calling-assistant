@@ -265,3 +265,52 @@ Authorization: Bearer {{login.response.body.accessToken}}
 ### 34. Assign dropdown options (role ke hisaab se)
 GET {{baseUrl}}/assignments/assignable-staff
 Authorization: Bearer {{login.response.body.accessToken}}
+
+# ---------------------------------------------------------------------
+# Follow-ups, availability, notifications (Phase 3)
+# ---------------------------------------------------------------------
+
+### 35. Apna status: AVAILABLE | BREAK | OFFLINE  (ON_CALL system set karta hai)
+PATCH {{baseUrl}}/auth/availability
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "availability": "BREAK"
+}
+
+### 36. Follow-ups — bucket: open | upcoming | due | overdue | completed | cancelled
+GET {{baseUrl}}/follow-ups?bucket=open
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 37. Follow-up counts (dashboard cards)
+GET {{baseUrl}}/follow-ups/summary
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 38. Reschedule (owner / Manager / TL) — id request 36 se
+POST {{baseUrl}}/follow-ups/PASTE-FOLLOW-UP-ID/reschedule
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "dueAt": "2026-12-31T16:00:00+05:30"
+}
+
+### 39. Notifications (sirf apni)
+GET {{baseUrl}}/notifications
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 40. Unread count (header bell)
+GET {{baseUrl}}/notifications/unread-count
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 41. Follow-up timing (MANAGER) — minutes
+PUT {{baseUrl}}/call-config/follow-up-timing
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "reminderMinutesBefore": 1,
+  "gracePeriodMinutes": 10,
+  "presenceTimeoutMinutes": 5
+}

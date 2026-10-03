@@ -10,7 +10,7 @@ Phases design doc (section 25) se liye gaye hain.
 | 0 — Project Setup        | 6      | —                       | ✅ Done |
 | 1 — Foundation           | 9      | —                       | ✅ Done |
 | 2 — Calling Workflow     | 7      | —                       | ✅ Done |
-| 3 — Follow-ups           | 6      | 6–7                     | ⬜      |
+| 3 — Follow-ups           | 6      | —                       | ✅ Done |
 | 4 — Rating & Categories  | 4      | 3                       | ⬜      |
 | 5 — Campaigns            | 4      | 4                       | ⬜      |
 | 6 — Bulk Import          | 4      | 4                       | ⬜      |
@@ -21,12 +21,12 @@ Phases design doc (section 25) se liye gaye hain.
 
 ### Timeline (full-time, ~6–8 ghante/din, seekhte hue)
 
-| Milestone                                                                                                       | Kab tak (approx.) |
-| --------------------------------------------------------------------------------------------------------------- | ----------------- |
-| **M1 — Foundation ready** (login, staff/teams/customers admin UI)                                               | Week 1–2          |
-| **M2 — Pilot / MVP** (assistants real calling shuru kar sakein: assignment, call form, Save & Next, follow-ups) | Week 4–5          |
-| **M3 — Feature complete** (categories, campaigns, import, provider, dashboard)                                  | Week 7–8          |
-| **M4 — Production live** (security, deploy, backups, monitoring, load test)                                     | Week 9–10         |
+| Milestone                                                                                                       | Kab tak (approx.)                  |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **M1 — Foundation ready** (login, staff/teams/customers admin UI)                                               | ✅ Done                            |
+| **M2 — Pilot / MVP** (assistants real calling shuru kar sakein: assignment, call form, Save & Next, follow-ups) | ✅ Done (pilot test ke liye ready) |
+| **M3 — Feature complete** (categories, campaigns, import, provider, dashboard)                                  | Week 7–8                           |
+| **M4 — Production live** (security, deploy, backups, monitoring, load test)                                     | Week 9–10                          |
 
 > Estimates hain, promise nahi. Ye badal sakte hain agar:
 >
@@ -59,7 +59,7 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 0.5 Code quality: Prettier (root) + lint (api: oxlint, web: ESLint) + typecheck
 - [x] 0.6 CI: GitHub Actions (format, lint, typecheck, test, build — har push pe)
 
-## Phase 1 — Foundation
+## Phase 1 — Foundation ✅
 
 - [x] 1.1 Prisma setup + DB connection (health endpoint DB check)
 - [x] 1.2 Schema: roles (enum), staff, teams — migration `init_staff_and_teams`
@@ -71,7 +71,7 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 1.8 Frontend: login page, auth state, role-based layout
 - [x] 1.9 Frontend: admin screens — staff, teams, customers
 
-## Phase 2 — Calling Workflow (core)
+## Phase 2 — Calling Workflow (core) ✅
 
 - [x] 2.1 Configurable settings: call outcomes, next actions, mandatory fields
 - [x] 2.2 Assignment engine — backend lock, ONE customer at a time, no duplicates
@@ -81,14 +81,14 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 2.6 Frontend: assistant calling screen (Start Calling → profile → form → Save & Next)
 - [x] 2.7 Manager manual assignment / reassignment (API + UI)
 
-## Phase 3 — Follow-ups
+## Phase 3 — Follow-ups ✅
 
-- [ ] 3.1 Follow-ups table — call save pe automatic create
-- [ ] 3.2 Assistant availability (Available / On Call / Break / Offline) — API + UI toggle
-- [ ] 3.3 BullMQ + Redis setup — scheduled reminder jobs
-- [ ] 3.4 Due → grace period → escalation to another available assistant
-- [ ] 3.5 In-app notifications (assistant, TL, manager)
-- [ ] 3.6 Frontend: follow-up list (due / pending / overdue)
+- [x] 3.1 Follow-ups table — call save pe automatic create
+- [x] 3.2 Assistant availability (Available / On Call / Break / Offline) — API + UI toggle
+- [x] 3.3 BullMQ + Redis setup — scheduled reminder jobs
+- [x] 3.4 Due → grace period → escalation to another available assistant
+- [x] 3.5 In-app notifications (assistant, TL, manager)
+- [x] 3.6 Frontend: follow-up list (due / pending / overdue)
 
 ## Phase 4 — Rating & Categories
 

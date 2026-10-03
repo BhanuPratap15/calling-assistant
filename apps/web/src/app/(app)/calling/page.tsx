@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/ui/form';
 import { PageHeader } from '@/components/ui/page-header';
 import { api, ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
+import { formatDateTime } from '@/lib/format';
 import type { CallConfig, CurrentAssignment } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
 
@@ -17,6 +19,7 @@ import { useApi } from '@/lib/use-api';
  */
 export default function CallingPage() {
   const config = useApi<CallConfig>('/call-config');
+  const { refreshUser } = useAuth(); // header ka availability (ON_CALL / AVAILABLE) sync
   // undefined = abhi load ho raha; null = koi current customer nahi
   const [current, setCurrent] = useState<CurrentAssignment | null | undefined>(
     undefined,
@@ -42,6 +45,8 @@ export default function CallingPage() {
         { method: 'POST' },
       );
       setCurrent(r.current);
+      void refreshUser();
+      void refreshUser();
       if (!r.current)
         setMessage(
           'Abhi koi customer available nahi hai. Thodi der baad try karein.',
@@ -116,7 +121,29 @@ export default function CallingPage() {
               {current.source === 'MANUAL' && (
                 <Badge tone="yellow">Assigned by manager</Badge>
               )}
+              {current.source === 'FOLLOW_UP' && (
+                <Badge tone="red">Follow-up</Badge>
+              )}
             </div>
+            {current.followUp && (
+              // Design doc 8.1: "New assistant sees original request + full history"
+              <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                <p className="font-semibold">
+                  ⏰ Follow-up due {formatDateTime(current.followUp.dueAt)}
+                </p>
+                <p className="mt-1">
+                  Promised by <b>{current.followUp.originalOwner.name}</b>
+                  {current.followUp.escalationCount > 0 &&
+                    ` · escalated ${current.followUp.escalationCount}×`}
+                </p>
+                {current.followUp.sourceCall.userResponse && (
+                  <p className="mt-1">
+                    Customer ne kaha tha: “
+                    {current.followUp.sourceCall.userResponse}”
+                  </p>
+                )}
+              </div>
+            )}
             <CustomerProfileView customer={current.customer} />
           </div>
           {/* key = naye customer pe form fresh banega */}

@@ -85,6 +85,10 @@ model Staff {
   customersCreated Customer[] @relation("CustomerCreatedBy")
   auditLogs        AuditLog[] @relation("AuditActor")
 
+  assignments        Assignment[] @relation("AssignmentStaff")
+  assignmentsCreated Assignment[] @relation("AssignmentCreatedBy")
+  calls              Call[]
+
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -130,6 +134,13 @@ model Customer {
   priority       Priority       @default(NORMAL)
   notes          String? // general notes (call ke notes alag table me aayenge — Phase 2)
 
+  // Calling summary (har call save pe update) — list/profile/assignment ke liye fast
+  lastCalledAt DateTime? @map("last_called_at") @db.Timestamptz(3)
+  callCount    Int       @default(0) @map("call_count")
+
+  assignments Assignment[]
+  calls       Call[]
+
   createdById String? @map("created_by_id") @db.Uuid
   createdBy   Staff?  @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
@@ -138,6 +149,7 @@ model Customer {
 
   @@index([status, priority]) // "call karne layak, high priority pehle" query fast
   @@index([name])
+  @@index([status, lastCalledAt, priority, createdAt]) // assignment engine ki query
   @@map("customers")
 }
 
@@ -181,6 +193,8 @@ model CallOutcome {
   isActive    Boolean @default(true) @map("is_active")
   sortOrder   Int     @default(0) @map("sort_order") // dropdown me kis order me
 
+  calls Call[]
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -196,6 +210,8 @@ model NextAction {
   isActive         Boolean @default(true) @map("is_active")
   sortOrder        Int     @default(0) @map("sort_order")
 
+  calls Call[]
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -210,4 +226,89 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("system_settings")
+}
+
+// =====================================================================
+// CALLING WORKFLOW (Phase 2)
+// =====================================================================
+
+/// Assignment ki zindagi:  ASSIGNED (manager ne queue me daala) → IN_PROGRESS (assistant ki current screen)
+///                          → COMPLETED (call save) | CANCELLED (manager ne hataya / reassign kiya)
+enum AssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@map("assignment_status")
+}
+
+enum AssignmentSource {
+  AUTO // assistant ne "Start Calling" se khud liya (pull)
+  MANUAL // manager / team leader ne diya
+
+  @@map("assignment_source")
+}
+
+/// Kaunsa customer kis staff ke paas hai. Ek customer = ek waqt me sirf EK open assignment.
+model Assignment {
+  id     String           @id @default(uuid()) @db.Uuid
+  status AssignmentStatus
+  source AssignmentSource
+
+  customerId String   @map("customer_id") @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
+  staffId    String   @map("staff_id") @db.Uuid
+  staff      Staff    @relation("AssignmentStaff", fields: [staffId], references: [id])
+
+  createdById String? @map("created_by_id") @db.Uuid // MANUAL ho to kisne diya
+  createdBy   Staff?  @relation("AssignmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  /// DUPLICATE ROKNE KI TRICK (database-level guarantee, race condition me bhi):
+  ///   openCustomerId    = customerId jab tak ASSIGNED/IN_PROGRESS, warna NULL
+  ///   inProgressStaffId = staffId    jab tak IN_PROGRESS,          warna NULL
+  /// @unique + NULL allowed → ek customer ka ek hi open assignment, ek staff ka ek hi current customer.
+  openCustomerId    String? @unique @map("open_customer_id") @db.Uuid
+  inProgressStaffId String? @unique @map("in_progress_staff_id") @db.Uuid
+
+  calls Call[]
+
+  startedAt   DateTime? @map("started_at") @db.Timestamptz(3) // IN_PROGRESS kab hua
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([staffId, status])
+  @@index([customerId, createdAt])
+  @@map("assignments")
+}
+
+/// Ek call ka record (call form). Customer ki permanent history.
+model Call {
+  id String @id @default(uuid()) @db.Uuid
+
+  customerId   String      @map("customer_id") @db.Uuid
+  customer     Customer    @relation(fields: [customerId], references: [id])
+  staffId      String      @map("staff_id") @db.Uuid
+  staff        Staff       @relation(fields: [staffId], references: [id])
+  assignmentId String?     @map("assignment_id") @db.Uuid
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  outcomeId    String      @map("outcome_id") @db.Uuid
+  outcome      CallOutcome @relation(fields: [outcomeId], references: [id])
+  nextActionId String      @map("next_action_id") @db.Uuid
+  nextAction   NextAction  @relation(fields: [nextActionId], references: [id])
+
+  userResponse   String?   @map("user_response") // customer ne kya kaha (structured/short)
+  notes          String? // poori baat-cheet ke notes
+  interestRating Int?      @map("interest_rating") // 0–10 (Phase 4: category isi se)
+  followUpAt     DateTime? @map("follow_up_at") @db.Timestamptz(3) // Phase 3: follow-up record isi se banega
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([customerId, createdAt]) // customer history
+  @@index([staffId, createdAt]) // assistant ki calls (reports)
+  @@index([createdAt])
+  @@map("calls")
 }

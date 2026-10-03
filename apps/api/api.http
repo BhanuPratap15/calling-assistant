@@ -215,3 +215,53 @@ Content-Type: application/json
   "notes": "always",
   "interestRating": "connected"
 }
+
+# ---------------------------------------------------------------------
+# Calling workflow (Phase 2) — ASSISTANT / TEAM_LEADER token se chalao
+# (Super Admin se bhi chal jaata hai)
+# ---------------------------------------------------------------------
+
+### 28. Current customer (null = koi nahi)
+GET {{baseUrl}}/calling/current
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 29. Start Calling → ek customer milega
+# @name startCalling
+POST {{baseUrl}}/calling/next
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 30. Save & Next — outcomeId / nextActionId request 24 (/call-config) se copy karo
+POST {{baseUrl}}/calling/complete
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "outcomeId": "PASTE-OUTCOME-ID",
+  "nextActionId": "PASTE-NEXT-ACTION-ID",
+  "userResponse": "Call me at 4 PM",
+  "notes": "Interested in VIP program",
+  "interestRating": 9,
+  "followUpAt": "2026-12-31T16:00:00+05:30"
+}
+
+### 31. Customer 360° profile
+GET {{baseUrl}}/customers/{{createCustomer.response.body.id}}/profile
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 32. Manual assign (MANAGER / TEAM_LEADER)
+POST {{baseUrl}}/assignments
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "customerId": "{{createCustomer.response.body.id}}",
+  "staffId": "{{createAssistant.response.body.id}}"
+}
+
+### 33. Open assignments (status: open | ASSIGNED | IN_PROGRESS | COMPLETED | CANCELLED)
+GET {{baseUrl}}/assignments?status=open
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 34. Assign dropdown options (role ke hisaab se)
+GET {{baseUrl}}/assignments/assignable-staff
+Authorization: Bearer {{login.response.body.accessToken}}

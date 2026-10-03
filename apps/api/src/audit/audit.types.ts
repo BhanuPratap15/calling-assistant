@@ -18,6 +18,10 @@ export const AuditAction = {
   NEXT_ACTION_CREATED: 'next_action.created',
   NEXT_ACTION_UPDATED: 'next_action.updated',
   SETTING_UPDATED: 'setting.updated',
+  ASSIGNMENT_CREATED: 'assignment.created',
+  ASSIGNMENT_REASSIGNED: 'assignment.reassigned',
+  ASSIGNMENT_CANCELLED: 'assignment.cancelled',
+  CALL_COMPLETED: 'call.completed',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -30,6 +34,8 @@ export const AUDIT_ENTITY_TYPES = [
   'call_outcome',
   'next_action',
   'setting',
+  'assignment',
+  'call',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 

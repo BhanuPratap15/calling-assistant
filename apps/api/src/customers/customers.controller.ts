@@ -45,6 +45,16 @@ export class CustomersController {
     return this.customersService.findOne(id);
   }
 
+  // 360° profile: details + call history + kiske paas assigned hai
+  @Roles('MANAGER', 'TEAM_LEADER', 'ASSISTANT')
+  @Get(':id/profile')
+  getProfile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.customersService.getProfile(id, user);
+  }
+
   @Roles('MANAGER')
   @Patch(':id')
   update(

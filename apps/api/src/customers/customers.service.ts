@@ -1,11 +1,13 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service.js';
 import { AuditAction } from '../audit/audit.types.js';
 import { diffChanges } from '../audit/diff.js';
+import type { AuthUser } from '../auth/auth.types.js';
 import type { Paginated } from '../common/pagination.dto.js';
 import { normalizePhone } from '../common/phone.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
@@ -14,6 +16,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateCustomerDto } from './dto/create-customer.dto.js';
 import type { ListCustomersQueryDto } from './dto/list-customers-query.dto.js';
 import type { UpdateCustomerDto } from './dto/update-customer.dto.js';
+import {
+  customerProfileInclude,
+  OPEN_ASSIGNMENT_WHERE,
+  type CustomerProfile,
+} from './customer-profile.js';
 
 const DUPLICATE_MESSAGE =
   'A customer with this phone number or external ID already exists';
@@ -72,6 +79,17 @@ export class CustomersService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.customer.findMany({
         where,
+        // "Assigned to" column ke liye open assignment ka staff
+        include: {
+          assignments: {
+            where: OPEN_ASSIGNMENT_WHERE,
+            select: {
+              id: true,
+              status: true,
+              staff: { select: { id: true, name: true } },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -89,6 +107,25 @@ export class CustomersService {
     const customer = await this.prisma.customer.findUnique({ where: { id } });
     if (!customer) throw new NotFoundException('Customer not found');
     return customer;
+  }
+
+  /**
+   * 360° profile. Manager / TL: koi bhi customer.
+   * Assistant: sirf wahi customer jo abhi uske paas assigned hai ("permitted user history").
+   */
+  async getProfile(id: string, actor: AuthUser): Promise<CustomerProfile> {
+    const profile = await this.prisma.customer.findUnique({
+      where: { id },
+      include: customerProfileInclude,
+    });
+    if (!profile) throw new NotFoundException('Customer not found');
+    if (
+      actor.role === 'ASSISTANT' &&
+      !profile.assignments.some((a) => a.staff.id === actor.id)
+    ) {
+      throw new ForbiddenException('This customer is not assigned to you');
+    }
+    return profile;
   }
 
   async update(

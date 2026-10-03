@@ -22,7 +22,7 @@ export class AuthService {
   async login(
     email: string,
     password: string,
-  ): Promise<{ accessToken: string; user: AuthUser }> {
+  ): Promise<{ accessToken: string; expiresAt: string; user: AuthUser }> {
     const normalizedEmail = email.trim().toLowerCase();
     const staff = await this.prisma.staff.findUnique({
       where: { email: normalizedEmail },
@@ -69,8 +69,12 @@ export class AuthService {
     });
 
     const payload: JwtPayload = { sub: staff.id, role: staff.role };
+    const accessToken = await this.jwt.signAsync(payload);
+    // Token kab expire hoga (JWT ke andar "exp" = seconds) — cookie bhi tab tak
+    const { exp } = this.jwt.decode<{ exp: number }>(accessToken);
     return {
-      accessToken: await this.jwt.signAsync(payload),
+      accessToken,
+      expiresAt: new Date(exp * 1000).toISOString(),
       user: {
         id: staff.id,
         name: staff.name,

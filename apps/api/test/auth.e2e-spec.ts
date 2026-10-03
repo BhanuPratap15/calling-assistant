@@ -124,4 +124,24 @@ describe('Auth & RBAC (e2e)', () => {
       .set('Authorization', `Bearer ${body.accessToken}`)
       .expect(401);
   });
+
+  it('browser flow: login sets httpOnly cookie, cookie works, logout clears it', async () => {
+    const agent = request.agent(app.getHttpServer()); // agent = browser jaisa, cookies yaad rakhta hai
+    const res = await agent
+      .post('/api/auth/login')
+      .send({ email: manager.email, password: manager.password })
+      .expect(200);
+
+    const setCookie = String(res.headers['set-cookie']);
+    expect(setCookie).toContain('access_token=');
+    expect(setCookie).toContain('HttpOnly');
+    expect(setCookie).toContain('SameSite=Lax');
+    expect(res.body.expiresAt).toEqual(expect.any(String));
+
+    // Bina Authorization header — sirf cookie se
+    await agent.get('/api/auth/me').expect(200);
+
+    await agent.post('/api/auth/logout').expect(204);
+    await agent.get('/api/auth/me').expect(401);
+  });
 });

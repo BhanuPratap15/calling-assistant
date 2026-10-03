@@ -30,6 +30,7 @@ npm run db:migrate            # DB me tables banao (migrations apply)
 npm run db:seed               # pehla Super Admin (email/password .env me)
 npm run dev:api               # Backend  → http://localhost:4000/api/health
 npm run dev:web               # Frontend → http://localhost:3000   (dusre terminal me)
+                              # Login: SEED_ADMIN_EMAIL / password (.env)
 ```
 
 ## Har `git pull` ke baad
@@ -70,7 +71,7 @@ npm run format && npm run lint && npm run typecheck && npm test
 | GET    | `/api/staff`      | MANAGER, SUPER_ADMIN                                     |
 
 Test karne ke liye: `apps/api/api.http` (VS Code "REST Client" extension).
-Auth design: [ADR 0003](docs/decisions/0003-authentication.md) · Audit: [ADR 0004](docs/decisions/0004-audit-log.md)
+Auth design: [ADR 0003](docs/decisions/0003-authentication.md) · Audit: [ADR 0004](docs/decisions/0004-audit-log.md) · Frontend auth: [ADR 0005](docs/decisions/0005-frontend-auth.md)
 
 ## Folder Structure
 
@@ -89,7 +90,11 @@ calling-assistant/
 │   │   │   └── common/ #   shared helpers (phone, pagination)
 │   │   └── test/       #   e2e tests
 │   └── web/            # Next.js frontend (@crm/web, port 3000)
-│       └── src/app/    #   pages (App Router)
+│       └── src/
+│           ├── app/          # pages (App Router): login/, (app)/dashboard, ...
+│           ├── components/   # AppShell (sidebar + header), ComingSoon
+│           ├── lib/          # api.ts, auth-context.tsx, navigation.ts (role menu)
+│           └── proxy.ts      # login nahi → /login redirect
 ├── docs/               # design, roadmap, ADRs, concepts
 ├── package.json        # root: npm workspaces + common scripts
 ├── docker-compose.yml  # local Postgres + Redis

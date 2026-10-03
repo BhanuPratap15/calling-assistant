@@ -7,13 +7,18 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { AuthenticatedRequest, JwtPayload } from '../auth.types.js';
+import {
+  AUTH_COOKIE,
+  type AuthenticatedRequest,
+  type JwtPayload,
+} from '../auth.types.js';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 
 /**
  * Guard = darwaaze ka guard. Har request pe chalta hai (global, app.module me register).
  * 1. @Public() route → seedha jaane do
- * 2. Header "Authorization: Bearer <token>" se token nikalo + verify karo
+ * 2. Token nikalo — header "Authorization: Bearer <token>" (api.http, mobile)
+ *    YA httpOnly cookie "access_token" (browser / Next.js frontend) — phir verify karo
  * 3. DB se staff check karo (deactivate hua staff turant block ho jaaye)
  * 4. request.user set karo
  */
@@ -33,7 +38,9 @@ export class JwtAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const token = this.extractBearerToken(request);
+    const token =
+      this.extractBearerToken(request) ??
+      (request.cookies as Record<string, string> | undefined)?.[AUTH_COOKIE];
     if (!token) throw new UnauthorizedException('Missing access token');
 
     let payload: JwtPayload;

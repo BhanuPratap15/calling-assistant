@@ -16,3 +16,6 @@ export interface AuthUser {
 }
 
 export type AuthenticatedRequest = Request & { user?: AuthUser };
+
+/** Browser login cookie ka naam (httpOnly — JavaScript isse padh nahi sakti) */
+export const AUTH_COOKIE = 'access_token';

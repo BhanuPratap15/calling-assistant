@@ -72,3 +72,15 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Diff                              | Before vs after compare karke sirf badle hue fields                                          | `audit/diff.ts`                               |
 | JSON column                       | Postgres me flexible data (`changes`, `metadata`)                                            | `audit_logs.changes`                          |
 | `as const`                        | TypeScript: fixed values ka object, galat string compile pe pakdi jaaye                      | `AuditAction`                                 |
+| Component (React)                 | UI ka reusable tukda — function jo JSX (HTML jaisa) return karta hai                         | `components/app-shell.tsx`                    |
+| State (`useState`)                | Component ki yaaddasht; value badli → screen dobara render                                   | Login form                                    |
+| Effect (`useEffect`)              | Render ke baad side-kaam (API call, redirect)                                                | `AuthProvider`                                |
+| Context                           | Poore app me shared data bina props pass kiye (`useAuth()`)                                  | `lib/auth-context.tsx`                        |
+| `'use client'`                    | Ye component browser me chalega (state, click, effects)                                      | Login, AppShell                               |
+| Server vs Client component        | Default server pe render; interactivity chahiye to `'use client'`                            | Next.js App Router                            |
+| Route group `(app)`               | Bracket folder URL me nahi aata; sirf shared layout ke liye                                  | `app/(app)/layout.tsx`                        |
+| Layout                            | Kai pages ka common frame (sidebar + header)                                                 | `app/(app)/layout.tsx`                        |
+| Proxy (Next 16)                   | Har request se pehle chalne wala code (pehle "middleware")                                   | `src/proxy.ts`                                |
+| Rewrite                           | URL ko chupchaap doosri jagah bhejna (`/api` → backend)                                      | `next.config.ts`                              |
+| httpOnly cookie                   | Browser cookie jo JavaScript nahi padh sakti                                                 | Login token                                   |
+| Hydration                         | Server ka HTML browser me React se "zinda" hona; dono same hone chahiye                      | Next.js                                       |

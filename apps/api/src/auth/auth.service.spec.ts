@@ -14,7 +14,10 @@ describe('AuthService', () => {
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prismaMock)),
   };
   const auditMock = { record: vi.fn() };
-  const jwtMock = { signAsync: vi.fn().mockResolvedValue('signed-token') };
+  const jwtMock = {
+    signAsync: vi.fn().mockResolvedValue('signed-token'),
+    decode: vi.fn().mockReturnValue({ exp: 1_800_000_000 }),
+  };
   let passwordHash: string;
 
   beforeAll(async () => {
@@ -58,6 +61,7 @@ describe('AuthService', () => {
     });
     expect(result).toEqual({
       accessToken: 'signed-token',
+      expiresAt: new Date(1_800_000_000 * 1000).toISOString(),
       user: {
         id: 'staff-1',
         name: 'Amit',

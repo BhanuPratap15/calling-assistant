@@ -144,7 +144,7 @@ export default function CallingPage() {
                 )}
               </div>
             )}
-            <CustomerProfileView customer={current.customer} />
+            <CustomerProfileView customer={current.customer} canEditTags />
           </div>
           {/* key = naye customer pe form fresh banega */}
           <CallForm

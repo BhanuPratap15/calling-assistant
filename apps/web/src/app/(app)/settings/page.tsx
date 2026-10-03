@@ -5,14 +5,21 @@ import {
   OptionFormModal,
   type OptionFormConfig,
 } from '@/components/settings/option-form-modal';
+import { CategoriesCard } from '@/components/settings/categories-card';
 import { FollowUpTimingCard } from '@/components/settings/follow-up-timing-card';
 import { RequiredFieldsCard } from '@/components/settings/required-fields-card';
+import { TagsCard } from '@/components/settings/tags-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ErrorMessage } from '@/components/ui/form';
 import { PageHeader } from '@/components/ui/page-header';
 import { Table, Td } from '@/components/ui/table';
-import type { CallConfig, CallOutcome, NextAction } from '@/lib/types';
+import type {
+  CallConfig,
+  CallOutcome,
+  Category,
+  NextAction,
+} from '@/lib/types';
 import { useApi } from '@/lib/use-api';
 
 const OUTCOME_FORM: OptionFormConfig = {
@@ -57,6 +64,7 @@ function Section({
 
 export default function SettingsPage() {
   const config = useApi<CallConfig>('/call-config/admin');
+  const categories = useApi<Category[]>('/categories');
   const [modal, setModal] = useState<ModalState>(null);
 
   const statusBadge = (active: boolean) =>
@@ -149,6 +157,19 @@ export default function SettingsPage() {
                 </tr>
               ))}
             </Table>
+          </Section>
+
+          <Section title="Interest categories (rating → category)">
+            {categories.data && (
+              <CategoriesCard
+                initial={categories.data}
+                onSaved={categories.reload}
+              />
+            )}
+          </Section>
+
+          <Section title="Tags">
+            <TagsCard />
           </Section>
 
           <Section title="Follow-up timing">

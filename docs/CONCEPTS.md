@@ -120,3 +120,11 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Smoke test                        | Built app chala ke basic health check — "dhuaan to nahi nikal raha"                          | CI last step                                  |
 | Optimistic update (UI)            | Pehle UI badlo, server fail ho to wapas                                                      | Availability dropdown                         |
 | `@Optional()` injection           | Dependency ho to do, na ho to undefined (crash nahi)                                         | Health check queue                            |
+| Many-to-many (join table)         | Ek customer ke kai tags, ek tag kai customers pe — beech me `customer_tags`                  | Tags                                          |
+| Composite primary key             | Do columns milke unique ID (`customer_id + tag_id`)                                          | `customer_tags`                               |
+| Denormalization                   | Latest value copy karke rakhna (customer.interest_rating) taaki query fast ho                | Category filter / sort                        |
+| Set-based SQL                     | Ek statement me hazaaron rows update (loop nahi)                                             | Category recalculation                        |
+| CTE (`WITH ...`)                  | SQL ke andar naam wale temporary result — step-by-step query                                 | `recalculateAll()`                            |
+| Backfill                          | Naya column add karke purane data se bharna (migration me)                                   | `interest_rating` from calls                  |
+| Whitelist validation (contract)   | Backend extra fields reject karta hai → frontend sirf allowed fields bheje                   | `CategoriesCard toInput()`                    |
+| `groupBy` / aggregate             | Group karke count (category-wise customers)                                                  | `/categories/summary`                         |

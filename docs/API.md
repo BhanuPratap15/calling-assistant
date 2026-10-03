@@ -58,6 +58,19 @@ Base URL (local): `http://localhost:4000/api` · Frontend se: `/api/...` (Next.j
 | PUT          | `/call-config/required-fields`    | MANAGER | `{ userResponse, notes, interestRating }` = `always \| connected \| optional` |
 | PUT          | `/call-config/follow-up-timing`   | MANAGER | `{ reminderMinutesBefore, gracePeriodMinutes, presenceTimeoutMinutes }`       |
 
+## Categories & tags
+
+| Method | URL                   | Access               | Notes                                                                                                                                                           |
+| ------ | --------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/categories`         | Any                  | Rating ranges (inactive bhi)                                                                                                                                    |
+| GET    | `/categories/summary` | MANAGER, TEAM_LEADER | `{ categories: [{…, count}], uncategorized }`                                                                                                                   |
+| PUT    | `/categories`         | MANAGER              | `{ categories: [{ id?, code, label, minRating, maxRating, color, priority, isActive, sortOrder }] }` → `{ categories, recalculated, uncovered }`. Overlap → 400 |
+| GET    | `/tags`               | Any                  | `_count.customers` ke saath                                                                                                                                     |
+| POST   | `/tags`               | MANAGER              | `{ name, color? }` — duplicate → 409                                                                                                                            |
+| PATCH  | `/tags/:id`           | MANAGER              | `{ name?, color?, isActive? }`                                                                                                                                  |
+
+Rating → category **Save & Next** ke andar apne aap (`interestRating` diya ho to).
+
 ## Calling (assistant workflow)
 
 | Method | URL                 | Access                 | Notes                                                                                                                                     |

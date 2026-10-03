@@ -11,7 +11,7 @@ Phases design doc (section 25) se liye gaye hain.
 | 1 — Foundation           | 9      | —                       | ✅ Done |
 | 2 — Calling Workflow     | 7      | —                       | ✅ Done |
 | 3 — Follow-ups           | 6      | —                       | ✅ Done |
-| 4 — Rating & Categories  | 4      | 3                       | ⬜      |
+| 4 — Rating & Categories  | 4      | —                       | ✅ Done |
 | 5 — Campaigns            | 4      | 4                       | ⬜      |
 | 6 — Bulk Import          | 4      | 4                       | ⬜      |
 | 7 — Calling Provider     | 3      | 3–5 (provider docs pe)  | ⬜      |
@@ -90,12 +90,12 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 3.5 In-app notifications (assistant, TL, manager)
 - [x] 3.6 Frontend: follow-up list (due / pending / overdue)
 
-## Phase 4 — Rating & Categories
+## Phase 4 — Rating & Categories ✅
 
-- [ ] 4.1 Category thresholds as settings (0–4 Low, 5–7 Medium, 8–9 High, 10 VIP)
-- [ ] 4.2 Category engine — call save pe auto category update + history
-- [ ] 4.3 Tags + priority
-- [ ] 4.4 Frontend: admin settings screen
+- [x] 4.1 Category thresholds as settings (0–4 Low, 5–7 Medium, 8–9 High, 10 VIP)
+- [x] 4.2 Category engine — call save pe auto category update + history
+- [x] 4.3 Tags + priority
+- [x] 4.4 Frontend: admin settings screen
 
 ## Phase 5 — Campaigns
 

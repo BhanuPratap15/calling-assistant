@@ -80,6 +80,9 @@ export interface Customer {
   assignments?: OpenAssignmentSummary[]; // list API: kiske paas hai
   lastCalledAt?: string | null;
   callCount?: number;
+  interestRating?: number | null;
+  category?: CategoryRef | null;
+  tags?: { tag: TagRef }[];
 }
 
 export interface AuditLog {
@@ -162,6 +165,10 @@ export interface CustomerProfile extends Customer {
   callCount: number;
   assignments: OpenAssignmentSummary[];
   calls: CallRecord[];
+  categoryChanges: CategoryChange[];
+  tags: { tag: TagRef }[]; // profile me hamesha aate hain
+  category: CategoryRef | null;
+  interestRating: number | null;
 }
 
 export interface CurrentAssignment {
@@ -246,4 +253,46 @@ export interface AppNotification {
   link: string | null;
   readAt: string | null;
   createdAt: string;
+}
+
+// ---- Rating, categories & tags (Phase 4) ----
+export type Tone = 'gray' | 'blue' | 'green' | 'yellow' | 'red' | 'indigo';
+
+export interface Category {
+  id: string;
+  code: string;
+  label: string;
+  minRating: number;
+  maxRating: number;
+  color: Tone;
+  priority: Priority | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export type CategoryRef = Pick<Category, 'id' | 'code' | 'label' | 'color'>;
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: Tone;
+  isActive: boolean;
+  _count?: { customers: number };
+}
+
+export type TagRef = Pick<Tag, 'id' | 'name' | 'color'>;
+
+export interface CategorySummary {
+  categories: (CategoryRef & { count: number })[];
+  uncategorized: number;
+}
+
+export interface CategoryChange {
+  id: string;
+  createdAt: string;
+  rating: number | null;
+  reason: 'call_rating' | 'threshold_change' | string;
+  from: CategoryRef | null;
+  to: CategoryRef | null;
+  changedBy: { id: string; name: string } | null;
 }

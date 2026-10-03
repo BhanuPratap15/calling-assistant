@@ -1,3 +1,5 @@
+import { CategoryBadge } from '@/components/categories/category-badge';
+import { TagEditor } from '@/components/categories/tag-editor';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime, humanize } from '@/lib/format';
 import type { CustomerProfile } from '@/lib/types';
@@ -14,15 +16,22 @@ const STATUS_TONE = {
   INVALID: 'gray',
 } as const;
 
-/** Customer 360° (design doc section 12): details + call history */
+const CHANGE_REASON: Record<string, string> = {
+  call_rating: 'call rating',
+  threshold_change: 'threshold change',
+};
+
+/**
+ * Customer 360° (design doc section 12): details + category + tags + call history + category changes.
+ * canEditTags: Manager / TL, ya assistant jiske paas ye customer abhi hai.
+ */
 export function CustomerProfileView({
   customer,
+  canEditTags = false,
 }: {
   customer: CustomerProfile;
+  canEditTags?: boolean;
 }) {
-  const latestRating = customer.calls.find(
-    (c) => c.interestRating !== null,
-  )?.interestRating;
   const assignedTo = customer.assignments[0]?.staff.name;
 
   return (
@@ -39,7 +48,11 @@ export function CustomerProfileView({
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <CategoryBadge
+              category={customer.category}
+              rating={customer.interestRating}
+            />
             <Badge tone={PRIORITY_TONE[customer.priority]}>
               {humanize(customer.priority)}
             </Badge>
@@ -74,9 +87,9 @@ export function CustomerProfileView({
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Last rating</dt>
+            <dt className="text-slate-500">Interest rating</dt>
             <dd className="font-medium text-slate-900">
-              {latestRating ?? '—'}
+              {customer.interestRating ?? '—'}
             </dd>
           </div>
           <div>
@@ -84,6 +97,17 @@ export function CustomerProfileView({
             <dd className="font-medium text-slate-900">{assignedTo ?? '—'}</dd>
           </div>
         </dl>
+
+        <div className="mt-4">
+          <p className="mb-1 text-sm text-slate-500">Tags</p>
+          <TagEditor
+            key={customer.id}
+            customerId={customer.id}
+            tags={customer.tags.map((t) => t.tag)}
+            canEdit={canEditTags}
+          />
+        </div>
+
         {customer.email && (
           <p className="mt-3 text-sm text-slate-600">Email: {customer.email}</p>
         )}
@@ -138,6 +162,33 @@ export function CustomerProfileView({
           </ol>
         )}
       </div>
+
+      {customer.categoryChanges.length > 0 && (
+        <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 className="mb-3 font-semibold text-slate-900">
+            Category changes
+          </h3>
+          <ol className="space-y-2">
+            {customer.categoryChanges.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center gap-2 text-sm"
+              >
+                <span className="text-slate-500">
+                  {formatDateTime(c.createdAt)}
+                </span>
+                <CategoryBadge category={c.from} />
+                <span className="text-slate-400">→</span>
+                <CategoryBadge category={c.to} rating={c.rating} />
+                <span className="text-xs text-slate-400">
+                  {CHANGE_REASON[c.reason] ?? c.reason}
+                  {c.changedBy && ` · ${c.changedBy.name}`}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
 }

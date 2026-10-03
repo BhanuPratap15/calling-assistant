@@ -314,3 +314,54 @@ Content-Type: application/json
   "gracePeriodMinutes": 10,
   "presenceTimeoutMinutes": 5
 }
+
+# ---------------------------------------------------------------------
+# Categories & tags (Phase 4)
+# ---------------------------------------------------------------------
+
+### 42. Categories (rating ranges)
+GET {{baseUrl}}/categories
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 43. Category-wise customer counts (MANAGER / TL)
+GET {{baseUrl}}/categories/summary
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 44. Thresholds save (MANAGER) — poora set; ids request 42 se. Saare customers recalculate hote hain.
+PUT {{baseUrl}}/categories
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "categories": [
+    { "id": "PASTE-ID", "code": "HIGH_INTEREST", "label": "High Interest", "minRating": 8, "maxRating": 9, "color": "yellow", "priority": "HIGH", "isActive": true, "sortOrder": 30 }
+  ]
+}
+
+### 45. Tags
+GET {{baseUrl}}/tags
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 46. Naya tag (MANAGER)
+# @name createTag
+POST {{baseUrl}}/tags
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Big Spender",
+  "color": "green"
+}
+
+### 47. Customer ke tags (poori list replace)
+PUT {{baseUrl}}/customers/{{createCustomer.response.body.id}}/tags
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "tagIds": ["{{createTag.response.body.id}}"]
+}
+
+### 48. Customers: category / tag filter, highest rating first
+GET {{baseUrl}}/customers?sort=rating&categoryId=none
+Authorization: Bearer {{login.response.body.accessToken}}

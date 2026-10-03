@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import { AssignModal } from '@/components/assignments/assign-modal';
+import { CategoryBadge } from '@/components/categories/category-badge';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,8 +18,10 @@ import { isManager } from '@/lib/permissions';
 import {
   CUSTOMER_STATUSES,
   PRIORITIES,
+  type Category,
   type Customer,
   type Paginated,
+  type Tag,
 } from '@/lib/types';
 import { toQuery, useApi } from '@/lib/use-api';
 import { useDebounce } from '@/lib/use-debounce';
@@ -35,20 +39,36 @@ const PRIORITY_TONE = {
 } as const;
 const PAGE_SIZE = 20;
 
-export default function CustomersPage() {
+function CustomersContent() {
   const { user } = useAuth();
   const canEdit = user ? isManager(user.role) : false;
+  // Dashboard se ?categoryId=... aa sakta hai (category card click)
+  const params = useSearchParams();
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
+  const [categoryId, setCategoryId] = useState(params.get('categoryId') ?? '');
+  const [tagId, setTagId] = useState('');
+  const [sort, setSort] = useState('recent');
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ customer?: Customer } | null>(null);
   const [assigning, setAssigning] = useState<Customer | null>(null);
   const debouncedSearch = useDebounce(search.trim());
 
+  const categories = useApi<Category[]>('/categories');
+  const tags = useApi<Tag[]>('/tags');
   const customers = useApi<Paginated<Customer>>(
-    `/customers${toQuery({ search: debouncedSearch, status, priority, page, pageSize: PAGE_SIZE })}`,
+    `/customers${toQuery({
+      search: debouncedSearch,
+      status,
+      priority,
+      categoryId,
+      tagId,
+      sort,
+      page,
+      pageSize: PAGE_SIZE,
+    })}`,
   );
 
   // Filter badla → page 1 pe wapas
@@ -82,6 +102,33 @@ export default function CustomersPage() {
           onChange={(e) => changeFilter(setSearch)(e.target.value)}
         />
         <Select
+          aria-label="Filter by category"
+          className="w-44"
+          value={categoryId}
+          onChange={(e) => changeFilter(setCategoryId)(e.target.value)}
+        >
+          <option value="">All categories</option>
+          {categories.data?.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+          <option value="none">Not rated yet</option>
+        </Select>
+        <Select
+          aria-label="Filter by tag"
+          className="w-40"
+          value={tagId}
+          onChange={(e) => changeFilter(setTagId)(e.target.value)}
+        >
+          <option value="">All tags</option>
+          {tags.data?.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </Select>
+        <Select
           aria-label="Filter by status"
           className="w-40"
           value={status}
@@ -107,6 +154,15 @@ export default function CustomersPage() {
             </option>
           ))}
         </Select>
+        <Select
+          aria-label="Sort"
+          className="w-44"
+          value={sort}
+          onChange={(e) => changeFilter(setSort)(e.target.value)}
+        >
+          <option value="recent">Newest first</option>
+          <option value="rating">Highest interest first</option>
+        </Select>
       </div>
 
       <ErrorMessage message={customers.error} />
@@ -119,6 +175,7 @@ export default function CustomersPage() {
               headers={[
                 'Customer',
                 'Phone',
+                'Interest',
                 'Priority',
                 'Status',
                 'Assigned to',
@@ -141,9 +198,24 @@ export default function CustomersPage() {
                         .filter(Boolean)
                         .join(' · ')}
                     </p>
+                    {c.tags && c.tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {c.tags.map(({ tag }) => (
+                          <Badge key={tag.id} tone={tag.color}>
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </Td>
                   <Td className="whitespace-nowrap font-mono text-xs">
                     {c.phone}
+                  </Td>
+                  <Td>
+                    <CategoryBadge
+                      category={c.category}
+                      rating={c.interestRating}
+                    />
                   </Td>
                   <Td>
                     <Badge tone={PRIORITY_TONE[c.priority]}>
@@ -220,5 +292,14 @@ export default function CustomersPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function CustomersPage() {
+  // useSearchParams (?categoryId=) ke liye Suspense zaroori
+  return (
+    <Suspense>
+      <CustomersContent />
+    </Suspense>
   );
 }

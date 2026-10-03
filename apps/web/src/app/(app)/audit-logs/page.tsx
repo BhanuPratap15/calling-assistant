@@ -38,6 +38,11 @@ const ACTIONS = [
   'follow_up.reassigned',
   'follow_up.escalated',
   'follow_up.cancelled',
+  'category.updated',
+  'customer.category_changed',
+  'tag.created',
+  'tag.updated',
+  'customer.tags_updated',
 ];
 const ENTITY_TYPES = [
   'auth',
@@ -50,6 +55,8 @@ const ENTITY_TYPES = [
   'assignment',
   'call',
   'follow_up',
+  'category',
+  'tag',
 ];
 
 const show = (value: unknown) =>

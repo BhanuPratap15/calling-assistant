@@ -99,3 +99,12 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Upsert                            | Hai to update, nahi to insert                                                                | `systemSetting.upsert`                        |
 | PUT vs PATCH                      | PUT = poori cheez replace; PATCH = sirf kuch fields                                          | `/call-config/required-fields`                |
 | Code vs label                     | Code = permanent ID (reports), label = dikhne wala naam (badal sakte)                        | Call outcomes                                 |
+| Row lock (`FOR UPDATE`)           | Transaction khatam hone tak row pe taala — doosra wait karega                                | Save & Next, reassign                         |
+| `SKIP LOCKED`                     | Locked row ko chhod ke agli lo (wait nahi) — queue ke liye perfect                           | Assignment engine                             |
+| Race condition (DB)               | Do requests ek saath ek hi cheez lene ki koshish                                             | 5 assistants ek saath Start Calling           |
+| Unique nullable trick             | `@unique` column jo kaam ke time value, warna NULL — DB-level "ek hi open" guarantee         | `open_customer_id`                            |
+| Idempotent API                    | Dobara call karo, result same (double click safe)                                            | `POST /calling/next`                          |
+| Pull vs Push queue                | Pull = worker khud maange; Push = system pehle se baante                                     | ADR 0007                                      |
+| Pure function                     | Sirf input → output, koi DB/network nahi — test aasaan                                       | `validateCallForm`                            |
+| State machine                     | Fixed states + allowed transitions (ASSIGNED → IN_PROGRESS → COMPLETED/CANCELLED)            | `AssignmentStatus`                            |
+| Concurrency test                  | Ek saath kai requests bhej ke duplicate na hone ka proof                                     | `test/calling.e2e-spec.ts`                    |

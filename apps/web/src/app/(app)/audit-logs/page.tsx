@@ -27,6 +27,10 @@ const ACTIONS = [
   'next_action.created',
   'next_action.updated',
   'setting.updated',
+  'assignment.created',
+  'assignment.reassigned',
+  'assignment.cancelled',
+  'call.completed',
 ];
 const ENTITY_TYPES = [
   'auth',
@@ -36,6 +40,8 @@ const ENTITY_TYPES = [
   'call_outcome',
   'next_action',
   'setting',
+  'assignment',
+  'call',
 ];
 
 const show = (value: unknown) =>

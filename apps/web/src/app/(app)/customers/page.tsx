@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
+import { AssignModal } from '@/components/assignments/assign-modal';
 import { CustomerFormModal } from '@/components/customers/customer-form-modal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +44,7 @@ export default function CustomersPage() {
   const [priority, setPriority] = useState('');
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ customer?: Customer } | null>(null);
+  const [assigning, setAssigning] = useState<Customer | null>(null);
   const debouncedSearch = useDebounce(search.trim());
 
   const customers = useApi<Paginated<Customer>>(
@@ -113,13 +116,26 @@ export default function CustomersPage() {
         customers.data && (
           <>
             <Table
-              headers={['Customer', 'Phone', 'Priority', 'Status', 'Added', '']}
+              headers={[
+                'Customer',
+                'Phone',
+                'Priority',
+                'Status',
+                'Assigned to',
+                'Calls',
+                '',
+              ]}
               empty={customers.data.data.length === 0}
             >
               {customers.data.data.map((c) => (
                 <tr key={c.id}>
                   <Td>
-                    <p className="font-medium text-slate-900">{c.name}</p>
+                    <Link
+                      href={`/customers/${c.id}`}
+                      className="font-medium text-indigo-700 hover:underline"
+                    >
+                      {c.name}
+                    </Link>
                     <p className="text-xs text-slate-500">
                       {[c.externalId && `ID ${c.externalId}`, c.email]
                         .filter(Boolean)
@@ -139,10 +155,32 @@ export default function CustomersPage() {
                       {humanize(c.status)}
                     </Badge>
                   </Td>
-                  <Td className="whitespace-nowrap text-xs">
-                    {formatDateTime(c.createdAt)}
+                  <Td className="text-xs">
+                    {c.assignments?.[0] ? (
+                      <>
+                        {c.assignments[0].staff.name}
+                        <p className="text-slate-400">
+                          {humanize(c.assignments[0].status)}
+                        </p>
+                      </>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </Td>
-                  <Td className="text-right">
+                  <Td className="whitespace-nowrap text-xs">
+                    {c.callCount ?? 0}
+                    {c.lastCalledAt && (
+                      <p className="text-slate-400">
+                        {formatDateTime(c.lastCalledAt)}
+                      </p>
+                    )}
+                  </Td>
+                  <Td className="whitespace-nowrap text-right">
+                    {c.status === 'ACTIVE' && !c.assignments?.[0] && (
+                      <Button variant="ghost" onClick={() => setAssigning(c)}>
+                        Assign
+                      </Button>
+                    )}
                     {canEdit && (
                       <Button
                         variant="ghost"
@@ -158,6 +196,17 @@ export default function CustomersPage() {
             <Pagination meta={customers.data.meta} onPageChange={setPage} />
           </>
         )
+      )}
+
+      {assigning && (
+        <AssignModal
+          customer={assigning}
+          onClose={() => setAssigning(null)}
+          onDone={() => {
+            setAssigning(null);
+            customers.reload();
+          }}
+        />
       )}
 
       {modal && (

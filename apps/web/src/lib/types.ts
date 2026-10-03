@@ -76,6 +76,9 @@ export interface Customer {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  assignments?: OpenAssignmentSummary[]; // list API: kiske paas hai
+  lastCalledAt?: string | null;
+  callCount?: number;
 }
 
 export interface AuditLog {
@@ -125,4 +128,64 @@ export interface CallConfig {
   outcomes: CallOutcome[];
   nextActions: NextAction[];
   requiredFields: RequiredFieldsConfig;
+}
+
+// ---- Calling workflow (Phase 2) ----
+export type AssignmentStatus =
+  'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type AssignmentSource = 'AUTO' | 'MANUAL';
+
+export interface CallRecord {
+  id: string;
+  createdAt: string;
+  userResponse: string | null;
+  notes: string | null;
+  interestRating: number | null;
+  followUpAt: string | null;
+  outcome: { code: string; label: string; isConnected: boolean };
+  nextAction: { code: string; label: string; requiresFollowUp: boolean };
+  staff: { id: string; name: string };
+}
+
+export interface OpenAssignmentSummary {
+  id: string;
+  status: AssignmentStatus;
+  source?: AssignmentSource;
+  createdAt?: string;
+  staff: { id: string; name: string };
+}
+
+export interface CustomerProfile extends Customer {
+  lastCalledAt: string | null;
+  callCount: number;
+  assignments: OpenAssignmentSummary[];
+  calls: CallRecord[];
+}
+
+export interface CurrentAssignment {
+  id: string;
+  source: AssignmentSource;
+  startedAt: string | null;
+  customer: CustomerProfile;
+}
+
+export interface Assignment {
+  id: string;
+  status: AssignmentStatus;
+  source: AssignmentSource;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  customer: Pick<Customer, 'id' | 'name' | 'phone' | 'priority' | 'status'>;
+  staff: { id: string; name: string; role: StaffRole };
+  createdBy: { id: string; name: string } | null;
+}
+
+export interface AssignableStaff {
+  id: string;
+  name: string;
+  role: StaffRole;
+  availability: Availability;
+  team: { name: string } | null;
 }

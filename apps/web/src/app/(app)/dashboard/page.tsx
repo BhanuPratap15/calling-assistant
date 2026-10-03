@@ -9,6 +9,7 @@ const DESCRIPTIONS: Record<string, string> = {
   '/calling': 'Agla customer lo, call karo, form bharo — Save & Next',
   '/follow-ups': 'Aaj ke due aur overdue follow-ups',
   '/customers': 'Customers ki list, search, add aur edit',
+  '/assignments': 'Kaunsa customer kiske paas — assign, reassign, cancel',
   '/teams': 'Teams aur unke members',
   '/staff': 'Assistants aur Team Leaders manage karo',
   '/audit-logs': 'Kisne kya kab kiya — poori history',

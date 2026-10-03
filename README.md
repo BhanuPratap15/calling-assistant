@@ -81,7 +81,7 @@ npm run format && npm run lint && npm run typecheck && npm test
 | GET    | `/api/staff`      | MANAGER, SUPER_ADMIN                                     |
 
 Test karne ke liye: `apps/api/api.http` (VS Code "REST Client" extension).
-Auth design: [ADR 0003](docs/decisions/0003-authentication.md) · Audit: [ADR 0004](docs/decisions/0004-audit-log.md) · Frontend auth: [ADR 0005](docs/decisions/0005-frontend-auth.md) · Call form config: [ADR 0006](docs/decisions/0006-configurable-call-form.md)
+Auth design: [ADR 0003](docs/decisions/0003-authentication.md) · Audit: [ADR 0004](docs/decisions/0004-audit-log.md) · Frontend auth: [ADR 0005](docs/decisions/0005-frontend-auth.md) · Call form config: [ADR 0006](docs/decisions/0006-configurable-call-form.md) · Assignment engine: [ADR 0007](docs/decisions/0007-assignment-engine.md)
 
 ## Folder Structure
 
@@ -97,6 +97,8 @@ calling-assistant/
 │   │   │   ├── teams/  #   teams APIs
 │   │   │   ├── audit/  #   audit log (record + read API)
 │   │   │   ├── call-config/ # call outcomes, next actions, mandatory fields
+│   │   │   ├── calling/     # Start Calling (engine), Save & Next, form validation
+│   │   │   ├── assignments/ # manual assign / reassign / cancel
 │   │   │   ├── customers/ # customers APIs (jinko call karna hai)
 │   │   │   └── common/ #   shared helpers (phone, pagination)
 │   │   └── test/       #   e2e tests

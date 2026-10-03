@@ -9,7 +9,7 @@ Phases design doc (section 25) se liye gaye hain.
 | ------------------------ | ------ | ----------------------- | ------- |
 | 0 — Project Setup        | 6      | —                       | ✅ Done |
 | 1 — Foundation           | 9      | —                       | ✅ Done |
-| 2 — Calling Workflow     | 7      | 8–10                    | 🟡      |
+| 2 — Calling Workflow     | 7      | —                       | ✅ Done |
 | 3 — Follow-ups           | 6      | 6–7                     | ⬜      |
 | 4 — Rating & Categories  | 4      | 3                       | ⬜      |
 | 5 — Campaigns            | 4      | 4                       | ⬜      |
@@ -74,12 +74,12 @@ Phases design doc (section 25) se liye gaye hain.
 ## Phase 2 — Calling Workflow (core)
 
 - [x] 2.1 Configurable settings: call outcomes, next actions, mandatory fields
-- [ ] 2.2 Assignment engine — backend lock, ONE customer at a time, no duplicates
-- [ ] 2.3 Calls table + call form API with mandatory-field validation
-- [ ] 2.4 "Save & Next" — ek transaction me save + next release
-- [ ] 2.5 Customer 360° profile API (details + call history + timeline)
-- [ ] 2.6 Frontend: assistant calling screen (Start Calling → profile → form → Save & Next)
-- [ ] 2.7 Manager manual assignment / reassignment (API + UI)
+- [x] 2.2 Assignment engine — backend lock, ONE customer at a time, no duplicates
+- [x] 2.3 Calls table + call form API with mandatory-field validation
+- [x] 2.4 "Save & Next" — ek transaction me save + next release
+- [x] 2.5 Customer 360° profile API (details + call history + timeline)
+- [x] 2.6 Frontend: assistant calling screen (Start Calling → profile → form → Save & Next)
+- [x] 2.7 Manager manual assignment / reassignment (API + UI)
 
 ## Phase 3 — Follow-ups
 

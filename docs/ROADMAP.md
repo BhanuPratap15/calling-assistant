@@ -5,19 +5,19 @@ Phases design doc (section 25) se liye gaye hain.
 
 ## Summary
 
-| Phase                    | Steps  | Estimate (working days) | Status         |
-| ------------------------ | ------ | ----------------------- | -------------- |
-| 0 — Project Setup        | 6      | —                       | ✅ Done        |
-| 1 — Foundation           | 9      | 5–6 (baaki)             | 🟡 In progress |
-| 2 — Calling Workflow     | 7      | 8–10                    | ⬜             |
-| 3 — Follow-ups           | 6      | 6–7                     | ⬜             |
-| 4 — Rating & Categories  | 4      | 3                       | ⬜             |
-| 5 — Campaigns            | 4      | 4                       | ⬜             |
-| 6 — Bulk Import          | 4      | 4                       | ⬜             |
-| 7 — Calling Provider     | 3      | 3–5 (provider docs pe)  | ⬜             |
-| 8 — Dashboard & Reports  | 3      | 4                       | ⬜             |
-| 9 — Production Hardening | 5      | 5–7                     | ⬜             |
-| **Total**                | **51** | **~42–50 working days** |                |
+| Phase                    | Steps  | Estimate (working days) | Status  |
+| ------------------------ | ------ | ----------------------- | ------- |
+| 0 — Project Setup        | 6      | —                       | ✅ Done |
+| 1 — Foundation           | 9      | —                       | ✅ Done |
+| 2 — Calling Workflow     | 7      | 8–10                    | ⬜      |
+| 3 — Follow-ups           | 6      | 6–7                     | ⬜      |
+| 4 — Rating & Categories  | 4      | 3                       | ⬜      |
+| 5 — Campaigns            | 4      | 4                       | ⬜      |
+| 6 — Bulk Import          | 4      | 4                       | ⬜      |
+| 7 — Calling Provider     | 3      | 3–5 (provider docs pe)  | ⬜      |
+| 8 — Dashboard & Reports  | 3      | 4                       | ⬜      |
+| 9 — Production Hardening | 5      | 5–7                     | ⬜      |
+| **Total**                | **51** | **~42–50 working days** |         |
 
 ### Timeline (full-time, ~6–8 ghante/din, seekhte hue)
 

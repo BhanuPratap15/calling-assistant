@@ -89,7 +89,13 @@ model Staff {
   assignmentsCreated Assignment[] @relation("AssignmentCreatedBy")
   calls              Call[]
 
+  followUpsOwned    FollowUp[]     @relation("FollowUpOwner")
+  followUpsOriginal FollowUp[]     @relation("FollowUpOriginalOwner")
+  notifications     Notification[]
+
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
+  /// Heartbeat: aakhri API request kab aayi (har ~1 min update). Browser band = AVAILABLE hote hue bhi "away"
+  lastSeenAt  DateTime? @map("last_seen_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -140,6 +146,7 @@ model Customer {
 
   assignments Assignment[]
   calls       Call[]
+  followUps   FollowUp[]
 
   createdById String? @map("created_by_id") @db.Uuid
   createdBy   Staff?  @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -246,6 +253,7 @@ enum AssignmentStatus {
 enum AssignmentSource {
   AUTO // assistant ne "Start Calling" se khud liya (pull)
   MANUAL // manager / team leader ne diya
+  FOLLOW_UP // due follow-up (Phase 3) — engine ne sabse pehle diya
 
   @@map("assignment_source")
 }
@@ -270,6 +278,9 @@ model Assignment {
   /// @unique + NULL allowed → ek customer ka ek hi open assignment, ek staff ka ek hi current customer.
   openCustomerId    String? @unique @map("open_customer_id") @db.Uuid
   inProgressStaffId String? @unique @map("in_progress_staff_id") @db.Uuid
+
+  followUpId String?   @map("follow_up_id") @db.Uuid // source = FOLLOW_UP ho to kaunsa follow-up
+  followUp   FollowUp? @relation(fields: [followUpId], references: [id], onDelete: SetNull)
 
   calls Call[]
 
@@ -305,10 +316,98 @@ model Call {
   interestRating Int?      @map("interest_rating") // 0–10 (Phase 4: category isi se)
   followUpAt     DateTime? @map("follow_up_at") @db.Timestamptz(3) // Phase 3: follow-up record isi se banega
 
+  createdFollowUp    FollowUp?  @relation("FollowUpSourceCall")
+  completedFollowUps FollowUp[] @relation("FollowUpCompletedBy")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([customerId, createdAt]) // customer history
   @@index([staffId, createdAt]) // assistant ki calls (reports)
   @@index([createdAt])
   @@map("calls")
+}
+
+// =====================================================================
+// FOLLOW-UPS + NOTIFICATIONS (Phase 3) — design doc section 8 + 18
+// =====================================================================
+
+/// PENDING (scheduled / due / overdue — dueAt se decide) → IN_PROGRESS (assistant call kar raha)
+/// → COMPLETED (customer ko call ho gaya) | CANCELLED (manager ne hataya)
+enum FollowUpStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+
+  @@map("follow_up_status")
+}
+
+/// "Call me at 4 PM" — alag record, comment me dabba nahi (reminder, escalation, report ke liye)
+model FollowUp {
+  id     String         @id @default(uuid()) @db.Uuid
+  status FollowUpStatus @default(PENDING)
+  dueAt  DateTime       @map("due_at") @db.Timestamptz(3)
+
+  customerId String   @map("customer_id") @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  sourceCallId String @unique @map("source_call_id") @db.Uuid // kis call me promise hua
+  sourceCall   Call   @relation("FollowUpSourceCall", fields: [sourceCallId], references: [id])
+
+  ownerId         String @map("owner_id") @db.Uuid // abhi kiski zimmedari (escalation pe badalta hai)
+  owner           Staff  @relation("FollowUpOwner", fields: [ownerId], references: [id])
+  originalOwnerId String @map("original_owner_id") @db.Uuid // jisne promise kiya tha
+  originalOwner   Staff  @relation("FollowUpOriginalOwner", fields: [originalOwnerId], references: [id])
+
+  /// Ek customer ka ek hi open follow-up (assignments wali unique-nullable trick)
+  openCustomerId String? @unique @map("open_customer_id") @db.Uuid
+
+  // Scheduler ke "ho gaya" markers — dobara notification na jaaye (idempotent)
+  reminderSentAt    DateTime? @map("reminder_sent_at") @db.Timestamptz(3)
+  dueNotifiedAt     DateTime? @map("due_notified_at") @db.Timestamptz(3)
+  overdueNotifiedAt DateTime? @map("overdue_notified_at") @db.Timestamptz(3)
+  escalatedAt       DateTime? @map("escalated_at") @db.Timestamptz(3)
+  escalationCount   Int       @default(0) @map("escalation_count")
+
+  completedAt       DateTime? @map("completed_at") @db.Timestamptz(3)
+  completedByCallId String?   @map("completed_by_call_id") @db.Uuid
+  completedByCall   Call?     @relation("FollowUpCompletedBy", fields: [completedByCallId], references: [id], onDelete: SetNull)
+  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(3)
+
+  assignments Assignment[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, dueAt]) // scheduler: "kaun se due / overdue"
+  @@index([ownerId, status, dueAt]) // "meri due follow-ups" (engine + list)
+  @@map("follow_ups")
+}
+
+enum NotificationType {
+  FOLLOW_UP_REMINDER // owner: 1 min me due
+  FOLLOW_UP_DUE // owner: abhi due
+  FOLLOW_UP_ESCALATED_TO_YOU // naya owner: aapko diya gaya
+  FOLLOW_UP_ESCALATED_AWAY // purana owner: aap unavailable the, kisi aur ko gaya
+  FOLLOW_UP_OVERDUE // team leader / manager: grace ke baad bhi pending
+  FOLLOW_UP_REASSIGNED // naya owner: manager ne diya
+
+  @@map("notification_type")
+}
+
+/// In-app notification (header ka 🔔). Email/SMS baad me isi table se.
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  recipientId String           @map("recipient_id") @db.Uuid
+  recipient   Staff            @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  body        String?
+  link        String? // click → kaunsa page
+  data        Json?
+  readAt      DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([recipientId, readAt, createdAt])
+  @@map("notifications")
 }

@@ -20,8 +20,11 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
  * 2. Token nikalo — header "Authorization: Bearer <token>" (api.http, mobile)
  *    YA httpOnly cookie "access_token" (browser / Next.js frontend) — phir verify karo
  * 3. DB se staff check karo (deactivate hua staff turant block ho jaaye)
- * 4. request.user set karo
+ * 4. lastSeenAt heartbeat update (presence — follow-up escalation isi se decide hota hai)
+ * 5. request.user set karo
  */
+const HEARTBEAT_INTERVAL_MS = 60_000;
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -52,10 +55,29 @@ export class JwtAuthGuard implements CanActivate {
 
     const staff = await this.prisma.staff.findUnique({
       where: { id: payload.sub },
-      select: { id: true, name: true, email: true, role: true, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        lastSeenAt: true,
+      },
     });
     if (!staff || !staff.isActive) {
       throw new UnauthorizedException('Account not found or deactivated');
+    }
+
+    // Heartbeat: "ye banda abhi online hai" — har request pe nahi, max 1 baar / minute (DB load kam)
+    const now = Date.now();
+    if (
+      !staff.lastSeenAt ||
+      now - staff.lastSeenAt.getTime() > HEARTBEAT_INTERVAL_MS
+    ) {
+      await this.prisma.staff.update({
+        where: { id: staff.id },
+        data: { lastSeenAt: new Date(now) },
+      });
     }
 
     request.user = {

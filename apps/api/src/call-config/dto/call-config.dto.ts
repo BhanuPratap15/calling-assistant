@@ -88,3 +88,20 @@ export class UpdateRequiredFieldsDto {
   @IsIn(REQUIRED_RULES)
   interestRating: RequiredRule;
 }
+
+export class UpdateFollowUpTimingDto {
+  @IsInt()
+  @Min(0)
+  @Max(1440)
+  reminderMinutesBefore: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(1440)
+  gracePeriodMinutes: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  presenceTimeoutMinutes: number;
+}

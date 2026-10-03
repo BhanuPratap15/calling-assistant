@@ -10,6 +10,7 @@ import { AuditAction } from '../audit/audit.types.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import type { Paginated } from '../common/pagination.dto.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
+import { staffScope } from '../common/team-scope.js';
 import type { AssignmentStatus, Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -165,6 +166,8 @@ export class AssignmentsService {
 
     return this.prisma.$transaction(async (tx) => {
       await this.lockOpen(tx, id);
+      // Follow-up call beech me reassign hua → follow-up naye staff ka, PENDING (track hota rahe)
+      await this.releaseFollowUp(tx, old.customerId, staffId);
       await tx.assignment.update({
         where: { id },
         data: {
@@ -209,6 +212,7 @@ export class AssignmentsService {
     const old = await this.findOpen(id, actor);
     return this.prisma.$transaction(async (tx) => {
       await this.lockOpen(tx, id);
+      await this.releaseFollowUp(tx, old.customerId);
       const cancelled = await tx.assignment.update({
         where: { id },
         data: {
@@ -239,14 +243,8 @@ export class AssignmentsService {
 
   // ---------------- helpers ----------------
 
-  /** Team Leader → sirf apni teams ke members ke IDs; Manager/Super Admin → null (sab) */
-  private async staffScope(actor: AuthUser): Promise<string[] | null> {
-    if (actor.role !== 'TEAM_LEADER') return null;
-    const members = await this.prisma.staff.findMany({
-      where: { team: { leaderId: actor.id } },
-      select: { id: true },
-    });
-    return [actor.id, ...members.map((m) => m.id)];
+  private staffScope(actor: AuthUser) {
+    return staffScope(this.prisma, actor);
   }
 
   private async assertAssignableStaff(staffId: string, actor: AuthUser) {
@@ -286,6 +284,21 @@ export class AssignmentsService {
       throw new ForbiddenException('This assignment is not in your team');
     }
     return assignment;
+  }
+
+  /** Customer ka IN_PROGRESS follow-up (agar hai) wapas PENDING; newOwnerId diya to owner bhi badlo */
+  private async releaseFollowUp(
+    tx: Prisma.TransactionClient,
+    customerId: string,
+    newOwnerId?: string,
+  ) {
+    await tx.followUp.updateMany({
+      where: { openCustomerId: customerId },
+      data: {
+        status: 'PENDING',
+        ...(newOwnerId ? { ownerId: newOwnerId } : {}),
+      },
+    });
   }
 
   /** Row lock — assistant isi waqt "Save & Next" kar raha ho to dono ek saath na chalein */

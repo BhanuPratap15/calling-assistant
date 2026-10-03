@@ -22,6 +22,13 @@ export const AuditAction = {
   ASSIGNMENT_REASSIGNED: 'assignment.reassigned',
   ASSIGNMENT_CANCELLED: 'assignment.cancelled',
   CALL_COMPLETED: 'call.completed',
+  STAFF_AVAILABILITY_CHANGED: 'staff.availability_changed',
+  FOLLOW_UP_CREATED: 'follow_up.created',
+  FOLLOW_UP_COMPLETED: 'follow_up.completed',
+  FOLLOW_UP_RESCHEDULED: 'follow_up.rescheduled',
+  FOLLOW_UP_REASSIGNED: 'follow_up.reassigned',
+  FOLLOW_UP_ESCALATED: 'follow_up.escalated',
+  FOLLOW_UP_CANCELLED: 'follow_up.cancelled',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -36,6 +43,7 @@ export const AUDIT_ENTITY_TYPES = [
   'setting',
   'assignment',
   'call',
+  'follow_up',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 

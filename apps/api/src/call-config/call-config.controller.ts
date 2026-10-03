@@ -16,6 +16,7 @@ import {
   CreateCallOutcomeDto,
   CreateNextActionDto,
   UpdateCallOutcomeDto,
+  UpdateFollowUpTimingDto,
   UpdateNextActionDto,
   UpdateRequiredFieldsDto,
 } from './dto/call-config.dto.js';
@@ -87,5 +88,15 @@ export class CallConfigController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.service.updateRequiredFields(dto, user);
+  }
+
+  // Reminder / grace period / presence timeout (minutes)
+  @Roles('MANAGER')
+  @Put('follow-up-timing')
+  updateFollowUpTiming(
+    @Body() dto: UpdateFollowUpTimingDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.updateFollowUpTiming(dto, user);
   }
 }

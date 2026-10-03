@@ -7,8 +7,11 @@ import { withUniqueConflict } from '../common/prisma-errors.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  DEFAULT_FOLLOW_UP_TIMING,
   DEFAULT_REQUIRED_FIELDS,
+  FOLLOW_UP_TIMING_KEY,
   REQUIRED_FIELDS_KEY,
+  type FollowUpTimingConfig,
   type RequiredFieldsConfig,
 } from './call-config.types.js';
 import type {
@@ -16,6 +19,7 @@ import type {
   CreateNextActionDto,
   UpdateCallOutcomeDto,
   UpdateNextActionDto,
+  UpdateFollowUpTimingDto,
   UpdateRequiredFieldsDto,
 } from './dto/call-config.dto.js';
 
@@ -34,12 +38,14 @@ export class CallConfigService {
    */
   async getConfig(includeInactive = false) {
     const where = includeInactive ? undefined : { isActive: true };
-    const [outcomes, nextActions, requiredFields] = await Promise.all([
-      this.prisma.callOutcome.findMany({ where, orderBy: ORDER }),
-      this.prisma.nextAction.findMany({ where, orderBy: ORDER }),
-      this.getRequiredFields(),
-    ]);
-    return { outcomes, nextActions, requiredFields };
+    const [outcomes, nextActions, requiredFields, followUpTiming] =
+      await Promise.all([
+        this.prisma.callOutcome.findMany({ where, orderBy: ORDER }),
+        this.prisma.nextAction.findMany({ where, orderBy: ORDER }),
+        this.getRequiredFields(),
+        this.getFollowUpTiming(),
+      ]);
+    return { outcomes, nextActions, requiredFields, followUpTiming };
   }
 
   async getRequiredFields(): Promise<RequiredFieldsConfig> {
@@ -51,6 +57,49 @@ export class CallConfigService {
       ...DEFAULT_REQUIRED_FIELDS,
       ...((row?.value ?? {}) as Partial<RequiredFieldsConfig>),
     };
+  }
+
+  async getFollowUpTiming(): Promise<FollowUpTimingConfig> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: FOLLOW_UP_TIMING_KEY },
+    });
+    return {
+      ...DEFAULT_FOLLOW_UP_TIMING,
+      ...((row?.value ?? {}) as Partial<FollowUpTimingConfig>),
+    };
+  }
+
+  async updateFollowUpTiming(dto: UpdateFollowUpTimingDto, actor: AuthUser) {
+    const before = await this.getFollowUpTiming();
+    const value: FollowUpTimingConfig = {
+      reminderMinutesBefore: dto.reminderMinutesBefore,
+      gracePeriodMinutes: dto.gracePeriodMinutes,
+      presenceTimeoutMinutes: dto.presenceTimeoutMinutes,
+    };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { key: FOLLOW_UP_TIMING_KEY },
+        create: {
+          key: FOLLOW_UP_TIMING_KEY,
+          value: { ...value },
+          updatedById: actor.id,
+        },
+        update: { value: { ...value }, updatedById: actor.id },
+      });
+      await this.recordUpdate(
+        tx,
+        actor,
+        AuditAction.SETTING_UPDATED,
+        'setting',
+        FOLLOW_UP_TIMING_KEY,
+        diffChanges(before, value, [
+          'reminderMinutesBefore',
+          'gracePeriodMinutes',
+          'presenceTimeoutMinutes',
+        ]),
+      );
+    });
+    return value;
   }
 
   // ---------- Call outcomes ----------

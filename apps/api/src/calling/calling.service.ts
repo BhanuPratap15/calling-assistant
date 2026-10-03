@@ -8,6 +8,7 @@ import { AuditAction } from '../audit/audit.types.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CallConfigService } from '../call-config/call-config.service.js';
 import { customerProfileInclude } from '../customers/customer-profile.js';
+import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validateCallForm } from './call-form-validation.js';
@@ -27,6 +28,7 @@ export class CallingService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly callConfig: CallConfigService,
+    private readonly followUps: FollowUpsService,
   ) {}
 
   /** Assistant ka current (IN_PROGRESS) customer — profile ke saath. Nahi hai to null. */
@@ -37,6 +39,16 @@ export class CallingService {
         id: true,
         source: true,
         startedAt: true,
+        // Follow-up call ho to: kab ka promise tha, kisne kiya, customer ne kya kaha tha
+        followUp: {
+          select: {
+            id: true,
+            dueAt: true,
+            escalationCount: true,
+            originalOwner: { select: { id: true, name: true } },
+            sourceCall: { select: { userResponse: true, notes: true } },
+          },
+        },
         customer: { include: customerProfileInclude },
       },
     });
@@ -44,18 +56,63 @@ export class CallingService {
 
   /**
    * ASSIGNMENT ENGINE (pull).
-   * Order: 1) already current → wahi  2) manager ki queue (ASSIGNED)  3) naya eligible customer
+   * Order: 1) already current → wahi  2) MERE due follow-ups (sabse purana pehle)
+   *        3) manager ki queue (ASSIGNED)  4) naya eligible customer
    * Duplicate se bachav:
    *   - SELECT ... FOR UPDATE SKIP LOCKED → do assistants ek saath maangein to alag rows milti hain
    *   - unique columns (openCustomerId / inProgressStaffId) → DB khud duplicate reject karta hai
    */
   async next(actor: AuthUser) {
     const existing = await this.current(actor.id);
-    if (existing) return existing;
+    if (existing) return this.withPresence(actor.id, existing);
 
     try {
       await this.prisma.$transaction(async (tx) => {
-        // 2) Manager/TL ne jo customers is staff ko diye hain (priority pehle)
+        // 2) Due follow-ups (design doc 8.1: "4:00 PM follow-up becomes due → Amit receives it")
+        //    Customer kisi aur ke paas khula ho to skip.
+        const [due] = await tx.$queryRaw<{ id: string; customer_id: string }[]>`
+          SELECT f.id, f.customer_id FROM follow_ups f
+          WHERE f.owner_id = ${actor.id}::uuid AND f.status = 'PENDING' AND f.due_at <= ${new Date()}
+            AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = f.customer_id)
+          ORDER BY f.due_at ASC
+          LIMIT 1
+          FOR UPDATE OF f SKIP LOCKED`;
+        if (due) {
+          await tx.followUp.update({
+            where: { id: due.id },
+            data: { status: 'IN_PROGRESS' },
+          });
+          const assignment = await tx.assignment.create({
+            data: {
+              status: 'IN_PROGRESS',
+              source: 'FOLLOW_UP',
+              customerId: due.customer_id,
+              staffId: actor.id,
+              followUpId: due.id,
+              openCustomerId: due.customer_id,
+              inProgressStaffId: actor.id,
+              startedAt: new Date(),
+            },
+          });
+          await this.audit.record(
+            {
+              actorId: actor.id,
+              action: AuditAction.ASSIGNMENT_CREATED,
+              entityType: 'assignment',
+              entityId: assignment.id,
+              metadata: {
+                customerId: due.customer_id,
+                staffId: actor.id,
+                source: 'FOLLOW_UP',
+                followUpId: due.id,
+              },
+            },
+            tx,
+          );
+          return;
+        }
+
+        // 3) Manager/TL ne jo customers is staff ko diye hain (priority pehle)
         const [queued] = await tx.$queryRaw<{ id: string }[]>`
           SELECT a.id FROM assignments a
           JOIN customers c ON c.id = a.customer_id
@@ -125,7 +182,23 @@ export class CallingService {
         throw error;
       }
     }
-    return this.current(actor.id);
+    return this.withPresence(actor.id, await this.current(actor.id));
+  }
+
+  /**
+   * Availability auto: customer khula → ON_CALL; kuch nahi mila → AVAILABLE.
+   * (BREAK/OFFLINE wala "Start Calling" dabaye to wo kaam pe aa gaya.) Audit nahi — bahut noisy.
+   */
+  private async withPresence<T>(
+    staffId: string,
+    current: T | null,
+  ): Promise<T | null> {
+    const target = current ? 'ON_CALL' : 'AVAILABLE';
+    await this.prisma.staff.updateMany({
+      where: { id: staffId, availability: { not: target } },
+      data: { availability: target, lastSeenAt: new Date() },
+    });
+    return current;
   }
 
   /** SAVE & NEXT — sab ek transaction me; fail hua to kuch bhi save nahi */
@@ -196,6 +269,13 @@ export class CallingService {
       await tx.customer.update({
         where: { id: assignment.customer_id },
         data: { lastCalledAt: now, callCount: { increment: 1 } },
+      });
+      // Purana open follow-up complete + (zaroorat ho to) naya follow-up — isi transaction me
+      await this.followUps.onCallSaved(tx, {
+        customerId: assignment.customer_id,
+        callId: created.id,
+        staffId: actor.id,
+        followUpAt: values.followUpAt,
       });
       await tx.assignment.update({
         where: { id: assignment.id },

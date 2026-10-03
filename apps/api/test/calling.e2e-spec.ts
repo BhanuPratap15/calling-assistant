@@ -95,7 +95,7 @@ describe('Calling workflow + assignments (e2e)', () => {
     const staffIds = Object.entries(ids)
       .filter(([k]) => k !== 'team')
       .map(([, v]) => v);
-    await prisma.call.deleteMany({ where: { staffId: { in: staffIds } } });
+    // Order zaroori hai (foreign keys): assignments → follow-ups → calls → customers
     await prisma.assignment.deleteMany({
       where: {
         OR: [
@@ -104,6 +104,10 @@ describe('Calling workflow + assignments (e2e)', () => {
         ],
       },
     });
+    await prisma.followUp.deleteMany({
+      where: { customerId: { in: customerIds } },
+    });
+    await prisma.call.deleteMany({ where: { staffId: { in: staffIds } } });
     await prisma.auditLog.deleteMany({ where: { actorId: { in: staffIds } } });
     await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
     await prisma.staff.updateMany({

@@ -10,5 +10,7 @@ export default defineConfig({
     // E2E files ek-ek karke: sab same database share karte hain (assignment engine
     // "koi bhi eligible customer" uthata hai — parallel files ek doosre ka data le lengi)
     fileParallelism: false,
+    // Background scheduler (Redis) band — tests FollowUpSchedulerService.tick() khud chalate hain
+    env: { SCHEDULER_ENABLED: 'false' },
   },
 });

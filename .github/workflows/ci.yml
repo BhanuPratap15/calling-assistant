@@ -34,10 +34,21 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      # Background jobs (BullMQ) ke liye — smoke test me asli scheduler chalta hai
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
 
     env:
       DATABASE_URL: postgresql://crm:crm_ci_password@localhost:5432/calling_crm
       JWT_SECRET: ci-only-test-secret-not-used-anywhere-else
+      REDIS_URL: redis://localhost:6379
 
     steps:
       - name: Checkout code
@@ -72,3 +83,15 @@ jobs:
 
       - name: Build (API + Web)
         run: npm run build
+
+      # Built API ko asli Redis ke saath chalao: DB + scheduler dono "up" hone chahiye.
+      # (Unit/e2e tests me scheduler band rehta hai — ye step uski wiring pakadta hai.)
+      - name: Smoke test (built API + real Redis scheduler)
+        working-directory: apps/api
+        run: |
+          node dist/main.js > api.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:4000/api/health > /dev/null && break; sleep 1; done
+          curl -s http://localhost:4000/api/health | tee health.json; echo
+          if ! grep -q '"database":"up"' health.json || ! grep -q '"scheduler":"up"' health.json; then
+            echo "Smoke test failed — API log:"; cat api.log; exit 1
+          fi

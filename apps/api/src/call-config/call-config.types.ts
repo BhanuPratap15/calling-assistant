@@ -22,3 +22,18 @@ export const DEFAULT_REQUIRED_FIELDS: RequiredFieldsConfig = {
   notes: 'connected',
   interestRating: 'connected',
 };
+
+/** Follow-up timing (design doc section 8 — "reminder time, grace period configurable") */
+export interface FollowUpTimingConfig {
+  reminderMinutesBefore: number; // due se kitne min pehle reminder
+  gracePeriodMinutes: number; // due ke baad intezaar → phir escalate / overdue
+  presenceTimeoutMinutes: number; // itni der koi request nahi → assistant "away"
+}
+
+export const FOLLOW_UP_TIMING_KEY = 'follow_up.timing';
+
+export const DEFAULT_FOLLOW_UP_TIMING: FollowUpTimingConfig = {
+  reminderMinutesBefore: 1,
+  gracePeriodMinutes: 10,
+  presenceTimeoutMinutes: 5,
+};

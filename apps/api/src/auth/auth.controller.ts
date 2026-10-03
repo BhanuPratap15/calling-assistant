@@ -1,11 +1,21 @@
-import { Body, Controller, Get, HttpCode, Post, Res } from '@nestjs/common';
-import type { CookieOptions, Response } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
+import type { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { AUTH_COOKIE, type AuthUser } from './auth.types.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { Public } from './decorators/public.decorator.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import { SetAvailabilityDto } from './dto/set-availability.dto.js';
 
 /**
  * Cookie settings:
@@ -45,14 +55,30 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(204)
-  logout(@Res({ passthrough: true }) res: Response) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const bearer = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : undefined;
+    const cookie = (req.cookies as Record<string, string> | undefined)?.[
+      AUTH_COOKIE
+    ];
+    await this.authService.markOfflineFromToken(bearer ?? cookie); // availability → OFFLINE
     res.clearCookie(AUTH_COOKIE, cookieOptions());
   }
 
   // GET /api/auth/me  (header: Authorization: Bearer <token>)  →  logged-in staff
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
-    return user;
+    return this.authService.me(user);
+  }
+
+  // PATCH /api/auth/availability { availability: AVAILABLE | BREAK | OFFLINE }
+  @Patch('availability')
+  setAvailability(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SetAvailabilityDto,
+  ) {
+    return this.authService.setAvailability(user.id, dto.availability);
   }
 
   // POST /api/auth/change-password  { currentPassword, newPassword }  →  204

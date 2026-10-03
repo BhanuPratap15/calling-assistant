@@ -24,6 +24,7 @@ describe('AppController', () => {
         status: 'ok',
         service: 'calling-crm-api',
         database: 'up',
+        scheduler: 'disabled', // unit test me queue nahi
       });
     });
 

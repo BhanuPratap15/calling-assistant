@@ -11,14 +11,33 @@ import { ROLE_LABELS } from '@/lib/types';
  * Login ke baad ka layout: left sidebar (role ke hisaab se menu) + top header + page.
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, sessionError, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Session nahi mila → login pe bhejo
+  // Session nahi mila → login pe bhejo (lekin backend hi band ho to nahi — neeche message)
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
-  }, [loading, user, router]);
+    if (!loading && !user && !sessionError) router.replace('/login');
+  }, [loading, user, sessionError, router]);
+
+  if (sessionError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="max-w-md rounded-xl border border-amber-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-slate-900">
+            Server se connection nahi
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">{sessionError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !user) {
     return (

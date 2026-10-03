@@ -43,6 +43,16 @@ npm run db:migrate    # naye DB changes apply
 > `npm install <package>` sirf tab jab nayi library add karni ho.
 > Windows pe `EPERM` aaye: saare dev servers band karo, `node_modules` delete karo, phir `npm ci`.
 
+## Troubleshooting
+
+| Problem                                                         | Wajah                                          | Fix                                                            |
+| --------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
+| Browser me "Server se connection nahi" / `Request failed (500)` | Frontend backend (port 4000) tak nahi pahuncha | `npm run dev:api` chalao; uske terminal me error dekho         |
+| `dev:api` start hote hi crash                                   | Dependencies / DB / migration missing          | `npm ci` → `npm run infra:up` → `npm run db:migrate`           |
+| `"database":"down"`                                             | Docker Postgres band                           | `npm run infra:up`, `.env` me `DATABASE_URL` port check (5433) |
+| `EPERM` on `npm ci` (Windows)                                   | Koi process file use kar raha                  | Saare dev servers band, `node_modules` delete, phir `npm ci`   |
+| `'nest' / 'prisma' is not recognized`                           | `node_modules` adhura                          | `npm ci`                                                       |
+
 ## Commit se pehle (CI yahi checks chalata hai)
 
 ```bash

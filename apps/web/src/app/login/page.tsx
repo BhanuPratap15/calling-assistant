@@ -31,7 +31,9 @@ function LoginForm() {
       setError(
         err instanceof ApiError && err.status === 401
           ? 'Email ya password galat hai'
-          : 'Login nahi ho paya. Thodi der baad try karein.',
+          : err instanceof ApiError && err.unreachable
+            ? err.message
+            : 'Login nahi ho paya. Thodi der baad try karein.',
       );
       setSubmitting(false);
     }

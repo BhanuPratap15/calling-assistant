@@ -20,6 +20,7 @@ import type { AuthUser } from './types';
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean; // pehli baar /auth/me check ho raha hai
+  sessionError: string | null; // session check hi fail hua (e.g. backend band) — 401 nahi
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
@@ -32,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   // /login pe session check ki zaroorat nahi (proxy ne confirm kiya ki cookie nahi hai)
   const [loading, setLoading] = useState(pathname !== '/login');
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Page load pe: cookie valid hai? → backend se user lao
   useEffect(() => {
@@ -43,7 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Cookie hai par expire/invalid → saaf karo, warna proxy ↔ login ka loop banega
           await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
         } else {
-          console.error('Failed to load session', error);
+          // Backend band / server error → login pe mat bhejo, saaf message dikhao (AppShell)
+          setSessionError(
+            error instanceof Error
+              ? error.message
+              : 'Session load nahi ho paya',
+          );
         }
         setUser(null);
       })
@@ -68,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout }),
-    [user, loading, login, logout],
+    () => ({ user, loading, sessionError, login, logout }),
+    [user, loading, sessionError, login, logout],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -160,3 +160,23 @@ Content-Type: application/json
   "currentPassword": "ChangeMe@123",
   "newPassword": "MyNewStrong@2026"
 }
+
+# ---------------------------------------------------------------------
+# Audit logs (MANAGER / SUPER_ADMIN — sirf padhne ke liye)
+# ---------------------------------------------------------------------
+
+### 20. Sab latest activity (newest first)
+GET {{baseUrl}}/audit-logs?page=1&pageSize=20
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 21. Ek customer ki poori history
+GET {{baseUrl}}/audit-logs?entityType=customer&entityId={{createCustomer.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 22. Failed login attempts
+GET {{baseUrl}}/audit-logs?action=auth.login_failed
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 23. Date range (from / to)
+GET {{baseUrl}}/audit-logs?from=2026-10-01&to=2026-12-31&entityType=staff
+Authorization: Bearer {{login.response.body.accessToken}}

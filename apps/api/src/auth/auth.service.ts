@@ -1,5 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { AuditService } from '../audit/audit.service.js';
+import { AuditAction } from '../audit/audit.types.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthUser, JwtPayload } from './auth.types.js';
 import { hashPassword, verifyPassword } from './password.js';
@@ -14,14 +16,16 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly audit: AuditService,
   ) {}
 
   async login(
     email: string,
     password: string,
   ): Promise<{ accessToken: string; user: AuthUser }> {
+    const normalizedEmail = email.trim().toLowerCase();
     const staff = await this.prisma.staff.findUnique({
-      where: { email: email.trim().toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     const passwordOk = await verifyPassword(
@@ -30,12 +34,38 @@ export class AuthService {
     );
     // Ek hi generic message — "email galat" ya "password galat" alag se nahi batate
     if (!staff || !passwordOk || !staff.isActive) {
+      // Failed login bhi record — brute-force / galat access attempts pakadne ke liye
+      await this.audit.record({
+        actorId: null,
+        action: AuditAction.AUTH_LOGIN_FAILED,
+        entityType: 'auth',
+        entityId: staff?.id ?? null,
+        metadata: {
+          email: normalizedEmail,
+          reason: !staff
+            ? 'unknown_email'
+            : !passwordOk
+              ? 'wrong_password'
+              : 'inactive',
+        },
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    await this.prisma.staff.update({
-      where: { id: staff.id },
-      data: { lastLoginAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staff.update({
+        where: { id: staff.id },
+        data: { lastLoginAt: new Date() },
+      });
+      await this.audit.record(
+        {
+          actorId: staff.id,
+          action: AuditAction.AUTH_LOGIN,
+          entityType: 'auth',
+          entityId: staff.id,
+        },
+        tx,
+      );
     });
 
     const payload: JwtPayload = { sub: staff.id, role: staff.role };
@@ -62,9 +92,18 @@ export class AuthService {
     if (!(await verifyPassword(currentPassword, staff.passwordHash))) {
       throw new UnauthorizedException('Current password is incorrect');
     }
-    await this.prisma.staff.update({
-      where: { id: staffId },
-      data: { passwordHash: await hashPassword(newPassword) },
+    const passwordHash = await hashPassword(newPassword);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staff.update({ where: { id: staffId }, data: { passwordHash } });
+      await this.audit.record(
+        {
+          actorId: staffId,
+          action: AuditAction.AUTH_PASSWORD_CHANGED,
+          entityType: 'auth',
+          entityId: staffId,
+        },
+        tx,
+      );
     });
   }
 }

@@ -4,6 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service.js';
+import { AuditAction } from '../audit/audit.types.js';
+import { diffChanges } from '../audit/diff.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { hashPassword } from '../auth/password.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
@@ -17,7 +20,10 @@ import { staffPublicSelect } from './staff.select.js';
 
 @Injectable()
 export class StaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async create(dto: CreateStaffDto, actor: AuthUser) {
     this.assertCanManage(actor, dto.role);
@@ -26,16 +32,35 @@ export class StaffService {
 
     return withUniqueConflict(
       () =>
-        this.prisma.staff.create({
-          data: {
-            name: dto.name.trim(),
-            email: dto.email.trim().toLowerCase(),
-            phone: dto.phone,
-            role: dto.role,
-            teamId: dto.teamId,
-            passwordHash,
-          },
-          select: staffPublicSelect,
+        // Interactive transaction: staff create + audit — dono ya koi nahi
+        this.prisma.$transaction(async (tx) => {
+          const staff = await tx.staff.create({
+            data: {
+              name: dto.name.trim(),
+              email: dto.email.trim().toLowerCase(),
+              phone: dto.phone,
+              role: dto.role,
+              teamId: dto.teamId,
+              passwordHash,
+            },
+            select: staffPublicSelect,
+          });
+          await this.audit.record(
+            {
+              actorId: actor.id,
+              action: AuditAction.STAFF_CREATED,
+              entityType: 'staff',
+              entityId: staff.id,
+              metadata: {
+                name: staff.name,
+                email: staff.email,
+                role: staff.role,
+                teamId: staff.teamId,
+              },
+            },
+            tx,
+          );
+          return staff;
         }),
       'A staff member with this email already exists',
     );
@@ -78,42 +103,77 @@ export class StaffService {
     }
     if (dto.teamId) await this.assertActiveTeam(dto.teamId);
 
-    const updateStaff = this.prisma.staff.update({
-      where: { id },
-      data: {
-        name: dto.name?.trim(),
-        phone: dto.phone,
-        role: dto.role,
-        teamId: dto.teamId, // null = team se hatao
-        isActive: dto.isActive,
-      },
-      select: staffPublicSelect,
-    });
-
     // TEAM_LEADER nahi raha (role badla ya deactivate hua) → uski teams se leader hatao.
-    // Dono kaam ek transaction me: ya dono honge ya koi nahi.
     const leavesLeaderRole =
       target.role === 'TEAM_LEADER' &&
       ((dto.role !== undefined && dto.role !== 'TEAM_LEADER') ||
         dto.isActive === false);
-    if (!leavesLeaderRole) return updateStaff;
 
-    const [updated] = await this.prisma.$transaction([
-      updateStaff,
-      this.prisma.team.updateMany({
-        where: { leaderId: id },
-        data: { leaderId: null },
-      }),
-    ]);
-    return updated;
+    // Update + (zaroorat ho to) teams se leader hatao + audit — sab ek transaction me
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.staff.update({
+        where: { id },
+        data: {
+          name: dto.name?.trim(),
+          phone: dto.phone,
+          role: dto.role,
+          teamId: dto.teamId, // null = team se hatao
+          isActive: dto.isActive,
+        },
+        select: staffPublicSelect,
+      });
+
+      const clearedTeams = leavesLeaderRole
+        ? (
+            await tx.team.updateMany({
+              where: { leaderId: id },
+              data: { leaderId: null },
+            })
+          ).count
+        : 0;
+
+      const changes = diffChanges(target, updated, [
+        'name',
+        'phone',
+        'role',
+        'teamId',
+        'isActive',
+      ]);
+      if (changes) {
+        await this.audit.record(
+          {
+            actorId: actor.id,
+            action: AuditAction.STAFF_UPDATED,
+            entityType: 'staff',
+            entityId: id,
+            changes,
+            metadata: clearedTeams
+              ? { removedAsLeaderOfTeams: clearedTeams }
+              : undefined,
+          },
+          tx,
+        );
+      }
+      return updated;
+    });
   }
 
   async resetPassword(id: string, newPassword: string, actor: AuthUser) {
     const target = await this.findOne(id);
     this.assertCanManage(actor, target.role);
-    await this.prisma.staff.update({
-      where: { id },
-      data: { passwordHash: await hashPassword(newPassword) },
+    const passwordHash = await hashPassword(newPassword);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.staff.update({ where: { id }, data: { passwordHash } });
+      // Password ki value KABHI log nahi hoti — sirf "reset hua" ka record
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          action: AuditAction.STAFF_PASSWORD_RESET,
+          entityType: 'staff',
+          entityId: id,
+        },
+        tx,
+      );
     });
   }
 

@@ -66,3 +66,9 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | 204 No Content                    | Kaam ho gaya, wapas bhejne ko kuch nahi (password reset)                                     | reset/change password                         |
 | null vs undefined (PATCH)         | `null` = value hatao (team se nikalo); field hi na bhejo = mat chhedo                        | `UpdateStaffDto.teamId`                       |
 | Data scoping                      | Ek hi API, role ke hisaab se alag data (TL ko sirf apni teams)                               | `teams.service.ts`                            |
+| Audit log                         | "Kisne, kya, kab, kis cheez pe" ka permanent record                                          | `audit/` module, `audit_logs` table           |
+| Append-only                       | Sirf naye rows; purane kabhi edit/delete nahi                                                | Audit log                                     |
+| Interactive transaction           | `$transaction(async (tx) => {...})` — andar ke saare queries ek unit                         | Staff/Team/Customer services                  |
+| Diff                              | Before vs after compare karke sirf badle hue fields                                          | `audit/diff.ts`                               |
+| JSON column                       | Postgres me flexible data (`changes`, `metadata`)                                            | `audit_logs.changes`                          |
+| `as const`                        | TypeScript: fixed values ka object, galat string compile pe pakdi jaaye                      | `AuditAction`                                 |

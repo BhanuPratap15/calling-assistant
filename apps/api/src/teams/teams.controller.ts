@@ -24,8 +24,8 @@ export class TeamsController {
 
   @Roles('MANAGER')
   @Post()
-  create(@Body() dto: CreateTeamDto) {
-    return this.teamsService.create(dto);
+  create(@Body() dto: CreateTeamDto, @CurrentUser() user: AuthUser) {
+    return this.teamsService.create(dto, user);
   }
 
   @Roles('MANAGER', 'TEAM_LEADER')
@@ -45,7 +45,11 @@ export class TeamsController {
 
   @Roles('MANAGER')
   @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTeamDto) {
-    return this.teamsService.update(id, dto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateTeamDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.teamsService.update(id, dto, user);
   }
 }

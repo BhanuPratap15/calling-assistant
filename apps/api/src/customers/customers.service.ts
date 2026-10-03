@@ -3,6 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service.js';
+import { AuditAction } from '../audit/audit.types.js';
+import { diffChanges } from '../audit/diff.js';
 import type { Paginated } from '../common/pagination.dto.js';
 import { normalizePhone } from '../common/phone.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
@@ -17,7 +20,10 @@ const DUPLICATE_MESSAGE =
 
 @Injectable()
 export class CustomersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async create(dto: CreateCustomerDto, createdById: string): Promise<Customer> {
     const data = {
@@ -28,7 +34,21 @@ export class CustomersService {
       createdById,
     };
     return withUniqueConflict(
-      () => this.prisma.customer.create({ data }),
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const customer = await tx.customer.create({ data });
+          await this.audit.record(
+            {
+              actorId: createdById,
+              action: AuditAction.CUSTOMER_CREATED,
+              entityType: 'customer',
+              entityId: customer.id,
+              metadata: { name: customer.name, phone: customer.phone },
+            },
+            tx,
+          );
+          return customer;
+        }),
       DUPLICATE_MESSAGE,
     );
   }
@@ -71,8 +91,12 @@ export class CustomersService {
     return customer;
   }
 
-  async update(id: string, dto: UpdateCustomerDto): Promise<Customer> {
-    await this.findOne(id); // nahi mila → 404
+  async update(
+    id: string,
+    dto: UpdateCustomerDto,
+    actorId: string,
+  ): Promise<Customer> {
+    const before = await this.findOne(id); // nahi mila → 404
     const data: Prisma.CustomerUpdateInput = {
       ...dto,
       phone:
@@ -86,7 +110,33 @@ export class CustomersService {
       email: dto.email?.trim().toLowerCase(),
     };
     return withUniqueConflict(
-      () => this.prisma.customer.update({ where: { id }, data }),
+      () =>
+        this.prisma.$transaction(async (tx) => {
+          const after = await tx.customer.update({ where: { id }, data });
+          const changes = diffChanges(before, after, [
+            'name',
+            'phone',
+            'alternatePhone',
+            'email',
+            'externalId',
+            'status',
+            'priority',
+            'notes',
+          ]);
+          if (changes) {
+            await this.audit.record(
+              {
+                actorId,
+                action: AuditAction.CUSTOMER_UPDATED,
+                entityType: 'customer',
+                entityId: id,
+                changes,
+              },
+              tx,
+            );
+          }
+          return after;
+        }),
       DUPLICATE_MESSAGE,
     );
   }

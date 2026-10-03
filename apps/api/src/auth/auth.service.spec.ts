@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthService } from './auth.service.js';
 import { hashPassword } from './password.js';
@@ -9,7 +10,10 @@ describe('AuthService', () => {
   let service: AuthService;
   const prismaMock = {
     staff: { findUnique: vi.fn(), update: vi.fn() },
+    // $transaction(fn) → fn ko isi mock ke saath chala do
+    $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prismaMock)),
   };
+  const auditMock = { record: vi.fn() };
   const jwtMock = { signAsync: vi.fn().mockResolvedValue('signed-token') };
   let passwordHash: string;
 
@@ -24,6 +28,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: JwtService, useValue: jwtMock },
+        { provide: AuditService, useValue: auditMock },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
@@ -61,12 +66,23 @@ describe('AuthService', () => {
       },
     });
     expect(result.user).not.toHaveProperty('passwordHash');
+    expect(auditMock.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'auth.login', actorId: 'staff-1' }),
+      prismaMock,
+    );
   });
 
   it('rejects wrong password', async () => {
     prismaMock.staff.findUnique.mockResolvedValue(activeStaff());
     await expect(service.login('amit@crm.local', 'wrong')).rejects.toThrow(
       UnauthorizedException,
+    );
+    expect(auditMock.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'auth.login_failed',
+        actorId: null,
+        metadata: { email: 'amit@crm.local', reason: 'wrong_password' },
+      }),
     );
   });
 

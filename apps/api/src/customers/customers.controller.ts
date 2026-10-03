@@ -50,7 +50,8 @@ export class CustomersController {
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCustomerDto,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.customersService.update(id, dto);
+    return this.customersService.update(id, dto, user.id);
   }
 }

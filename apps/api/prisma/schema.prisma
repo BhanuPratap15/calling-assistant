@@ -83,6 +83,7 @@ model Staff {
   ledTeams Team[] @relation("TeamLeader") // agar ye TEAM_LEADER hai to kaunsi teams lead karta hai
 
   customersCreated Customer[] @relation("CustomerCreatedBy")
+  auditLogs        AuditLog[] @relation("AuditActor")
 
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -138,4 +139,29 @@ model Customer {
   @@index([status, priority]) // "call karne layak, high priority pehle" query fast
   @@index([name])
   @@map("customers")
+}
+
+// ---------------------------------------------------------------------
+// AuditLog — "kisne, kya, kab, kis cheez pe" (design doc section 19)
+// APPEND-ONLY: sirf naye rows bante hain; update/delete ki koi API nahi.
+// ---------------------------------------------------------------------
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  actorId String? @map("actor_id") @db.Uuid // null = system ya anonymous (e.g. failed login)
+  actor   Staff?  @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  action     String // e.g. "staff.created", "customer.updated", "auth.login_failed"
+  entityType String  @map("entity_type") // "staff" | "team" | "customer" | ...
+  entityId   String? @map("entity_id") // kis record pe (uuid ya koi id)
+  changes    Json? // { field: { from, to } } — sirf jo badla
+  metadata   Json? // extra context (e.g. login attempt ka email)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId, createdAt]) // "is customer ki history"
+  @@index([actorId, createdAt]) // "Amit ne kya kya kiya"
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

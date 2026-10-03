@@ -4,6 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service.js';
+import { AuditAction } from '../audit/audit.types.js';
+import { diffChanges } from '../audit/diff.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -42,19 +45,35 @@ const DUPLICATE_MESSAGE = 'A team with this name already exists';
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
-  async create(dto: CreateTeamDto) {
+  async create(dto: CreateTeamDto, actor: AuthUser) {
     if (dto.leaderId) await this.assertValidLeader(dto.leaderId);
     return withUniqueConflict(
       () =>
-        this.prisma.team.create({
-          data: {
-            name: dto.name.trim(),
-            description: dto.description,
-            leaderId: dto.leaderId,
-          },
-          select: teamListSelect,
+        this.prisma.$transaction(async (tx) => {
+          const team = await tx.team.create({
+            data: {
+              name: dto.name.trim(),
+              description: dto.description,
+              leaderId: dto.leaderId,
+            },
+            select: teamListSelect,
+          });
+          await this.audit.record(
+            {
+              actorId: actor.id,
+              action: AuditAction.TEAM_CREATED,
+              entityType: 'team',
+              entityId: team.id,
+              metadata: { name: team.name, leaderId: team.leader?.id ?? null },
+            },
+            tx,
+          );
+          return team;
         }),
       DUPLICATE_MESSAGE,
     );
@@ -81,22 +100,45 @@ export class TeamsService {
     return team;
   }
 
-  async update(id: string, dto: UpdateTeamDto) {
-    const exists = await this.prisma.team.findUnique({ where: { id } });
-    if (!exists) throw new NotFoundException('Team not found');
+  async update(id: string, dto: UpdateTeamDto, actor: AuthUser) {
+    const before = await this.prisma.team.findUnique({ where: { id } });
+    if (!before) throw new NotFoundException('Team not found');
     if (dto.leaderId) await this.assertValidLeader(dto.leaderId);
 
     return withUniqueConflict(
       () =>
-        this.prisma.team.update({
-          where: { id },
-          data: {
-            name: dto.name?.trim(),
-            description: dto.description,
-            leaderId: dto.leaderId, // null = leader hatao
-            isActive: dto.isActive,
-          },
-          select: teamListSelect,
+        this.prisma.$transaction(async (tx) => {
+          const after = await tx.team.update({
+            where: { id },
+            data: {
+              name: dto.name?.trim(),
+              description: dto.description,
+              leaderId: dto.leaderId, // null = leader hatao
+              isActive: dto.isActive,
+            },
+          });
+          const changes = diffChanges(before, after, [
+            'name',
+            'description',
+            'leaderId',
+            'isActive',
+          ]);
+          if (changes) {
+            await this.audit.record(
+              {
+                actorId: actor.id,
+                action: AuditAction.TEAM_UPDATED,
+                entityType: 'team',
+                entityId: id,
+                changes,
+              },
+              tx,
+            );
+          }
+          return tx.team.findUniqueOrThrow({
+            where: { id },
+            select: teamListSelect,
+          });
         }),
       DUPLICATE_MESSAGE,
     );

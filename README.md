@@ -70,7 +70,7 @@ npm run format && npm run lint && npm run typecheck && npm test
 | GET    | `/api/staff`      | MANAGER, SUPER_ADMIN                                     |
 
 Test karne ke liye: `apps/api/api.http` (VS Code "REST Client" extension).
-Auth design: [ADR 0003](docs/decisions/0003-authentication.md)
+Auth design: [ADR 0003](docs/decisions/0003-authentication.md) · Audit: [ADR 0004](docs/decisions/0004-audit-log.md)
 
 ## Folder Structure
 
@@ -84,6 +84,7 @@ calling-assistant/
 │   │   │   ├── auth/   #   login, JWT, guards, @Public/@Roles
 │   │   │   ├── staff/  #   staff APIs (create, roles, password reset)
 │   │   │   ├── teams/  #   teams APIs
+│   │   │   ├── audit/  #   audit log (record + read API)
 │   │   │   ├── customers/ # customers APIs (jinko call karna hai)
 │   │   │   └── common/ #   shared helpers (phone, pagination)
 │   │   └── test/       #   e2e tests

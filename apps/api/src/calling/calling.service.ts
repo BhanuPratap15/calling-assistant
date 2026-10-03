@@ -7,6 +7,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { AuditAction } from '../audit/audit.types.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CallConfigService } from '../call-config/call-config.service.js';
+import { CategoriesService } from '../categories/categories.service.js';
 import { customerProfileInclude } from '../customers/customer-profile.js';
 import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
 import { Prisma } from '../generated/prisma/client.js';
@@ -29,6 +30,7 @@ export class CallingService {
     private readonly audit: AuditService,
     private readonly callConfig: CallConfigService,
     private readonly followUps: FollowUpsService,
+    private readonly categories: CategoriesService,
   ) {}
 
   /** Assistant ka current (IN_PROGRESS) customer — profile ke saath. Nahi hai to null. */
@@ -270,6 +272,15 @@ export class CallingService {
         where: { id: assignment.customer_id },
         data: { lastCalledAt: now, callCount: { increment: 1 } },
       });
+      // Rating di → latest rating + category engine (category badli to history + priority)
+      if (values.interestRating !== null) {
+        await this.categories.applyRating(tx, {
+          customerId: assignment.customer_id,
+          rating: values.interestRating,
+          callId: created.id,
+          actorId: actor.id,
+        });
+      }
       // Purana open follow-up complete + (zaroorat ho to) naya follow-up — isi transaction me
       await this.followUps.onCallSaved(tx, {
         customerId: assignment.customer_id,

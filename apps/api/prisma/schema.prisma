@@ -89,8 +89,10 @@ model Staff {
   assignmentsCreated Assignment[] @relation("AssignmentCreatedBy")
   calls              Call[]
 
-  followUpsOwned    FollowUp[]     @relation("FollowUpOwner")
-  followUpsOriginal FollowUp[]     @relation("FollowUpOriginalOwner")
+  categoryChanges   CustomerCategoryChange[]
+  tagsAdded         CustomerTag[]
+  followUpsOwned    FollowUp[]               @relation("FollowUpOwner")
+  followUpsOriginal FollowUp[]               @relation("FollowUpOriginalOwner")
   notifications     Notification[]
 
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
@@ -144,6 +146,15 @@ model Customer {
   lastCalledAt DateTime? @map("last_called_at") @db.Timestamptz(3)
   callCount    Int       @default(0) @map("call_count")
 
+  // Rating & category (Phase 4) — latest rating se category engine decide karta hai
+  interestRating    Int?      @map("interest_rating") // latest 0–10
+  categoryId        String?   @map("category_id") @db.Uuid
+  category          Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryUpdatedAt DateTime? @map("category_updated_at") @db.Timestamptz(3)
+
+  categoryChanges CustomerCategoryChange[]
+  tags            CustomerTag[]
+
   assignments Assignment[]
   calls       Call[]
   followUps   FollowUp[]
@@ -157,6 +168,7 @@ model Customer {
   @@index([status, priority]) // "call karne layak, high priority pehle" query fast
   @@index([name])
   @@index([status, lastCalledAt, priority, createdAt]) // assignment engine ki query
+  @@index([categoryId])
   @@map("customers")
 }
 
@@ -316,8 +328,9 @@ model Call {
   interestRating Int?      @map("interest_rating") // 0–10 (Phase 4: category isi se)
   followUpAt     DateTime? @map("follow_up_at") @db.Timestamptz(3) // Phase 3: follow-up record isi se banega
 
-  createdFollowUp    FollowUp?  @relation("FollowUpSourceCall")
-  completedFollowUps FollowUp[] @relation("FollowUpCompletedBy")
+  createdFollowUp    FollowUp?                @relation("FollowUpSourceCall")
+  categoryChanges    CustomerCategoryChange[]
+  completedFollowUps FollowUp[]               @relation("FollowUpCompletedBy")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -410,4 +423,80 @@ model Notification {
 
   @@index([recipientId, readAt, createdAt])
   @@map("notifications")
+}
+
+// =====================================================================
+// RATING, CATEGORIES & TAGS (Phase 4) — design doc section 10
+// "Category thresholds are data/configuration, not hard-coded"
+// =====================================================================
+
+/// Interest category: rating range → category (e.g. 8–9 → High Interest). Manager Settings se badalta hai.
+model Category {
+  id        String    @id @default(uuid()) @db.Uuid
+  code      String    @unique // "HIGH_INTEREST" — permanent (reports)
+  label     String
+  minRating Int       @map("min_rating") // inclusive
+  maxRating Int       @map("max_rating") // inclusive
+  color     String    @default("gray") // UI badge tone
+  priority  Priority? // is category me aate hi customer ki priority (null = mat chhedo)
+  isActive  Boolean   @default(true) @map("is_active")
+  sortOrder Int       @default(0) @map("sort_order")
+
+  customers   Customer[]
+  changesFrom CustomerCategoryChange[] @relation("CategoryChangeFrom")
+  changesTo   CustomerCategoryChange[] @relation("CategoryChangeTo")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("categories")
+}
+
+/// Category badalne ki history (design doc section 12: "Category Changes")
+model CustomerCategoryChange {
+  id          String    @id @default(uuid()) @db.Uuid
+  customerId  String    @map("customer_id") @db.Uuid
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fromId      String?   @map("from_category_id") @db.Uuid
+  from        Category? @relation("CategoryChangeFrom", fields: [fromId], references: [id], onDelete: SetNull)
+  toId        String?   @map("to_category_id") @db.Uuid
+  to          Category? @relation("CategoryChangeTo", fields: [toId], references: [id], onDelete: SetNull)
+  rating      Int? // kis rating pe badla
+  reason      String // "call_rating" | "threshold_change"
+  callId      String?   @map("call_id") @db.Uuid
+  call        Call?     @relation(fields: [callId], references: [id], onDelete: SetNull)
+  changedById String?   @map("changed_by_id") @db.Uuid
+  changedBy   Staff?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([customerId, createdAt])
+  @@map("customer_category_changes")
+}
+
+/// Free labels: "Callback Requested", "Big Spender", "Language: Tamil"...
+model Tag {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String        @unique
+  color     String        @default("gray")
+  isActive  Boolean       @default(true) @map("is_active")
+  customers CustomerTag[]
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("tags")
+}
+
+/// Customer ↔ Tag (many-to-many "join table")
+model CustomerTag {
+  customerId String   @map("customer_id") @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tagId      String   @map("tag_id") @db.Uuid
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  addedById  String?  @map("added_by_id") @db.Uuid
+  addedBy    Staff?   @relation(fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([customerId, tagId]) // composite primary key: ek tag ek customer pe ek hi baar
+  @@index([tagId])
+  @@map("customer_tags")
 }

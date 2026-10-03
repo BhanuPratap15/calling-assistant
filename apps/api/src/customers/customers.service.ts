@@ -61,9 +61,23 @@ export class CustomersService {
   }
 
   async findAll(query: ListCustomersQueryDto): Promise<Paginated<Customer>> {
-    const { page, pageSize, search, status, priority } = query;
+    const {
+      page,
+      pageSize,
+      search,
+      status,
+      priority,
+      categoryId,
+      tagId,
+      sort,
+    } = query;
 
-    const where: Prisma.CustomerWhereInput = { status, priority };
+    const where: Prisma.CustomerWhereInput = {
+      status,
+      priority,
+      categoryId: categoryId === 'none' ? null : categoryId,
+      tags: tagId ? { some: { tagId } } : undefined,
+    };
     if (search?.trim()) {
       const term = search.trim();
       const digits = term.replace(/\D/g, '');
@@ -81,6 +95,12 @@ export class CustomersService {
         where,
         // "Assigned to" column ke liye open assignment ka staff
         include: {
+          category: {
+            select: { id: true, code: true, label: true, color: true },
+          },
+          tags: {
+            select: { tag: { select: { id: true, name: true, color: true } } },
+          },
           assignments: {
             where: OPEN_ASSIGNMENT_WHERE,
             select: {
@@ -90,7 +110,13 @@ export class CustomersService {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy:
+          sort === 'rating'
+            ? [
+                { interestRating: { sort: 'desc', nulls: 'last' } },
+                { createdAt: 'desc' },
+              ]
+            : { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),

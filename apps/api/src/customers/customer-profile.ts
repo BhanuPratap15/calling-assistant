@@ -8,7 +8,29 @@ export const OPEN_ASSIGNMENT_WHERE = {
   openCustomerId: { not: null },
 } satisfies Prisma.AssignmentWhereInput;
 
+const categorySelect = {
+  select: { id: true, code: true, label: true, color: true },
+} satisfies Prisma.CategoryDefaultArgs;
+
 export const customerProfileInclude = {
+  category: categorySelect,
+  tags: {
+    select: { tag: { select: { id: true, name: true, color: true } } },
+    orderBy: { createdAt: 'asc' },
+  },
+  categoryChanges: {
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: {
+      id: true,
+      createdAt: true,
+      rating: true,
+      reason: true,
+      from: categorySelect,
+      to: categorySelect,
+      changedBy: { select: { id: true, name: true } },
+    },
+  },
   assignments: {
     where: OPEN_ASSIGNMENT_WHERE,
     select: {

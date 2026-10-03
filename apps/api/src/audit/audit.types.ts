@@ -29,6 +29,11 @@ export const AuditAction = {
   FOLLOW_UP_REASSIGNED: 'follow_up.reassigned',
   FOLLOW_UP_ESCALATED: 'follow_up.escalated',
   FOLLOW_UP_CANCELLED: 'follow_up.cancelled',
+  CATEGORIES_UPDATED: 'category.updated',
+  CUSTOMER_CATEGORY_CHANGED: 'customer.category_changed',
+  TAG_CREATED: 'tag.created',
+  TAG_UPDATED: 'tag.updated',
+  CUSTOMER_TAGS_UPDATED: 'customer.tags_updated',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -44,6 +49,8 @@ export const AUDIT_ENTITY_TYPES = [
   'assignment',
   'call',
   'follow_up',
+  'category',
+  'tag',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 

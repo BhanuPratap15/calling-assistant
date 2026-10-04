@@ -23,3 +23,6 @@ npm-debug.log*
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Redis snapshot (local redis-server repo folder se chalaya ho to)
+dump.rdb

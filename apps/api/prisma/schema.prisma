@@ -97,6 +97,7 @@ model Staff {
   followUpsOwned    FollowUp[]               @relation("FollowUpOwner")
   followUpsOriginal FollowUp[]               @relation("FollowUpOriginalOwner")
   notifications     Notification[]
+  importBatches     ImportBatch[]
 
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
   /// Heartbeat: aakhri API request kab aayi (har ~1 min update). Browser band = AVAILABLE hote hue bhi "away"
@@ -418,6 +419,8 @@ enum NotificationType {
   FOLLOW_UP_ESCALATED_AWAY // purana owner: aap unavailable the, kisi aur ko gaya
   FOLLOW_UP_OVERDUE // team leader / manager: grace ke baad bhi pending
   FOLLOW_UP_REASSIGNED // naya owner: manager ne diya
+  IMPORT_COMPLETED // importer: bulk import khatam (design doc 18: "import completion")
+  IMPORT_FAILED // importer: import beech me fail
 
   @@map("notification_type")
 }
@@ -494,6 +497,7 @@ model Tag {
   color     String        @default("gray")
   isActive  Boolean       @default(true) @map("is_active")
   customers CustomerTag[]
+  imports   ImportBatch[]
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -549,6 +553,7 @@ model Campaign {
   fields      CampaignField[]
   assignments Assignment[]
   calls       Call[]
+  imports     ImportBatch[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -630,4 +635,86 @@ model CampaignField {
 
   @@unique([campaignId, key])
   @@map("campaign_fields")
+}
+
+// =====================================================================
+// BULK IMPORT (Phase 6) — design doc section 16
+// Upload → validation → duplicate check → PREVIEW → confirm → background import → result
+// =====================================================================
+
+enum ImportStatus {
+  PREVIEW // file parse + validate ho gayi, manager confirm karega
+  QUEUED // confirm ho gaya, background job ka wait
+  PROCESSING // background job customers bana raha hai
+  COMPLETED
+  FAILED // beech me error — "Retry" se wahin se aage
+  CANCELLED // preview ke baad cancel
+
+  @@map("import_status")
+}
+
+enum ImportRowStatus {
+  VALID // import hoga
+  INVALID // galat data (errors me wajah)
+  DUPLICATE // file me pehle aa chuka / DB me pehle se hai
+  IMPORTED // customer ban gaya
+  SKIPPED // preview ke baad kisi ne same phone/ID se customer bana diya
+
+  @@map("import_row_status")
+}
+
+/// Ek upload = ek batch (import history: kisne, kab, kitne, kitne fail)
+model ImportBatch {
+  id       String       @id @default(uuid()) @db.Uuid
+  fileName String       @map("file_name")
+  status   ImportStatus @default(PREVIEW)
+
+  totalRows     Int @map("total_rows")
+  validRows     Int @map("valid_rows")
+  invalidRows   Int @map("invalid_rows")
+  duplicateRows Int @map("duplicate_rows")
+  importedRows  Int @default(0) @map("imported_rows")
+  skippedRows   Int @default(0) @map("skipped_rows")
+
+  // Confirm pe optional: naye customers seedhe campaign me / tag ke saath
+  campaignId String?   @map("campaign_id") @db.Uuid
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  tagId      String?   @map("tag_id") @db.Uuid
+  tag        Tag?      @relation(fields: [tagId], references: [id], onDelete: SetNull)
+
+  error          String? // FAILED ki wajah
+  ignoredColumns String[] @default([]) @map("ignored_columns") // file ke extra columns jo import nahi hue (e.g. "City")
+
+  createdById String? @map("created_by_id") @db.Uuid
+  createdBy   Staff?  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz(3)
+  startedAt   DateTime? @map("started_at") @db.Timestamptz(3)
+  finishedAt  DateTime? @map("finished_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  rows ImportRow[]
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("import_batches")
+}
+
+/// File ki har line — preview, error report aur "kaunsa customer bana" ke liye
+model ImportRow {
+  id        String          @id @default(uuid()) @db.Uuid
+  batchId   String          @map("batch_id") @db.Uuid
+  batch     ImportBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  rowNumber Int             @map("row_number") // file ki line (header = 1, data 2 se)
+  raw       Json // file me jaisa likha tha (error CSV me wapas)
+  data      Json? // normalized values (sirf VALID me) — inhi se customer banta hai
+  status    ImportRowStatus
+  errors    String[]
+
+  customerId String? @map("customer_id") @db.Uuid // IMPORTED: kaunsa customer bana / DUPLICATE: kis se match hua
+
+  @@unique([batchId, rowNumber])
+  @@index([batchId, status, rowNumber])
+  @@map("import_rows")
 }

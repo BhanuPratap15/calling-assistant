@@ -136,7 +136,10 @@ describe('Follow-ups, availability, escalation, notifications (e2e)', () => {
       });
     }
     const staffIds = ['mgr', 'tl', 'amit', 'ravi', 'zed'].map((k) => ids[k]);
-    await prisma.assignment.deleteMany({ where: { customerId } });
+    // Staff ki saari assignments bhi (Save & Next ke baad DB ka koi aur customer mil sakta hai)
+    await prisma.assignment.deleteMany({
+      where: { OR: [{ customerId }, { staffId: { in: staffIds } }] },
+    });
     await prisma.followUp.deleteMany({ where: { customerId } });
     await prisma.call.deleteMany({ where: { customerId } });
     await prisma.customer.delete({ where: { id: customerId } });

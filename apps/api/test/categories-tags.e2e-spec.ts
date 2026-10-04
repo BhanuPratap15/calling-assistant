@@ -151,8 +151,14 @@ describe('Rating, categories & tags (e2e)', () => {
       where: { code: { endsWith: suffix.toUpperCase().replace(/-/g, '') } },
     });
     await prisma.tag.deleteMany({ where: { id: { in: tagIds } } });
+    // Staff ki saari assignments bhi (Save & Next ke baad DB ka koi aur customer mil sakta hai)
     await prisma.assignment.deleteMany({
-      where: { customerId: { in: customers } },
+      where: {
+        OR: [
+          { customerId: { in: customers } },
+          { staffId: { in: Object.values(ids) } },
+        ],
+      },
     });
     await prisma.followUp.deleteMany({
       where: { customerId: { in: customers } },

@@ -438,3 +438,39 @@ Content-Type: application/json
   "nextActionId": "PASTE-NEXT-ACTION-ID",
   "customFields": { "deposit_amount": 5000, "game": "Poker" }
 }
+
+# ============ Bulk import (Phase 6) ============
+
+### 57. Upload CSV → preview (MANAGER). File: is folder me users.csv bana lo (name,phone,...)
+# @name importPreview
+POST {{baseUrl}}/imports
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: multipart/form-data; boundary=----crm
+
+------crm
+Content-Disposition: form-data; name="file"; filename="users.csv"
+Content-Type: text/csv
+
+name,phone,email,priority
+Rahul Import,9876500001,rahul@example.com,HIGH
+Bad Row,12345,,
+------crm--
+
+### 58. Preview ki lines (galat wali)
+GET {{baseUrl}}/imports/{{importPreview.response.body.id}}/rows?status=INVALID
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 59. Confirm → background import (campaignId / tagId optional)
+POST {{baseUrl}}/imports/{{importPreview.response.body.id}}/confirm
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{}
+
+### 60. Status / progress (COMPLETED hone tak)
+GET {{baseUrl}}/imports/{{importPreview.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 61. Import history
+GET {{baseUrl}}/imports
+Authorization: Bearer {{login.response.body.accessToken}}

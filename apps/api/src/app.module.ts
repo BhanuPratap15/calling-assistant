@@ -11,6 +11,7 @@ import { CampaignsModule } from './campaigns/campaigns.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { CustomersModule } from './customers/customers.module.js';
 import { FollowUpsModule } from './follow-ups/follow-ups.module.js';
+import { ImportsModule } from './imports/imports.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { SchedulerModule } from './scheduler/scheduler.module.js';
@@ -36,6 +37,7 @@ import { TeamsModule } from './teams/teams.module.js';
     CategoriesModule,
     TagsModule,
     CampaignsModule,
+    ImportsModule,
     // Background jobs (Redis). ConfigModule upar .env load kar chuka hai, isliye process.env yahan ready hai.
     // Tests: SCHEDULER_ENABLED=false (vitest config) → Redis ki zaroorat nahi.
     ...(process.env.SCHEDULER_ENABLED === 'false' ? [] : [SchedulerModule]),

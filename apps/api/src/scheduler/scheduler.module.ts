@@ -2,6 +2,7 @@ import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Logger, Module, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
+import { redisConnection } from '../common/redis.js';
 import { FollowUpsModule } from '../follow-ups/follow-ups.module.js';
 import { FollowUpProcessor } from './follow-up.processor.js';
 import {
@@ -9,18 +10,6 @@ import {
   FOLLOW_UP_TICK_SCHEDULER,
   TICK_EVERY_MS,
 } from './scheduler.constants.js';
-
-/** REDIS_URL ("redis://:pass@host:6380/0") → BullMQ connection options */
-function redisConnection(url: string) {
-  const u = new URL(url);
-  return {
-    host: u.hostname,
-    port: Number(u.port || 6379),
-    username: u.username || undefined,
-    password: u.password ? decodeURIComponent(u.password) : undefined,
-    db: u.pathname.length > 1 ? Number(u.pathname.slice(1)) : 0,
-  };
-}
 
 /**
  * Background jobs (Redis + BullMQ).

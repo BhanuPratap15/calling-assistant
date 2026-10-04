@@ -36,7 +36,11 @@ export default function CustomerDetailPage() {
               </Button>
             </div>
           )}
-          <CustomerProfileView customer={profile.data} canEditTags />
+          <CustomerProfileView
+            customer={profile.data}
+            canEditTags
+            linkCampaigns
+          />
           {assigning && (
             <AssignModal
               customer={profile.data}

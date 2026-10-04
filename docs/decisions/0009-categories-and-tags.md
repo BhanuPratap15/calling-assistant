@@ -30,4 +30,4 @@ Design doc section 10: V1 me VIP / High Interest sirf **assistant ki rating (0â€
 
 - Deposit / activity based rules (design doc: "room for additional rules later")
 - Manual category override (with reason)
-- Category-based campaigns (Phase 5)
+- ~~Category-based campaigns~~ âœ… Phase 5: campaign me category filter se customers add (ADR 0010)

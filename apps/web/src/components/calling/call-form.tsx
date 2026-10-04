@@ -10,11 +10,15 @@ import {
   Textarea,
 } from '@/components/ui/form';
 import {
+  validateCustomFieldInputs,
+  type CustomFieldInputs,
+} from '@/lib/campaign';
+import {
   isFieldRequired,
   validateCallForm,
   type CallFormState,
 } from '@/lib/call-form';
-import type { CallConfig } from '@/lib/types';
+import type { CallConfig, CampaignFieldDef } from '@/lib/types';
 
 const EMPTY: CallFormState = {
   outcomeId: '',
@@ -31,12 +35,15 @@ const EMPTY: CallFormState = {
  */
 export function CallForm({
   config,
+  campaignFields = [],
   onSubmit,
 }: {
   config: CallConfig;
+  campaignFields?: CampaignFieldDef[]; // campaign customer ho to extra fields
   onSubmit: (body: Record<string, unknown>) => Promise<void>;
 }) {
   const [form, setForm] = useState<CallFormState>(EMPTY);
+  const [custom, setCustom] = useState<CustomFieldInputs>({});
   const [errors, setErrors] = useState<string[]>([]);
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -55,12 +62,11 @@ export function CallForm({
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const problems = validateCallForm(
-      form,
-      outcome,
-      nextAction,
-      config.requiredFields,
-    );
+    const customResult = validateCustomFieldInputs(campaignFields, custom);
+    const problems = [
+      ...validateCallForm(form, outcome, nextAction, config.requiredFields),
+      ...customResult.errors,
+    ];
     setErrors(problems);
     setServerError(null);
     if (problems.length) return; // next customer release NAHI hoga
@@ -78,8 +84,10 @@ export function CallForm({
           nextAction?.requiresFollowUp && form.followUpAt
             ? new Date(form.followUpAt).toISOString()
             : undefined,
+        customFields: campaignFields.length ? customResult.values : undefined,
       });
       setForm(EMPTY); // agla customer → khaali form
+      setCustom({});
     } catch (err) {
       setServerError((err as Error).message);
     } finally {
@@ -183,6 +191,48 @@ export function CallForm({
           ))}
         </div>
       </div>
+
+      {campaignFields.length > 0 && (
+        <fieldset className="space-y-4 rounded-md border border-indigo-200 bg-indigo-50/40 p-4">
+          <legend className="px-1 text-sm font-semibold text-indigo-900">
+            Campaign fields
+          </legend>
+          {campaignFields.map((f) => (
+            <Field key={f.id} label={`${f.label}${star(f.required)}`}>
+              {f.type === 'SELECT' || f.type === 'BOOLEAN' ? (
+                <Select
+                  value={String(custom[f.key] ?? '')}
+                  onChange={(e) =>
+                    setCustom((c) => ({ ...c, [f.key]: e.target.value }))
+                  }
+                >
+                  <option value="">— Select —</option>
+                  {(f.type === 'BOOLEAN' ? ['true', 'false'] : f.options).map(
+                    (o) => (
+                      <option key={o} value={o}>
+                        {f.type === 'BOOLEAN'
+                          ? o === 'true'
+                            ? 'Yes'
+                            : 'No'
+                          : o}
+                      </option>
+                    ),
+                  )}
+                </Select>
+              ) : (
+                <Input
+                  type={f.type === 'NUMBER' ? 'number' : 'text'}
+                  maxLength={f.type === 'TEXT' ? 500 : undefined}
+                  value={String(custom[f.key] ?? '')}
+                  onChange={(e) =>
+                    setCustom((c) => ({ ...c, [f.key]: e.target.value }))
+                  }
+                />
+              )}
+            </Field>
+          ))}
+        </fieldset>
+      )}
 
       {errors.length > 0 && (
         <ul

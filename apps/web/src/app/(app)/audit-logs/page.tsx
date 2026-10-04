@@ -43,6 +43,12 @@ const ACTIONS = [
   'tag.created',
   'tag.updated',
   'customer.tags_updated',
+  'campaign.created',
+  'campaign.updated',
+  'campaign.members_updated',
+  'campaign.customers_added',
+  'campaign.customers_removed',
+  'campaign.fields_updated',
 ];
 const ENTITY_TYPES = [
   'auth',
@@ -57,6 +63,7 @@ const ENTITY_TYPES = [
   'follow_up',
   'category',
   'tag',
+  'campaign',
 ];
 
 const show = (value: unknown) =>

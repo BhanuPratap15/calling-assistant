@@ -128,3 +128,10 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Backfill                          | Naya column add karke purane data se bharna (migration me)                                   | `interest_rating` from calls                  |
 | Whitelist validation (contract)   | Backend extra fields reject karta hai → frontend sirf allowed fields bheje                   | `CategoriesCard toInput()`                    |
 | `groupBy` / aggregate             | Group karke count (category-wise customers)                                                  | `/categories/summary`                         |
+| State machine (business)          | Allowed status jumps ki table — galat jump API reject kare                                   | `canTransition` (campaign status)             |
+| N+1 query problem                 | List ke har item ke liye alag query (100 items = 101 queries) — ek `groupBy` se bachao       | `CampaignsService.findAll` progress           |
+| JSONB column                      | Postgres me flexible JSON data — har campaign ke alag fields ke liye alag column nahi        | `calls.custom_fields`                         |
+| Dynamic form                      | Form ke fields data (DB) se bante hain, code me fix nahi                                     | Campaign fields on call form                  |
+| Immutable key                     | Save ke baad key nahi badalti (purana data usi key se) — hatana = deactivate                 | `campaign_fields.key`                         |
+| Bulk insert + `skipDuplicates`    | Hazaaron rows ek query me; pehle se hai to chupchaap skip (`ON CONFLICT DO NOTHING`)         | Campaign me customers add                     |
+| Retry on conflict                 | Unique violation aaye (race) to dobara try — limit ke saath                                  | `CallingService.next()` (max 3)               |

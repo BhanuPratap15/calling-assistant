@@ -46,7 +46,6 @@ export default function CallingPage() {
       );
       setCurrent(r.current);
       void refreshUser();
-      void refreshUser();
       if (!r.current)
         setMessage(
           'Abhi koi customer available nahi hai. Thodi der baad try karein.',
@@ -124,7 +123,23 @@ export default function CallingPage() {
               {current.source === 'FOLLOW_UP' && (
                 <Badge tone="red">Follow-up</Badge>
               )}
+              {current.campaign && (
+                <Badge tone="indigo">📣 {current.campaign.name}</Badge>
+              )}
             </div>
+            {current.campaign?.script && (
+              <details
+                open
+                className="mb-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950"
+              >
+                <summary className="cursor-pointer font-semibold">
+                  📜 Script — {current.campaign.name}
+                </summary>
+                <p className="mt-2 whitespace-pre-wrap">
+                  {current.campaign.script}
+                </p>
+              </details>
+            )}
             {current.followUp && (
               // Design doc 8.1: "New assistant sees original request + full history"
               <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -150,6 +165,7 @@ export default function CallingPage() {
           <CallForm
             key={current.id}
             config={config.data}
+            campaignFields={current.campaign?.fields}
             onSubmit={saveAndNext}
           />
         </div>

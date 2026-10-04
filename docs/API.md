@@ -39,13 +39,13 @@ Base URL (local): `http://localhost:4000/api` · Frontend se: `/api/...` (Next.j
 
 ## Customers
 
-| Method | URL                                                    | Access                           | Notes                                                                   |
-| ------ | ------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------- |
-| POST   | `/customers`                                           | MANAGER                          | Phone E.164 me normalize; duplicate → 409                               |
-| GET    | `/customers?search=&status=&priority=&page=&pageSize=` | MANAGER, TEAM_LEADER             | Paginated; open assignment ke saath                                     |
-| GET    | `/customers/:id`                                       | MANAGER, TEAM_LEADER             |                                                                         |
-| GET    | `/customers/:id/profile`                               | MANAGER, TEAM_LEADER, ASSISTANT* | 360°: details + calls + open assignment. *Assistant: sirf apna assigned |
-| PATCH  | `/customers/:id`                                       | MANAGER                          | Delete nahi — `status: DO_NOT_CALL / INVALID`                           |
+| Method | URL                                                    | Access                           | Notes                                                                                                         |
+| ------ | ------------------------------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| POST   | `/customers`                                           | MANAGER                          | Phone E.164 me normalize; duplicate → 409                                                                     |
+| GET    | `/customers?search=&status=&priority=&page=&pageSize=` | MANAGER, TEAM_LEADER             | Paginated; open assignment ke saath                                                                           |
+| GET    | `/customers/:id`                                       | MANAGER, TEAM_LEADER             |                                                                                                               |
+| GET    | `/customers/:id/profile`                               | MANAGER, TEAM_LEADER, ASSISTANT* | 360°: details + calls (campaign + customFields) + campaigns + open assignment. *Assistant: sirf apna assigned |
+| PATCH  | `/customers/:id`                                       | MANAGER                          | Delete nahi — `status: DO_NOT_CALL / INVALID`                                                                 |
 
 ## Call form settings
 
@@ -73,21 +73,41 @@ Rating → category **Save & Next** ke andar apne aap (`interestRating` diya ho 
 
 ## Calling (assistant workflow)
 
-| Method | URL                 | Access                 | Notes                                                                                                                                     |
-| ------ | ------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/calling/current`  | ASSISTANT, TEAM_LEADER | `{ current }` — null = koi nahi                                                                                                           |
-| POST   | `/calling/next`     | ASSISTANT, TEAM_LEADER | "Start Calling": current → due follow-ups → manager queue → fresh (priority). Idempotent                                                  |
-| POST   | `/calling/complete` | ASSISTANT, TEAM_LEADER | "Save & Next": `{ outcomeId, nextActionId, userResponse?, notes?, interestRating?, followUpAt? }` → `{ call, current }`. 409 = reassigned |
+| Method | URL                 | Access                 | Notes                                                                                                                                                    |
+| ------ | ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/calling/current`  | ASSISTANT, TEAM_LEADER | `{ current }` — null = koi nahi                                                                                                                          |
+| POST   | `/calling/next`     | ASSISTANT, TEAM_LEADER | "Start Calling": current → due follow-ups → manager queue → campaign queue → fresh (priority). Idempotent                                                |
+| POST   | `/calling/complete` | ASSISTANT, TEAM_LEADER | "Save & Next": `{ outcomeId, nextActionId, userResponse?, notes?, interestRating?, followUpAt?, customFields? }` → `{ call, current }`. 409 = reassigned |
+
+`current.campaign` = `{ id, name, script, fields[] }` (campaign customer ho to). `customFields` = `{ "<field key>": value }` —
+campaign ke active fields se validate (unknown key / required / type → 400).
 
 ## Assignments
 
-| Method | URL                                                                              | Access               | Notes                                       |
-| ------ | -------------------------------------------------------------------------------- | -------------------- | ------------------------------------------- |
-| GET    | `/assignments?status=open\|ASSIGNED\|IN_PROGRESS\|COMPLETED\|CANCELLED&staffId=` | MANAGER, TEAM_LEADER | TL: apni team                               |
-| GET    | `/assignments/assignable-staff`                                                  | MANAGER, TEAM_LEADER | Dropdown ke liye (scoped)                   |
-| POST   | `/assignments`                                                                   | MANAGER, TEAM_LEADER | `{ customerId, staffId }` — open hai to 409 |
-| POST   | `/assignments/:id/reassign`                                                      | MANAGER, TEAM_LEADER | `{ staffId }`                               |
-| POST   | `/assignments/:id/cancel`                                                        | MANAGER, TEAM_LEADER | Customer wapas pool me                      |
+| Method | URL                                                                              | Access               | Notes                                                                                            |
+| ------ | -------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------ |
+| GET    | `/assignments?status=open\|ASSIGNED\|IN_PROGRESS\|COMPLETED\|CANCELLED&staffId=` | MANAGER, TEAM_LEADER | TL: apni team                                                                                    |
+| GET    | `/assignments/assignable-staff`                                                  | MANAGER, TEAM_LEADER | Dropdown ke liye (scoped)                                                                        |
+| POST   | `/assignments`                                                                   | MANAGER, TEAM_LEADER | `{ customerId, staffId, campaignId? }` — open hai to 409; campaignId: customer us campaign me ho |
+| POST   | `/assignments/:id/reassign`                                                      | MANAGER, TEAM_LEADER | `{ staffId }`                                                                                    |
+| POST   | `/assignments/:id/cancel`                                                        | MANAGER, TEAM_LEADER | Customer wapas pool me                                                                           |
+
+## Campaigns
+
+| Method | URL                                                                 | Access               | Notes                                                                                                                                                                                |
+| ------ | ------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/campaigns?status=DRAFT\|ACTIVE\|PAUSED\|COMPLETED`                | MANAGER, TEAM_LEADER | `_count` + `progress { total, called }`                                                                                                                                              |
+| GET    | `/campaigns/:id`                                                    | MANAGER, TEAM_LEADER | + createdBy, staff, teams, fields, `stats { total, called, pending, byOutcome[] }`                                                                                                   |
+| GET    | `/campaigns/:id/customers?state=all\|pending\|called&search=&page=` | MANAGER, TEAM_LEADER | Pending pehle                                                                                                                                                                        |
+| POST   | `/campaigns`                                                        | MANAGER              | `{ name, description?, priority? (0–100), script?, startsAt?, endsAt? }` → DRAFT. Naam unique (409)                                                                                  |
+| PATCH  | `/campaigns/:id`                                                    | MANAGER              | Upar wale fields + `status`. Allowed: DRAFT→ACTIVE/COMPLETED, ACTIVE↔PAUSED, →COMPLETED (final). Dates `null` = hatao                                                                |
+| PUT    | `/campaigns/:id/members`                                            | MANAGER              | `{ staffIds, teamIds }` (poori list replace). Dono khaali = sab assistants                                                                                                           |
+| POST   | `/campaigns/:id/customers`                                          | MANAGER              | `{ customerIds }` **ya** `{ filter: { categoryId\|'none', tagId, priority, neverCalled, search } }` → `{ matched, added, skipped }`. Sirf ACTIVE customers; COMPLETED campaign → 400 |
+| POST   | `/campaigns/:id/customers/remove`                                   | MANAGER              | `{ customerIds }` → `{ removed }`                                                                                                                                                    |
+| PUT    | `/campaigns/:id/fields`                                             | MANAGER              | `{ fields: [{ id?, key, label, type: TEXT\|NUMBER\|SELECT\|BOOLEAN, options, required, isActive, sortOrder }] }` — key + type save ke baad fix                                       |
+
+Engine (Start Calling) campaign ke customers tabhi deta hai jab campaign **ACTIVE** ho, date window ke andar ho, aur
+assistant member ho (ya campaign ke koi members na hon). Details: [ADR 0010](decisions/0010-campaigns.md).
 
 ## Follow-ups
 

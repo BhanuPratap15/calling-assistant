@@ -365,3 +365,76 @@ Content-Type: application/json
 ### 48. Customers: category / tag filter, highest rating first
 GET {{baseUrl}}/customers?sort=rating&categoryId=none
 Authorization: Bearer {{login.response.body.accessToken}}
+
+# ============ Campaigns (Phase 5) ============
+
+### 49. Naya campaign (MANAGER) — DRAFT me banta hai
+# @name createCampaign
+POST {{baseUrl}}/campaigns
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Diwali Bonus",
+  "priority": 50,
+  "script": "Namaste ji! Is Diwali pe 100% deposit bonus mil raha hai."
+}
+
+### 50. Custom fields (poora set; key + type baad me nahi badalte)
+PUT {{baseUrl}}/campaigns/{{createCampaign.response.body.id}}/fields
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "fields": [
+    { "key": "deposit_amount", "label": "Deposit amount", "type": "NUMBER", "options": [], "required": true, "isActive": true, "sortOrder": 10 },
+    { "key": "game", "label": "Preferred game", "type": "SELECT", "options": ["Slots", "Poker"], "required": false, "isActive": true, "sortOrder": 20 }
+  ]
+}
+
+### 51. Customers add — filter se (sirf fresh leads)
+POST {{baseUrl}}/campaigns/{{createCampaign.response.body.id}}/customers
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "filter": { "neverCalled": true }
+}
+
+### 52. Kaun call karega (dono khaali = sab)
+PUT {{baseUrl}}/campaigns/{{createCampaign.response.body.id}}/members
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "staffIds": [],
+  "teamIds": []
+}
+
+### 53. Activate (DRAFT → ACTIVE). Pause: "PAUSED", khatam: "COMPLETED"
+PATCH {{baseUrl}}/campaigns/{{createCampaign.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
+}
+
+### 54. Campaign detail + stats
+GET {{baseUrl}}/campaigns/{{createCampaign.response.body.id}}
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 55. Campaign customers — pending (abhi call nahi hua)
+GET {{baseUrl}}/campaigns/{{createCampaign.response.body.id}}/customers?state=pending
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 56. Save & Next with campaign fields (assistant token chahiye; current.campaign.fields dekh ke)
+POST {{baseUrl}}/calling/complete
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "outcomeId": "PASTE-OUTCOME-ID",
+  "nextActionId": "PASTE-NEXT-ACTION-ID",
+  "customFields": { "deposit_amount": 5000, "game": "Poker" }
+}

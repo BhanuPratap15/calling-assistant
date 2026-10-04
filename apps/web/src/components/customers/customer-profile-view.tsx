@@ -1,6 +1,8 @@
 import { CategoryBadge } from '@/components/categories/category-badge';
 import { TagEditor } from '@/components/categories/tag-editor';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { CAMPAIGN_STATUS_TONE, formatCustomValue } from '@/lib/campaign';
 import { formatDateTime, humanize } from '@/lib/format';
 import type { CustomerProfile } from '@/lib/types';
 
@@ -28,9 +30,11 @@ const CHANGE_REASON: Record<string, string> = {
 export function CustomerProfileView({
   customer,
   canEditTags = false,
+  linkCampaigns = false,
 }: {
   customer: CustomerProfile;
   canEditTags?: boolean;
+  linkCampaigns?: boolean; // Manager / TL: campaign pe click → campaign page
 }) {
   const assignedTo = customer.assignments[0]?.staff.name;
 
@@ -108,6 +112,42 @@ export function CustomerProfileView({
           />
         </div>
 
+        {customer.campaigns.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-1 text-sm text-slate-500">Campaigns</p>
+            <div className="flex flex-wrap gap-2">
+              {customer.campaigns.map(({ campaign, callCount }) => {
+                const content = (
+                  <>
+                    📣 {campaign.name}
+                    <Badge tone={CAMPAIGN_STATUS_TONE[campaign.status]}>
+                      {humanize(campaign.status)}
+                    </Badge>
+                    <span className="text-slate-400">
+                      {callCount ? `${callCount} call(s)` : 'pending'}
+                    </span>
+                  </>
+                );
+                const cls =
+                  'inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs';
+                return linkCampaigns ? (
+                  <Link
+                    key={campaign.id}
+                    href={`/campaigns/${campaign.id}`}
+                    className={`${cls} hover:bg-slate-50`}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <span key={campaign.id} className={cls}>
+                    {content}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {customer.email && (
           <p className="mt-3 text-sm text-slate-600">Email: {customer.email}</p>
         )}
@@ -140,10 +180,28 @@ export function CustomerProfileView({
                   {call.interestRating !== null && (
                     <Badge tone="indigo">Rating {call.interestRating}</Badge>
                   )}
+                  {call.campaign && (
+                    <Badge tone="indigo">📣 {call.campaign.name}</Badge>
+                  )}
                   <span className="text-xs text-slate-400">
                     by {call.staff.name}
                   </span>
                 </div>
+                {call.customFields &&
+                  Object.keys(call.customFields).length > 0 && (
+                    <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                      {Object.entries(call.customFields).map(([key, value]) => (
+                        <div key={key}>
+                          <dt className="inline text-slate-500">
+                            {humanize(key)}:
+                          </dt>{' '}
+                          <dd className="inline font-medium text-slate-800">
+                            {formatCustomValue(value)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
                 {call.userResponse && (
                   <p className="mt-1 text-sm text-slate-700">
                     “{call.userResponse}”

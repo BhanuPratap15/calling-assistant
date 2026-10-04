@@ -20,7 +20,12 @@ export function AssignModal({
   onClose,
   onDone,
 }: {
-  customer: { id: string; name: string };
+  customer: {
+    id: string;
+    name: string;
+    // Profile se aata hai: customer jin campaigns me hai (call us campaign ke under hogi)
+    campaigns?: { campaign: { id: string; name: string; status: string } }[];
+  };
   reassignId?: string;
   currentStaffId?: string;
   onClose: () => void;
@@ -28,6 +33,10 @@ export function AssignModal({
 }) {
   const staff = useApi<AssignableStaff[]>('/assignments/assignable-staff');
   const [staffId, setStaffId] = useState('');
+  const [campaignId, setCampaignId] = useState('');
+  const campaigns = (customer.campaigns ?? [])
+    .map((c) => c.campaign)
+    .filter((c) => c.status !== 'COMPLETED');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -44,7 +53,11 @@ export function AssignModal({
       } else {
         await api('/assignments', {
           method: 'POST',
-          body: { customerId: customer.id, staffId },
+          body: {
+            customerId: customer.id,
+            staffId,
+            campaignId: campaignId || undefined,
+          },
         });
       }
       onDone();
@@ -81,6 +94,24 @@ export function AssignModal({
               ))}
           </Select>
         </Field>
+        {!reassignId && campaigns.length > 0 && (
+          <Field
+            label="Campaign (optional)"
+            hint="Chuna to assistant ko us campaign ka script + fields dikhenge"
+          >
+            <Select
+              value={campaignId}
+              onChange={(e) => setCampaignId(e.target.value)}
+            >
+              <option value="">— No campaign —</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         <ErrorMessage message={error ?? staff.error} />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>

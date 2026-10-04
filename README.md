@@ -15,20 +15,22 @@ remind / escalate hote hain, aur managers ko poori visibility milti hai.
 | 2 — Calling workflow (assignment engine, call form, Save & Next, 360° profile) | ✅  |                            |
 | 3 — Follow-ups (availability, reminders, escalation, notifications)            | ✅  | **Pilot-ready (M2)**       |
 | 4 — Rating & categories (configurable thresholds, history, tags)               | ✅  |                            |
-| 5–9 — Campaigns, import, telecalling.ai, dashboard, production                 | ⬜  | [Roadmap](docs/ROADMAP.md) |
+| 5 — Campaigns (customer groups, scripts, custom fields, priority)              | ✅  |                            |
+| 6–9 — Import, telecalling.ai, dashboard, production                            | ⬜  | [Roadmap](docs/ROADMAP.md) |
 
 ## Features (abhi tak)
 
-| Role                  | Kya kar sakta hai                                                                                                                                                                                                                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Calling Assistant** | Login → status (Available / Break / Offline) · **Start Calling** → ek customer (due follow-ups sabse pehle) · profile + call history + category + 📞 · current customer pe **tags** · call form (rules ke hisaab se mandatory) · **Save & Next** · apne follow-ups · 🔔 notifications                      |
-| **Team Leader**       | Assistant wala sab + apni team ke customers / assignments / follow-ups dekhna, assign / reassign, tags, **overdue alerts**, customers by interest                                                                                                                                                          |
-| **Manager**           | Staff, teams, customers (search, category / tag filters, highest-interest sort), manual assign / reassign, saare follow-ups, audit logs, dashboard (follow-ups + customers by interest), **Settings** (call outcomes, next actions, **categories & thresholds**, tags, mandatory fields, follow-up timing) |
-| **Super Admin**       | Sab kuch + Managers banana                                                                                                                                                                                                                                                                                 |
+| Role                  | Kya kar sakta hai                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Calling Assistant** | Login → status (Available / Break / Offline) · **Start Calling** → ek customer (due follow-ups sabse pehle) · profile + call history + category + 📞 · current customer pe **tags** · call form (rules ke hisaab se mandatory) · campaign customer pe **script + extra fields** · **Save & Next** · apne follow-ups · 🔔 notifications                                                                                             |
+| **Team Leader**       | Assistant wala sab + apni team ke customers / assignments / follow-ups dekhna, assign / reassign, tags, **overdue alerts**, customers by interest, campaigns (read-only)                                                                                                                                                                                                                                                           |
+| **Manager**           | Staff, teams, customers (search, category / tag filters, highest-interest sort), manual assign / reassign (campaign ke saath bhi), saare follow-ups, audit logs, dashboard, **Campaigns** (banana, customers filter se add, kaun call kare, script, custom fields, Activate / Pause / Complete, progress + results), **Settings** (call outcomes, next actions, categories & thresholds, tags, mandatory fields, follow-up timing) |
+| **Super Admin**       | Sab kuch + Managers banana                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 Background: har 30s scheduler → follow-up **reminder** (1 min pehle) → **due** → grace (10 min) ke baad owner unavailable to
 **escalate** (same team, kam load), warna Team Leader ko **overdue** alert. Call ki **interest rating** se customer apne aap
-Low / Medium / High / VIP category me (thresholds configurable, history ke saath; VIP → URGENT priority). Har zaroori action **audit log** me.
+Low / Medium / High / VIP category me (thresholds configurable, history ke saath; VIP → URGENT priority).
+**Start Calling order:** due follow-up → manager ka assign kiya → ACTIVE campaign (priority wala pehle) → general pool. Har zaroori action **audit log** me.
 
 ## Architecture
 
@@ -84,11 +86,11 @@ npm run db:migrate       # naye DB changes
 
 ## Testing
 
-| Layer | Kahan                         | Kya                                                                                                                                                                                                                           |
-| ----- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit  | `apps/api/src/**/*.spec.ts`   | Pure logic: call form rules, category ranges, escalation picking, presence, permissions, phone, diff                                                                                                                          |
-| E2E   | `apps/api/test/*.e2e-spec.ts` | Real Postgres: auth, RBAC, customers, staff/teams, audit, call config, **5 assistants ek saath Start Calling**, Save & Next, follow-up "4 PM" flow (time-travel `tick(now)`), category engine + threshold recalculation, tags |
-| CI    | `.github/workflows/ci.yml`    | Har push: format → lint → typecheck → unit → migrations → e2e → build → **smoke test** (built API + real Redis; DB + scheduler `up`)                                                                                          |
+| Layer | Kahan                         | Kya                                                                                                                                                                                                                                                                                              |
+| ----- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit  | `apps/api/src/**/*.spec.ts`   | Pure logic: call form rules, category ranges, escalation picking, presence, permissions, phone, diff, campaign rules                                                                                                                                                                             |
+| E2E   | `apps/api/test/*.e2e-spec.ts` | Real Postgres: auth, RBAC, customers, staff/teams, audit, call config, **5 assistants ek saath Start Calling**, Save & Next, follow-up "4 PM" flow (time-travel `tick(now)`), category engine + threshold recalculation, tags, campaigns (status, members, priority, date window, custom fields) |
+| CI    | `.github/workflows/ci.yml`    | Har push: format → lint → typecheck → unit → migrations → e2e → build → **smoke test** (built API + real Redis; DB + scheduler `up`)                                                                                                                                                             |
 
 E2E files ek-ek karke chalti hain (shared DB) aur apna data khud saaf karti hain.
 
@@ -131,7 +133,7 @@ calling-assistant/
 │   │   │   ├── presence/         #   "kaun sach me available hai"
 │   │   │   ├── categories/       #   rating → category engine, thresholds, recalculation
 │   │   │   ├── tags/             #   tags + customer tags
-│   │   │   ├── categories/ tags/ #   rating → category engine, thresholds, tags
+│   │   │   ├── campaigns/        #   campaigns, members, customers, custom fields, rules
 │   │   │   ├── audit/            #   audit log
 │   │   │   ├── common/ prisma/   #   shared helpers, DB connection
 │   │   │   └── main.ts           #   entry point
@@ -140,9 +142,9 @@ calling-assistant/
 │   └── web/                      # Next.js frontend (@crm/web, :3000)
 │       └── src/
 │           ├── app/              #   login/, (app)/dashboard, calling, follow-ups, customers[/id],
-│           │                     #   assignments, teams[/id], staff, audit-logs, settings
+│           │                     #   campaigns[/id], assignments, teams[/id], staff, audit-logs, settings
 │           ├── components/       #   ui/ kit, layout/ (bell, availability), feature components
-│           ├── lib/              #   api, auth-context, use-api, navigation, permissions, call-form
+│           ├── lib/              #   api, auth-context, use-api, navigation, permissions, call-form, campaign
 │           └── proxy.ts          #   login nahi → /login
 ├── docs/                         # design, roadmap, API, ADRs, concepts
 ├── .github/workflows/ci.yml      # CI pipeline
@@ -157,7 +159,7 @@ calling-assistant/
 | [docs/design-v1-summary.md](docs/design-v1-summary.md) | Business design summary                                       |
 | [docs/ROADMAP.md](docs/ROADMAP.md)                     | 51 steps, progress, timeline, pending business decisions      |
 | [docs/API.md](docs/API.md)                             | Saare endpoints + access rules                                |
-| [docs/decisions/](docs/decisions/)                     | ADRs — har bada technical decision aur uski wajah (0001–0009) |
+| [docs/decisions/](docs/decisions/)                     | ADRs — har bada technical decision aur uski wajah (0001–0010) |
 | [docs/CONCEPTS.md](docs/CONCEPTS.md)                   | Seekhne ke notes — har naya concept short me                  |
 
 ## Troubleshooting

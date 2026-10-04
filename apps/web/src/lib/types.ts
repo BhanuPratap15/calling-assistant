@@ -150,6 +150,8 @@ export interface CallRecord {
   outcome: { code: string; label: string; isConnected: boolean };
   nextAction: { code: string; label: string; requiresFollowUp: boolean };
   staff: { id: string; name: string };
+  campaign: { id: string; name: string } | null;
+  customFields: Record<string, CustomFieldValue> | null;
 }
 
 export interface OpenAssignmentSummary {
@@ -169,12 +171,23 @@ export interface CustomerProfile extends Customer {
   tags: { tag: TagRef }[]; // profile me hamesha aate hain
   category: CategoryRef | null;
   interestRating: number | null;
+  campaigns: {
+    callCount: number;
+    lastCalledAt: string | null;
+    campaign: { id: string; name: string; status: CampaignStatus };
+  }[];
 }
 
 export interface CurrentAssignment {
   id: string;
   source: AssignmentSource;
   startedAt: string | null;
+  campaign: {
+    id: string;
+    name: string;
+    script: string | null;
+    fields: CampaignFieldDef[];
+  } | null;
   followUp: {
     id: string;
     dueAt: string;
@@ -196,6 +209,7 @@ export interface Assignment {
   customer: Pick<Customer, 'id' | 'name' | 'phone' | 'priority' | 'status'>;
   staff: { id: string; name: string; role: StaffRole };
   createdBy: { id: string; name: string } | null;
+  campaign: { id: string; name: string } | null;
 }
 
 export interface AssignableStaff {
@@ -295,4 +309,70 @@ export interface CategoryChange {
   from: CategoryRef | null;
   to: CategoryRef | null;
   changedBy: { id: string; name: string } | null;
+}
+
+// ---- Campaigns (Phase 5) ----
+export type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+export type CampaignFieldType = 'TEXT' | 'NUMBER' | 'SELECT' | 'BOOLEAN';
+export type CustomFieldValue = string | number | boolean;
+
+export const CAMPAIGN_FIELD_TYPES: CampaignFieldType[] = [
+  'TEXT',
+  'NUMBER',
+  'SELECT',
+  'BOOLEAN',
+];
+
+/** Calling screen ko jo fields milte hain (sirf active) */
+export interface CampaignFieldDef {
+  id: string;
+  key: string;
+  label: string;
+  type: CampaignFieldType;
+  options: string[];
+  required: boolean;
+}
+
+export interface CampaignField extends CampaignFieldDef {
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  description: string | null;
+  status: CampaignStatus;
+  priority: number;
+  script: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+  _count: { customers: number; staff: number; teams: number };
+  progress: { total: number; called: number };
+}
+
+export interface CampaignStats {
+  total: number;
+  called: number;
+  pending: number;
+  byOutcome: { label: string; isConnected: boolean; count: number }[];
+}
+
+export interface CampaignDetail extends Omit<Campaign, '_count' | 'progress'> {
+  createdBy: { id: string; name: string } | null;
+  staff: { staff: { id: string; name: string; role: StaffRole } }[];
+  teams: { team: { id: string; name: string } }[];
+  fields: CampaignField[];
+  stats: CampaignStats;
+}
+
+export interface CampaignCustomer {
+  callCount: number;
+  lastCalledAt: string | null;
+  addedAt: string;
+  customer: Pick<
+    Customer,
+    'id' | 'name' | 'phone' | 'status' | 'priority' | 'interestRating'
+  > & { category: CategoryRef | null };
 }

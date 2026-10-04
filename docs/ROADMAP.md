@@ -12,7 +12,7 @@ Phases design doc (section 25) se liye gaye hain.
 | 2 — Calling Workflow     | 7      | —                       | ✅ Done |
 | 3 — Follow-ups           | 6      | —                       | ✅ Done |
 | 4 — Rating & Categories  | 4      | —                       | ✅ Done |
-| 5 — Campaigns            | 4      | 4                       | ⬜      |
+| 5 — Campaigns            | 4      | —                       | ✅ Done |
 | 6 — Bulk Import          | 4      | 4                       | ⬜      |
 | 7 — Calling Provider     | 3      | 3–5 (provider docs pe)  | ⬜      |
 | 8 — Dashboard & Reports  | 3      | 4                       | ⬜      |
@@ -97,12 +97,12 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 4.3 Tags + priority
 - [x] 4.4 Frontend: admin settings screen
 
-## Phase 5 — Campaigns
+## Phase 5 — Campaigns ✅
 
-- [ ] 5.1 Campaigns, campaign customers, campaign assistants/teams
-- [ ] 5.2 Campaign-aware + priority-aware assignment
-- [ ] 5.3 Campaign custom fields + call scripts
-- [ ] 5.4 Frontend: campaign management
+- [x] 5.1 Campaigns, campaign customers, campaign assistants/teams (status state machine, add by filter)
+- [x] 5.2 Campaign-aware + priority-aware assignment (ADR 0010)
+- [x] 5.3 Campaign custom fields + call scripts
+- [x] 5.4 Frontend: campaign management (list, detail tabs, calling screen script + fields)
 
 ## Phase 6 — Bulk Import (20,000 users)
 

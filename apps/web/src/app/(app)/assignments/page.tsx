@@ -108,7 +108,12 @@ export default function AssignmentsPage() {
                 <Td className="text-xs">
                   {a.source === 'MANUAL'
                     ? `Manual${a.createdBy ? ` by ${a.createdBy.name}` : ''}`
-                    : 'Auto (Start Calling)'}
+                    : a.source === 'FOLLOW_UP'
+                      ? 'Follow-up'
+                      : 'Auto (Start Calling)'}
+                  {a.campaign && (
+                    <p className="text-indigo-700">📣 {a.campaign.name}</p>
+                  )}
                 </Td>
                 <Td className="whitespace-nowrap text-xs">
                   {formatDateTime(a.startedAt ?? a.createdAt)}

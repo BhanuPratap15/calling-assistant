@@ -31,6 +31,7 @@ const assignmentSelect = {
   },
   staff: { select: { id: true, name: true, role: true } },
   createdBy: { select: { id: true, name: true } },
+  campaign: { select: { id: true, name: true } },
 } satisfies Prisma.AssignmentSelect;
 
 type AssignmentRow = Prisma.AssignmentGetPayload<{
@@ -122,6 +123,21 @@ export class AssignmentsService {
       );
     }
     await this.assertAssignableStaff(dto.staffId, actor);
+    if (dto.campaignId) {
+      const member = await this.prisma.campaignCustomer.findUnique({
+        where: {
+          campaignId_customerId: {
+            campaignId: dto.campaignId,
+            customerId: customer.id,
+          },
+        },
+        include: { campaign: { select: { status: true } } },
+      });
+      if (!member)
+        throw new BadRequestException('Customer is not in this campaign');
+      if (member.campaign.status === 'COMPLETED')
+        throw new BadRequestException('Campaign is completed');
+    }
 
     return withUniqueConflict(
       () =>
@@ -132,6 +148,7 @@ export class AssignmentsService {
               source: 'MANUAL',
               customerId: customer.id,
               staffId: dto.staffId,
+              campaignId: dto.campaignId,
               createdById: actor.id,
               openCustomerId: customer.id, // unique → already open ho to P2002 → 409
             },
@@ -183,6 +200,7 @@ export class AssignmentsService {
           source: 'MANUAL',
           customerId: old.customerId,
           staffId,
+          campaignId: old.campaignId, // campaign saath chale
           createdById: actor.id,
           openCustomerId: old.customerId,
         },

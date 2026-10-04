@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsDate,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -41,4 +42,9 @@ export class CompleteCallDto {
   @Type(() => Date) // "2026-10-03T16:00:00+05:30" → Date
   @IsDate()
   followUpAt?: Date;
+
+  /** Campaign ke extra fields: { deposit_amount: 5000, game: "Poker" } — service validate karta hai */
+  @IsOptional()
+  @IsObject()
+  customFields?: Record<string, unknown>;
 }

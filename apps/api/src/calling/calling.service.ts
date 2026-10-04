@@ -12,6 +12,7 @@ import { customerProfileInclude } from '../customers/customer-profile.js';
 import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { validateCustomFields } from '../campaigns/campaign-rules.js';
 import { validateCallForm } from './call-form-validation.js';
 import type { CompleteCallDto } from './dto/complete-call.dto.js';
 
@@ -41,6 +42,26 @@ export class CallingService {
         id: true,
         source: true,
         startedAt: true,
+        // Campaign: naam + script + custom fields (call form me dikhte hain)
+        campaign: {
+          select: {
+            id: true,
+            name: true,
+            script: true,
+            fields: {
+              where: { isActive: true },
+              orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+              select: {
+                id: true,
+                key: true,
+                label: true,
+                type: true,
+                options: true,
+                required: true,
+              },
+            },
+          },
+        },
         // Follow-up call ho to: kab ka promise tha, kisne kiya, customer ne kya kaha tha
         followUp: {
           select: {
@@ -57,134 +78,196 @@ export class CallingService {
   }
 
   /**
-   * ASSIGNMENT ENGINE (pull).
-   * Order: 1) already current → wahi  2) MERE due follow-ups (sabse purana pehle)
-   *        3) manager ki queue (ASSIGNED)  4) naya eligible customer
+   * ASSIGNMENT ENGINE (pull) — "Start Calling".
+   * Order (ADR 0007 + 0010):
+   *   1) already current → wahi
+   *   2) MERE due follow-ups (sabse purana pehle)
+   *   3) manager / TL ki queue (ASSIGNED)
+   *   4) CAMPAIGN queue: active campaigns jinme main member hoon (ya jinke koi member nahi),
+   *      campaign priority → customer priority → jo pehle add hua
+   *   5) general pool: fresh customers jo kisi chalu campaign me nahi hain
    * Duplicate se bachav:
-   *   - SELECT ... FOR UPDATE SKIP LOCKED → do assistants ek saath maangein to alag rows milti hain
+   *   - SELECT ... FOR UPDATE SKIP LOCKED → ek saath maangne walon ko alag rows
    *   - unique columns (openCustomerId / inProgressStaffId) → DB khud duplicate reject karta hai
    */
   async next(actor: AuthUser) {
     const existing = await this.current(actor.id);
     if (existing) return this.withPresence(actor.id, existing);
 
-    try {
-      await this.prisma.$transaction(async (tx) => {
-        // 2) Due follow-ups (design doc 8.1: "4:00 PM follow-up becomes due → Amit receives it")
-        //    Customer kisi aur ke paas khula ho to skip.
-        const [due] = await tx.$queryRaw<{ id: string; customer_id: string }[]>`
-          SELECT f.id, f.customer_id FROM follow_ups f
-          WHERE f.owner_id = ${actor.id}::uuid AND f.status = 'PENDING' AND f.due_at <= ${new Date()}
-            AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = f.customer_id)
-          ORDER BY f.due_at ASC
-          LIMIT 1
-          FOR UPDATE OF f SKIP LOCKED`;
-        if (due) {
-          await tx.followUp.update({
-            where: { id: due.id },
-            data: { status: 'IN_PROGRESS' },
-          });
-          const assignment = await tx.assignment.create({
-            data: {
-              status: 'IN_PROGRESS',
-              source: 'FOLLOW_UP',
-              customerId: due.customer_id,
-              staffId: actor.id,
-              followUpId: due.id,
-              openCustomerId: due.customer_id,
-              inProgressStaffId: actor.id,
-              startedAt: new Date(),
-            },
-          });
-          await this.audit.record(
-            {
-              actorId: actor.id,
-              action: AuditAction.ASSIGNMENT_CREATED,
-              entityType: 'assignment',
-              entityId: assignment.id,
-              metadata: {
-                customerId: due.customer_id,
-                staffId: actor.id,
-                source: 'FOLLOW_UP',
-                followUpId: due.id,
-              },
-            },
-            tx,
-          );
-          return;
+    // Race: ek hi customer do campaigns me ho aur do assistants ek saath uthayein →
+    // unique constraint (P2002) ek ko rokega → wo dobara try kare (ab wo customer "open" dikhega)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.prisma.$transaction((tx) => this.pickNext(tx, actor));
+        break;
+      } catch (error) {
+        if (!(
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        )) {
+          throw error;
         }
-
-        // 3) Manager/TL ne jo customers is staff ko diye hain (priority pehle)
-        const [queued] = await tx.$queryRaw<{ id: string }[]>`
-          SELECT a.id FROM assignments a
-          JOIN customers c ON c.id = a.customer_id
-          WHERE a.staff_id = ${actor.id}::uuid AND a.status = 'ASSIGNED'
-          ORDER BY c.priority DESC, a.created_at ASC
-          LIMIT 1
-          FOR UPDATE OF a SKIP LOCKED`;
-        if (queued) {
-          await tx.assignment.update({
-            where: { id: queued.id },
-            data: {
-              status: 'IN_PROGRESS',
-              inProgressStaffId: actor.id,
-              startedAt: new Date(),
-            },
-          });
-          return;
-        }
-
-        // 3) Fresh customer: ACTIVE, kabhi call nahi hua, kisi ke paas assigned nahi.
-        //    priority DESC = URGENT > HIGH > NORMAL > LOW (enum order), phir purane pehle.
-        //    (Dobara call karna = follow-up, Phase 3)
-        const [customer] = await tx.$queryRaw<{ id: string }[]>`
-          SELECT c.id FROM customers c
-          WHERE c.status = 'ACTIVE'
-            AND c.last_called_at IS NULL
-            AND NOT EXISTS (
-              SELECT 1 FROM assignments a WHERE a.open_customer_id = c.id
-            )
-          ORDER BY c.priority DESC, c.created_at ASC
-          LIMIT 1
-          FOR UPDATE OF c SKIP LOCKED`;
-        if (!customer) return; // koi customer bacha hi nahi
-
-        const assignment = await tx.assignment.create({
-          data: {
-            status: 'IN_PROGRESS',
-            source: 'AUTO',
-            customerId: customer.id,
-            staffId: actor.id,
-            openCustomerId: customer.id,
-            inProgressStaffId: actor.id,
-            startedAt: new Date(),
-          },
-        });
-        await this.audit.record(
-          {
-            actorId: actor.id,
-            action: AuditAction.ASSIGNMENT_CREATED,
-            entityType: 'assignment',
-            entityId: assignment.id,
-            metadata: {
-              customerId: customer.id,
-              staffId: actor.id,
-              source: 'AUTO',
-            },
-          },
-          tx,
-        );
-      });
-    } catch (error) {
-      // Race: isi staff ki doosri request (double click) ne pehle current bana diya → wahi lo
-      if (!(
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      )) {
-        throw error;
+        if (await this.current(actor.id)) break; // double click: doosri request ne bana diya
       }
     }
     return this.withPresence(actor.id, await this.current(actor.id));
+  }
+
+  private async pickNext(
+    tx: Prisma.TransactionClient,
+    actor: AuthUser,
+  ): Promise<void> {
+    const now = new Date();
+
+    // 2) Due follow-ups (design doc 8.1). Campaign = jis call me promise hua uska campaign.
+    const [due] = await tx.$queryRaw<
+      { id: string; customer_id: string; campaign_id: string | null }[]
+    >`
+      SELECT f.id, f.customer_id, sc.campaign_id FROM follow_ups f
+      JOIN calls sc ON sc.id = f.source_call_id
+      WHERE f.owner_id = ${actor.id}::uuid AND f.status = 'PENDING' AND f.due_at <= ${now}
+        AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = f.customer_id)
+      ORDER BY f.due_at ASC
+      LIMIT 1
+      FOR UPDATE OF f SKIP LOCKED`;
+    if (due) {
+      await tx.followUp.update({
+        where: { id: due.id },
+        data: { status: 'IN_PROGRESS' },
+      });
+      await this.startAssignment(tx, actor, {
+        customerId: due.customer_id,
+        source: 'FOLLOW_UP',
+        followUpId: due.id,
+        campaignId: due.campaign_id,
+      });
+      return;
+    }
+
+    // 3) Manager / TL ne jo customers is staff ko diye hain (priority pehle)
+    const [queued] = await tx.$queryRaw<{ id: string }[]>`
+      SELECT a.id FROM assignments a
+      JOIN customers c ON c.id = a.customer_id
+      WHERE a.staff_id = ${actor.id}::uuid AND a.status = 'ASSIGNED'
+      ORDER BY c.priority DESC, a.created_at ASC
+      LIMIT 1
+      FOR UPDATE OF a SKIP LOCKED`;
+    if (queued) {
+      await tx.assignment.update({
+        where: { id: queued.id },
+        data: {
+          status: 'IN_PROGRESS',
+          inProgressStaffId: actor.id,
+          startedAt: now,
+        },
+      });
+      return;
+    }
+
+    // 4) Campaign queue (design doc section 11). Eligible campaign:
+    //    ACTIVE + date window ke andar + (main member / meri team member / koi member nahi)
+    //    Customer: is campaign me abhi call nahi hua, ACTIVE, kisi ke paas open nahi, open follow-up nahi
+    const me = await tx.staff.findUniqueOrThrow({
+      where: { id: actor.id },
+      select: { teamId: true },
+    });
+    const [fromCampaign] = await tx.$queryRaw<
+      { campaign_id: string; customer_id: string }[]
+    >`
+      SELECT cc.campaign_id, cc.customer_id
+      FROM campaign_customers cc
+      JOIN campaigns k ON k.id = cc.campaign_id
+      JOIN customers c ON c.id = cc.customer_id
+      WHERE k.status = 'ACTIVE'
+        AND (k.starts_at IS NULL OR k.starts_at <= ${now})
+        AND (k.ends_at IS NULL OR k.ends_at > ${now})
+        AND cc.call_count = 0
+        AND c.status = 'ACTIVE'
+        AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = c.id)
+        AND NOT EXISTS (SELECT 1 FROM follow_ups f WHERE f.open_customer_id = c.id)
+        AND (
+          (NOT EXISTS (SELECT 1 FROM campaign_staff s WHERE s.campaign_id = k.id)
+            AND NOT EXISTS (SELECT 1 FROM campaign_teams t WHERE t.campaign_id = k.id))
+          OR EXISTS (SELECT 1 FROM campaign_staff s
+                     WHERE s.campaign_id = k.id AND s.staff_id = ${actor.id}::uuid)
+          OR EXISTS (SELECT 1 FROM campaign_teams t
+                     WHERE t.campaign_id = k.id AND t.team_id = ${me.teamId}::uuid)
+        )
+      ORDER BY k.priority DESC, c.priority DESC, cc.added_at ASC
+      LIMIT 1
+      FOR UPDATE OF cc SKIP LOCKED`;
+    if (fromCampaign) {
+      await this.startAssignment(tx, actor, {
+        customerId: fromCampaign.customer_id,
+        source: 'AUTO',
+        campaignId: fromCampaign.campaign_id,
+      });
+      return;
+    }
+
+    // 5) General pool: ACTIVE, kabhi call nahi hua, kisi ke paas nahi, aur kisi chalu
+    //    (non-completed) campaign me nahi — warna campaign ki member restriction bypass ho jaati.
+    //    priority DESC = URGENT > HIGH > NORMAL > LOW (enum order), phir purane pehle.
+    const [customer] = await tx.$queryRaw<{ id: string }[]>`
+      SELECT c.id FROM customers c
+      WHERE c.status = 'ACTIVE'
+        AND c.last_called_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = c.id)
+        AND NOT EXISTS (
+          SELECT 1 FROM campaign_customers cc JOIN campaigns k ON k.id = cc.campaign_id
+          WHERE cc.customer_id = c.id AND k.status <> 'COMPLETED'
+        )
+      ORDER BY c.priority DESC, c.created_at ASC
+      LIMIT 1
+      FOR UPDATE OF c SKIP LOCKED`;
+    if (customer) {
+      await this.startAssignment(tx, actor, {
+        customerId: customer.id,
+        source: 'AUTO',
+      });
+    }
+  }
+
+  /** IN_PROGRESS assignment banao + audit (engine ke saare raaste yahi use karte hain) */
+  private async startAssignment(
+    tx: Prisma.TransactionClient,
+    actor: AuthUser,
+    args: {
+      customerId: string;
+      source: 'AUTO' | 'FOLLOW_UP';
+      campaignId?: string | null;
+      followUpId?: string;
+    },
+  ) {
+    const assignment = await tx.assignment.create({
+      data: {
+        status: 'IN_PROGRESS',
+        source: args.source,
+        customerId: args.customerId,
+        staffId: actor.id,
+        campaignId: args.campaignId ?? null,
+        followUpId: args.followUpId,
+        openCustomerId: args.customerId,
+        inProgressStaffId: actor.id,
+        startedAt: new Date(),
+      },
+    });
+    await this.audit.record(
+      {
+        actorId: actor.id,
+        action: AuditAction.ASSIGNMENT_CREATED,
+        entityType: 'assignment',
+        entityId: assignment.id,
+        metadata: {
+          customerId: args.customerId,
+          staffId: actor.id,
+          source: args.source,
+          campaignId: args.campaignId ?? null,
+          followUpId: args.followUpId ?? null,
+        },
+      },
+      tx,
+    );
   }
 
   /**
@@ -210,9 +293,9 @@ export class CallingService {
     const call = await this.prisma.$transaction(async (tx) => {
       // Current assignment ko lock karo (manager isi waqt reassign na kar de)
       const [assignment] = await tx.$queryRaw<
-        { id: string; customer_id: string }[]
+        { id: string; customer_id: string; campaign_id: string | null }[]
       >`
-        SELECT id, customer_id FROM assignments
+        SELECT id, customer_id, campaign_id FROM assignments
         WHERE in_progress_staff_id = ${actor.id}::uuid
         FOR UPDATE`;
       if (!assignment) {
@@ -248,6 +331,15 @@ export class CallingService {
           : null,
       };
       const errors = validateCallForm(values, outcome, nextAction, rules);
+
+      // Campaign custom fields (design doc section 6 "Custom Fields") — campaign ke active fields se
+      const fieldDefs = assignment.campaign_id
+        ? await tx.campaignField.findMany({
+            where: { campaignId: assignment.campaign_id },
+          })
+        : [];
+      const custom = validateCustomFields(fieldDefs, dto.customFields);
+      errors.push(...custom.errors);
       if (errors.length) {
         // Next customer release NAHI hoga — current hi khula rahega (design doc section 7)
         throw new BadRequestException(errors);
@@ -262,6 +354,10 @@ export class CallingService {
           outcomeId: outcome.id,
           nextActionId: nextAction.id,
           ...values,
+          campaignId: assignment.campaign_id,
+          customFields: Object.keys(custom.clean).length
+            ? custom.clean
+            : undefined,
         },
         include: {
           outcome: { select: { code: true, label: true } },
@@ -272,6 +368,20 @@ export class CallingService {
         where: { id: assignment.customer_id },
         data: { lastCalledAt: now, callCount: { increment: 1 } },
       });
+      // Campaign progress (customer beech me campaign se hata diya gaya ho to kuch nahi)
+      if (assignment.campaign_id) {
+        await tx.campaignCustomer.updateMany({
+          where: {
+            campaignId: assignment.campaign_id,
+            customerId: assignment.customer_id,
+          },
+          data: {
+            callCount: { increment: 1 },
+            lastCalledAt: now,
+            lastOutcomeId: outcome.id,
+          },
+        });
+      }
       // Rating di → latest rating + category engine (category badli to history + priority)
       if (values.interestRating !== null) {
         await this.categories.applyRating(tx, {

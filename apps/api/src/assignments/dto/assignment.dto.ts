@@ -7,6 +7,11 @@ export class CreateAssignmentDto {
 
   @IsUUID()
   staffId: string; // kisko dena hai (ASSISTANT / TEAM_LEADER)
+
+  // Optional: kis campaign ke liye (customer us campaign me hona chahiye) — call usi me count hogi
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
 }
 
 export class ReassignDto {

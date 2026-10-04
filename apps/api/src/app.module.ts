@@ -7,6 +7,7 @@ import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CallConfigModule } from './call-config/call-config.module.js';
 import { CallingModule } from './calling/calling.module.js';
+import { CampaignsModule } from './campaigns/campaigns.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { CustomersModule } from './customers/customers.module.js';
 import { FollowUpsModule } from './follow-ups/follow-ups.module.js';
@@ -34,6 +35,7 @@ import { TeamsModule } from './teams/teams.module.js';
     FollowUpsModule,
     CategoriesModule,
     TagsModule,
+    CampaignsModule,
     // Background jobs (Redis). ConfigModule upar .env load kar chuka hai, isliye process.env yahan ready hai.
     // Tests: SCHEDULER_ENABLED=false (vitest config) → Redis ki zaroorat nahi.
     ...(process.env.SCHEDULER_ENABLED === 'false' ? [] : [SchedulerModule]),

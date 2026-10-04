@@ -34,6 +34,12 @@ export const AuditAction = {
   TAG_CREATED: 'tag.created',
   TAG_UPDATED: 'tag.updated',
   CUSTOMER_TAGS_UPDATED: 'customer.tags_updated',
+  CAMPAIGN_CREATED: 'campaign.created',
+  CAMPAIGN_UPDATED: 'campaign.updated',
+  CAMPAIGN_MEMBERS_UPDATED: 'campaign.members_updated',
+  CAMPAIGN_CUSTOMERS_ADDED: 'campaign.customers_added',
+  CAMPAIGN_CUSTOMERS_REMOVED: 'campaign.customers_removed',
+  CAMPAIGN_FIELDS_UPDATED: 'campaign.fields_updated',
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -51,6 +57,7 @@ export const AUDIT_ENTITY_TYPES = [
   'follow_up',
   'category',
   'tag',
+  'campaign',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 

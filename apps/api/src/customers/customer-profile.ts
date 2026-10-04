@@ -56,6 +56,16 @@ export const customerProfileInclude = {
         select: { code: true, label: true, requiresFollowUp: true },
       },
       staff: { select: { id: true, name: true } },
+      campaign: { select: { id: true, name: true } },
+      customFields: true,
+    },
+  },
+  campaigns: {
+    orderBy: { addedAt: 'desc' },
+    select: {
+      callCount: true,
+      lastCalledAt: true,
+      campaign: { select: { id: true, name: true, status: true } },
     },
   },
 } satisfies Prisma.CustomerInclude;

@@ -91,6 +91,9 @@ model Staff {
 
   categoryChanges   CustomerCategoryChange[]
   tagsAdded         CustomerTag[]
+  campaignsCreated  Campaign[]               @relation("CampaignCreatedBy")
+  campaignMembers   CampaignStaff[]
+  campaignAdds      CampaignCustomer[]       @relation("CampaignCustomerAddedBy")
   followUpsOwned    FollowUp[]               @relation("FollowUpOwner")
   followUpsOriginal FollowUp[]               @relation("FollowUpOriginalOwner")
   notifications     Notification[]
@@ -119,6 +122,8 @@ model Team {
   leader   Staff?  @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: SetNull)
 
   members Staff[] @relation("TeamMembers")
+
+  campaigns CampaignTeam[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -154,6 +159,7 @@ model Customer {
 
   categoryChanges CustomerCategoryChange[]
   tags            CustomerTag[]
+  campaigns       CampaignCustomer[]
 
   assignments Assignment[]
   calls       Call[]
@@ -291,6 +297,9 @@ model Assignment {
   openCustomerId    String? @unique @map("open_customer_id") @db.Uuid
   inProgressStaffId String? @unique @map("in_progress_staff_id") @db.Uuid
 
+  campaignId String?   @map("campaign_id") @db.Uuid // kis campaign ke liye (call isi campaign me count hogi)
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
   followUpId String?   @map("follow_up_id") @db.Uuid // source = FOLLOW_UP ho to kaunsa follow-up
   followUp   FollowUp? @relation(fields: [followUpId], references: [id], onDelete: SetNull)
 
@@ -328,6 +337,10 @@ model Call {
   interestRating Int?      @map("interest_rating") // 0–10 (Phase 4: category isi se)
   followUpAt     DateTime? @map("follow_up_at") @db.Timestamptz(3) // Phase 3: follow-up record isi se banega
 
+  campaignId   String?   @map("campaign_id") @db.Uuid
+  campaign     Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  customFields Json?     @map("custom_fields") // campaign ke extra fields: { key: value } (validated)
+
   createdFollowUp    FollowUp?                @relation("FollowUpSourceCall")
   categoryChanges    CustomerCategoryChange[]
   completedFollowUps FollowUp[]               @relation("FollowUpCompletedBy")
@@ -336,6 +349,7 @@ model Call {
 
   @@index([customerId, createdAt]) // customer history
   @@index([staffId, createdAt]) // assistant ki calls (reports)
+  @@index([campaignId, createdAt]) // campaign reports
   @@index([createdAt])
   @@map("calls")
 }
@@ -499,4 +513,121 @@ model CustomerTag {
   @@id([customerId, tagId]) // composite primary key: ek tag ek customer pe ek hi baar
   @@index([tagId])
   @@map("customer_tags")
+}
+
+// =====================================================================
+// CAMPAIGNS (Phase 5) — design doc section 11
+// "Each campaign can have its own user population, assistants/teams, priority, scripts, fields and reporting"
+// =====================================================================
+
+/// DRAFT (setup) → ACTIVE (calls chal rahe) ↔ PAUSED → COMPLETED (band)
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+
+  @@map("campaign_status")
+}
+
+model Campaign {
+  id          String         @id @default(uuid()) @db.Uuid
+  name        String         @unique
+  description String?
+  status      CampaignStatus @default(DRAFT)
+  priority    Int            @default(0) // bada number = engine pehle is campaign ke customers deta hai
+  script      String? // call script — assistant ko calling screen pe dikhta hai
+  startsAt    DateTime?      @map("starts_at") @db.Timestamptz(3) // null = abhi se
+  endsAt      DateTime?      @map("ends_at") @db.Timestamptz(3) // null = koi end nahi
+
+  createdById String? @map("created_by_id") @db.Uuid
+  createdBy   Staff?  @relation("CampaignCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  customers   CampaignCustomer[]
+  staff       CampaignStaff[]
+  teams       CampaignTeam[]
+  fields      CampaignField[]
+  assignments Assignment[]
+  calls       Call[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, priority])
+  @@map("campaigns")
+}
+
+/// Campaign ki "user population". Ek customer kai campaigns me ho sakta hai.
+model CampaignCustomer {
+  campaignId String   @map("campaign_id") @db.Uuid
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customerId String   @map("customer_id") @db.Uuid
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // Is campaign ke andar progress (customer ki overall calls se alag)
+  callCount     Int       @default(0) @map("call_count")
+  lastCalledAt  DateTime? @map("last_called_at") @db.Timestamptz(3)
+  lastOutcomeId String?   @map("last_outcome_id") @db.Uuid
+
+  addedById String?  @map("added_by_id") @db.Uuid
+  addedBy   Staff?   @relation("CampaignCustomerAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  addedAt   DateTime @default(now()) @map("added_at") @db.Timestamptz(3)
+
+  @@id([campaignId, customerId])
+  @@index([campaignId, callCount, addedAt]) // engine: "is campaign me agla uncalled customer"
+  @@index([customerId])
+  @@map("campaign_customers")
+}
+
+/// Campaign kaun call kar sakta hai — seedhe staff...
+model CampaignStaff {
+  campaignId String   @map("campaign_id") @db.Uuid
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  staffId    String   @map("staff_id") @db.Uuid
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, staffId])
+  @@index([staffId])
+  @@map("campaign_staff")
+}
+
+/// ...ya poori team. (Na staff na team = sab call kar sakte hain)
+model CampaignTeam {
+  campaignId String   @map("campaign_id") @db.Uuid
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  teamId     String   @map("team_id") @db.Uuid
+  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, teamId])
+  @@index([teamId])
+  @@map("campaign_teams")
+}
+
+enum CampaignFieldType {
+  TEXT
+  NUMBER
+  SELECT
+  BOOLEAN
+
+  @@map("campaign_field_type")
+}
+
+/// Campaign-specific call form field (design doc section 6 "Custom Fields")
+model CampaignField {
+  id         String            @id @default(uuid()) @db.Uuid
+  campaignId String            @map("campaign_id") @db.Uuid
+  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  key        String // "deposit_interest" — call.customFields me isi naam se save (permanent)
+  label      String
+  type       CampaignFieldType
+  options    String[]          @default([]) // SELECT ke options
+  required   Boolean           @default(false)
+  isActive   Boolean           @default(true) @map("is_active")
+  sortOrder  Int               @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([campaignId, key])
+  @@map("campaign_fields")
 }

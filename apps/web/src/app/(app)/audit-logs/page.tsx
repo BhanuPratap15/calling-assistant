@@ -49,6 +49,11 @@ const ACTIONS = [
   'campaign.customers_added',
   'campaign.customers_removed',
   'campaign.fields_updated',
+  'import.previewed',
+  'import.confirmed',
+  'import.completed',
+  'import.failed',
+  'import.cancelled',
 ];
 const ENTITY_TYPES = [
   'auth',
@@ -64,6 +69,7 @@ const ENTITY_TYPES = [
   'category',
   'tag',
   'campaign',
+  'import',
 ];
 
 const show = (value: unknown) =>

@@ -135,3 +135,12 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | Immutable key                     | Save ke baad key nahi badalti (purana data usi key se) — hatana = deactivate                 | `campaign_fields.key`                         |
 | Bulk insert + `skipDuplicates`    | Hazaaron rows ek query me; pehle se hai to chupchaap skip (`ON CONFLICT DO NOTHING`)         | Campaign me customers add                     |
 | Retry on conflict                 | Unique violation aaye (race) to dobara try — limit ke saath                                  | `CallingService.next()` (max 3)               |
+| Multipart upload                  | File + form fields ek request me (`multipart/form-data`); server pe Multer padhta hai        | `POST /imports`                               |
+| Preview → confirm                 | Pehle "kya hoga" dikhao, user haan bole tab asli kaam — galti ka mauka kam                   | Import wizard                                 |
+| Chunking / batching               | 20k ek saath nahi — 1000-1000 ke tukde, har tukda ek transaction                             | `ImportsService.processBatch`                 |
+| Idempotent job                    | Job dobara chale to bhi result same — "jo bacha hai wahi karo"                               | Import retry / restart                        |
+| `unnest()` bulk update            | Arrays ko table ki tarah use karke ek query me hazaaron rows update                          | `import_rows` status update                   |
+| BOM (Byte Order Mark)             | File ke shuru me invisible `\uFEFF` — Excel ko batata hai "ye UTF-8 hai"                     | Template / problems CSV                       |
+| CSV / formula injection           | Cell `=HYPERLINK(...)` se shuru ho to Excel formula chala deta hai — aage `'` lagao          | `csvCell()`                                   |
+| Header aliases                    | Alag naam, same field ("Mobile No" = phone) — user ki file badalni na pade                   | `mapHeaders()`                                |
+| Job recovery on startup           | Server start pe adhoore kaam (DB me status) dobara queue                                     | `ImportRunner.onApplicationBootstrap`         |

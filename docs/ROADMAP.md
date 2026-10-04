@@ -13,7 +13,7 @@ Phases design doc (section 25) se liye gaye hain.
 | 3 — Follow-ups           | 6      | —                       | ✅ Done |
 | 4 — Rating & Categories  | 4      | —                       | ✅ Done |
 | 5 — Campaigns            | 4      | —                       | ✅ Done |
-| 6 — Bulk Import          | 4      | 4                       | ⬜      |
+| 6 — Bulk Import          | 4      | —                       | ✅ Done |
 | 7 — Calling Provider     | 3      | 3–5 (provider docs pe)  | ⬜      |
 | 8 — Dashboard & Reports  | 3      | 4                       | ⬜      |
 | 9 — Production Hardening | 5      | 5–7                     | ⬜      |
@@ -104,12 +104,12 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 5.3 Campaign custom fields + call scripts
 - [x] 5.4 Frontend: campaign management (list, detail tabs, calling screen script + fields)
 
-## Phase 6 — Bulk Import (20,000 users)
+## Phase 6 — Bulk Import (20,000 users) ✅
 
-- [ ] 6.1 CSV/Excel upload + parse
-- [ ] 6.2 Validation + duplicate detection + preview (success/failure counts)
-- [ ] 6.3 Background import job + import history
-- [ ] 6.4 Frontend: import wizard
+- [x] 6.1 CSV/Excel upload + parse (ADR 0011)
+- [x] 6.2 Validation + duplicate detection + preview (success/failure counts)
+- [x] 6.3 Background import job + import history (BullMQ, restart-safe, retry; 20k ≈ 10 sec)
+- [x] 6.4 Frontend: import wizard (upload → preview → progress → result, problem rows CSV)
 
 ## Phase 7 — Calling Provider Integration (telecalling.ai docs ke baad)
 

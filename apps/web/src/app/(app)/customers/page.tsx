@@ -42,14 +42,14 @@ const PAGE_SIZE = 20;
 function CustomersContent() {
   const { user } = useAuth();
   const canEdit = user ? isManager(user.role) : false;
-  // Dashboard se ?categoryId=... aa sakta hai (category card click)
+  // Dashboard se ?categoryId=..., import result se ?tagId=... aa sakta hai
   const params = useSearchParams();
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const [categoryId, setCategoryId] = useState(params.get('categoryId') ?? '');
-  const [tagId, setTagId] = useState('');
+  const [tagId, setTagId] = useState(params.get('tagId') ?? ''); // import result se ?tagId=
   const [sort, setSort] = useState('recent');
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState<{ customer?: Customer } | null>(null);

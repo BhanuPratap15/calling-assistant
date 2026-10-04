@@ -16,16 +16,17 @@ remind / escalate hote hain, aur managers ko poori visibility milti hai.
 | 3 — Follow-ups (availability, reminders, escalation, notifications)            | ✅  | **Pilot-ready (M2)**       |
 | 4 — Rating & categories (configurable thresholds, history, tags)               | ✅  |                            |
 | 5 — Campaigns (customer groups, scripts, custom fields, priority)              | ✅  |                            |
-| 6–9 — Import, telecalling.ai, dashboard, production                            | ⬜  | [Roadmap](docs/ROADMAP.md) |
+| 6 — Bulk import (CSV / Excel, preview, background job, 20k tested)             | ✅  |                            |
+| 7–9 — telecalling.ai, dashboard, production                                    | ⬜  | [Roadmap](docs/ROADMAP.md) |
 
 ## Features (abhi tak)
 
-| Role                  | Kya kar sakta hai                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Calling Assistant** | Login → status (Available / Break / Offline) · **Start Calling** → ek customer (due follow-ups sabse pehle) · profile + call history + category + 📞 · current customer pe **tags** · call form (rules ke hisaab se mandatory) · campaign customer pe **script + extra fields** · **Save & Next** · apne follow-ups · 🔔 notifications                                                                                             |
-| **Team Leader**       | Assistant wala sab + apni team ke customers / assignments / follow-ups dekhna, assign / reassign, tags, **overdue alerts**, customers by interest, campaigns (read-only)                                                                                                                                                                                                                                                           |
-| **Manager**           | Staff, teams, customers (search, category / tag filters, highest-interest sort), manual assign / reassign (campaign ke saath bhi), saare follow-ups, audit logs, dashboard, **Campaigns** (banana, customers filter se add, kaun call kare, script, custom fields, Activate / Pause / Complete, progress + results), **Settings** (call outcomes, next actions, categories & thresholds, tags, mandatory fields, follow-up timing) |
-| **Super Admin**       | Sab kuch + Managers banana                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Role                  | Kya kar sakta hai                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Calling Assistant** | Login → status (Available / Break / Offline) · **Start Calling** → ek customer (due follow-ups sabse pehle) · profile + call history + category + 📞 · current customer pe **tags** · call form (rules ke hisaab se mandatory) · campaign customer pe **script + extra fields** · **Save & Next** · apne follow-ups · 🔔 notifications                                                                                                                                                                                |
+| **Team Leader**       | Assistant wala sab + apni team ke customers / assignments / follow-ups dekhna, assign / reassign, tags, **overdue alerts**, customers by interest, campaigns (read-only)                                                                                                                                                                                                                                                                                                                                              |
+| **Manager**           | Staff, teams, customers (search, category / tag filters, highest-interest sort), manual assign / reassign (campaign ke saath bhi), saare follow-ups, audit logs, dashboard, **Campaigns** (banana, customers filter se add, kaun call kare, script, custom fields, Activate / Pause / Complete, progress + results), **Import** (CSV / Excel → preview → background import, problem rows CSV, history), **Settings** (call outcomes, next actions, categories & thresholds, tags, mandatory fields, follow-up timing) |
+| **Super Admin**       | Sab kuch + Managers banana                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 Background: har 30s scheduler → follow-up **reminder** (1 min pehle) → **due** → grace (10 min) ke baad owner unavailable to
 **escalate** (same team, kam load), warna Team Leader ko **overdue** alert. Call ki **interest rating** se customer apne aap
@@ -86,11 +87,11 @@ npm run db:migrate       # naye DB changes
 
 ## Testing
 
-| Layer | Kahan                         | Kya                                                                                                                                                                                                                                                                                              |
-| ----- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unit  | `apps/api/src/**/*.spec.ts`   | Pure logic: call form rules, category ranges, escalation picking, presence, permissions, phone, diff, campaign rules                                                                                                                                                                             |
-| E2E   | `apps/api/test/*.e2e-spec.ts` | Real Postgres: auth, RBAC, customers, staff/teams, audit, call config, **5 assistants ek saath Start Calling**, Save & Next, follow-up "4 PM" flow (time-travel `tick(now)`), category engine + threshold recalculation, tags, campaigns (status, members, priority, date window, custom fields) |
-| CI    | `.github/workflows/ci.yml`    | Har push: format → lint → typecheck → unit → migrations → e2e → build → **smoke test** (built API + real Redis; DB + scheduler `up`)                                                                                                                                                             |
+| Layer | Kahan                         | Kya                                                                                                                                                                                                                                                                                                                                                            |
+| ----- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit  | `apps/api/src/**/*.spec.ts`   | Pure logic: call form rules, category ranges, escalation picking, presence, permissions, phone, diff, campaign rules, import rules + CSV / Excel parsing                                                                                                                                                                                                       |
+| E2E   | `apps/api/test/*.e2e-spec.ts` | Real Postgres: auth, RBAC, customers, staff/teams, audit, call config, **5 assistants ek saath Start Calling**, Save & Next, follow-up "4 PM" flow (time-travel `tick(now)`), category engine + threshold recalculation, tags, campaigns (status, members, priority, date window, custom fields), bulk import (validation, duplicates, retry, **20,000 rows**) |
+| CI    | `.github/workflows/ci.yml`    | Har push: format → lint → typecheck → unit → migrations → e2e → build → **smoke test** (built API + real Redis; DB + scheduler `up`)                                                                                                                                                                                                                           |
 
 E2E files ek-ek karke chalti hain (shared DB) aur apna data khud saaf karti hain.
 
@@ -134,6 +135,7 @@ calling-assistant/
 │   │   │   ├── categories/       #   rating → category engine, thresholds, recalculation
 │   │   │   ├── tags/             #   tags + customer tags
 │   │   │   ├── campaigns/        #   campaigns, members, customers, custom fields, rules
+│   │   │   ├── imports/          #   CSV / Excel parse, validation, preview, background import (BullMQ)
 │   │   │   ├── audit/            #   audit log
 │   │   │   ├── common/ prisma/   #   shared helpers, DB connection
 │   │   │   └── main.ts           #   entry point
@@ -142,9 +144,10 @@ calling-assistant/
 │   └── web/                      # Next.js frontend (@crm/web, :3000)
 │       └── src/
 │           ├── app/              #   login/, (app)/dashboard, calling, follow-ups, customers[/id],
-│           │                     #   campaigns[/id], assignments, teams[/id], staff, audit-logs, settings
+│           │                     #   campaigns[/id], imports[/new, /id], assignments, teams[/id], staff,
+│           │                     #   audit-logs, settings
 │           ├── components/       #   ui/ kit, layout/ (bell, availability), feature components
-│           ├── lib/              #   api, auth-context, use-api, navigation, permissions, call-form, campaign
+│           ├── lib/              #   api, auth-context, use-api, navigation, permissions, call-form, campaign, import
 │           └── proxy.ts          #   login nahi → /login
 ├── docs/                         # design, roadmap, API, ADRs, concepts
 ├── .github/workflows/ci.yml      # CI pipeline
@@ -159,18 +162,20 @@ calling-assistant/
 | [docs/design-v1-summary.md](docs/design-v1-summary.md) | Business design summary                                       |
 | [docs/ROADMAP.md](docs/ROADMAP.md)                     | 51 steps, progress, timeline, pending business decisions      |
 | [docs/API.md](docs/API.md)                             | Saare endpoints + access rules                                |
-| [docs/decisions/](docs/decisions/)                     | ADRs — har bada technical decision aur uski wajah (0001–0010) |
+| [docs/decisions/](docs/decisions/)                     | ADRs — har bada technical decision aur uski wajah (0001–0011) |
 | [docs/CONCEPTS.md](docs/CONCEPTS.md)                   | Seekhne ke notes — har naya concept short me                  |
 
 ## Troubleshooting
 
-| Problem                                              | Wajah                                 | Fix                                                               |
-| ---------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
-| "Server se connection nahi" / `Request failed (500)` | Frontend ko backend (:4000) nahi mila | `npm run dev:api` chalao, uske terminal ka error dekho            |
-| `dev:api` start hote hi crash                        | Dependencies / DB / migration missing | `npm ci` → `npm run infra:up` → `npm run db:migrate`              |
-| Health: `"database":"down"`                          | Docker Postgres band / port galat     | `npm run infra:up`; `.env` `DATABASE_URL` port (5433)             |
-| Health: `"scheduler":"down"`                         | Redis band / `REDIS_URL` galat        | `npm run infra:up`; `.env` `REDIS_URL` port (6380)                |
-| Follow-up reminder / escalation nahi aa rahe         | Scheduler band                        | Health check; `SCHEDULER_ENABLED` `false` to nahi?                |
-| `EPERM` on `npm ci` (Windows)                        | Koi process file use kar raha         | Saare dev servers + VS Code band, `node_modules` delete, `npm ci` |
-| `'nest' / 'prisma' is not recognized`                | `node_modules` adhura                 | `npm ci`                                                          |
-| `git pull` blocked by `package-lock.json`            | Local `npm install` ne lockfile badli | `git restore package-lock.json` → `git pull` → `npm ci`           |
+| Problem                                              | Wajah                                 | Fix                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| "Server se connection nahi" / `Request failed (500)` | Frontend ko backend (:4000) nahi mila | `npm run dev:api` chalao, uske terminal ka error dekho                                               |
+| `dev:api` start hote hi crash                        | Dependencies / DB / migration missing | `npm ci` → `npm run infra:up` → `npm run db:migrate`                                                 |
+| Health: `"database":"down"`                          | Docker Postgres band / port galat     | `npm run infra:up`; `.env` `DATABASE_URL` port (5433)                                                |
+| Health: `"scheduler":"down"`                         | Redis band / `REDIS_URL` galat        | `npm run infra:up`; `.env` `REDIS_URL` port (6380)                                                   |
+| Follow-up reminder / escalation nahi aa rahe         | Scheduler band                        | Health check; `SCHEDULER_ENABLED` `false` to nahi?                                                   |
+| `EPERM` on `npm ci` (Windows)                        | Koi process file use kar raha         | Saare dev servers + VS Code band, `node_modules` delete, `npm ci`                                    |
+| `'nest' / 'prisma' is not recognized`                | `node_modules` adhura                 | `npm ci`                                                                                             |
+| `git pull` blocked by `package-lock.json`            | Local `npm install` ne lockfile badli | `git restore package-lock.json` → `git pull` → `npm ci`                                              |
+| Import "Queued" pe atka                              | Redis / scheduler band                | Health check `scheduler`; `npm run infra:up`, API restart (atke imports apne aap dobara chalte hain) |
+| Import: "Missing required column(s)"                 | File me `name` / `phone` header nahi  | Import page se **template** download karo, headers match karo                                        |

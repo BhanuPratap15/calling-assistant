@@ -376,3 +376,39 @@ export interface CampaignCustomer {
     'id' | 'name' | 'phone' | 'status' | 'priority' | 'interestRating'
   > & { category: CategoryRef | null };
 }
+
+// ---- Bulk import (Phase 6) ----
+export type ImportStatus =
+  'PREVIEW' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+export type ImportRowStatus =
+  'VALID' | 'INVALID' | 'DUPLICATE' | 'IMPORTED' | 'SKIPPED';
+
+export interface ImportBatch {
+  id: string;
+  fileName: string;
+  status: ImportStatus;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  duplicateRows: number;
+  importedRows: number;
+  skippedRows: number;
+  ignoredColumns: string[];
+  error: string | null;
+  confirmedAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  campaign: { id: string; name: string } | null;
+  tag: TagRef | null;
+}
+
+export interface ImportRow {
+  id: string;
+  rowNumber: number;
+  raw: Partial<Record<string, string>>; // name, phone, email... (file me jaisa tha)
+  status: ImportRowStatus;
+  errors: string[];
+  customerId: string | null;
+}

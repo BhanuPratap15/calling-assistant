@@ -109,6 +109,24 @@ campaign ke active fields se validate (unknown key / required / type → 400).
 Engine (Start Calling) campaign ke customers tabhi deta hai jab campaign **ACTIVE** ho, date window ke andar ho, aur
 assistant member ho (ya campaign ke koi members na hon). Details: [ADR 0010](decisions/0010-campaigns.md).
 
+## Bulk import
+
+Sirf **MANAGER** (+ SUPER_ADMIN). Flow: upload → preview → confirm → background → result. Details: [ADR 0011](decisions/0011-bulk-import.md).
+
+| Method | URL                                                                           | Notes                                                                                                                                                    |
+| ------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/imports`                                                                    | `multipart/form-data`, field `file` (.csv / .xlsx, max 10 MB, 50k rows) → batch `PREVIEW` (abhi customers nahi bante). 400 = missing column / galat file |
+| GET    | `/imports?status=&page=`                                                      | History: file, status, counts, createdBy, campaign, tag                                                                                                  |
+| GET    | `/imports/:id`                                                                | `totalRows, validRows, invalidRows, duplicateRows, importedRows, skippedRows, ignoredColumns, error` (UI progress ke liye poll)                          |
+| GET    | `/imports/:id/rows?status=VALID\|INVALID\|DUPLICATE\|IMPORTED\|SKIPPED&page=` | Har line: `rowNumber, raw, status, errors[], customerId`                                                                                                 |
+| GET    | `/imports/:id/problems.csv`                                                   | INVALID / DUPLICATE / SKIPPED lines + wajah (CSV download, template columns)                                                                             |
+| POST   | `/imports/:id/confirm`                                                        | `{ campaignId?, tagId? }` — sirf PREVIEW; `QUEUED` return, kaam background me                                                                            |
+| POST   | `/imports/:id/cancel`                                                         | Sirf PREVIEW                                                                                                                                             |
+| POST   | `/imports/:id/retry`                                                          | Sirf FAILED — bachi hui VALID lines se aage                                                                                                              |
+
+Columns: `name`_, `phone`_, `alternate_phone`, `email`, `external_id`, `priority` (LOW/NORMAL/HIGH/URGENT), `notes`.
+Aliases chalte hain ("Full Name", "Mobile No", "User ID", "Remarks"...). Batch status: `PREVIEW → QUEUED → PROCESSING → COMPLETED | FAILED`, ya `CANCELLED`.
+
 ## Follow-ups
 
 | Method | URL                                                                              | Access               | Notes                                        |

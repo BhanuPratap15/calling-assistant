@@ -2,6 +2,7 @@
  * Backend API call karne ka ek hi tarika — poore frontend me yahi use karo.
  *   const user = await api<AuthUser>('/auth/me');
  *   await api('/customers', { method: 'POST', body: { name, phone } });
+ *   await api('/imports', { method: 'POST', body: formData }); // file upload
  *
  * - Cookie (login token) browser automatically bhejta hai (same origin)
  * - Error aaye to ApiError throw hota hai: status + backend ka message
@@ -31,10 +32,13 @@ export async function api<T = void>(
 ): Promise<T> {
   let res: Response;
   try {
+    // FormData (file upload) → browser khud "multipart/form-data; boundary=..." header lagata hai
+    const isForm = body instanceof FormData;
     res = await fetch(`/api${path}`, {
       method,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      headers:
+        body && !isForm ? { 'Content-Type': 'application/json' } : undefined,
+      body: isForm ? body : body ? JSON.stringify(body) : undefined,
       credentials: 'same-origin',
     });
   } catch {

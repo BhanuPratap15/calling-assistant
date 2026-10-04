@@ -34,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['MANAGER', 'TEAM_LEADER'],
   },
   { href: '/teams', label: 'Teams', roles: ['MANAGER', 'TEAM_LEADER'] },
+  { href: '/imports', label: 'Import', roles: ['MANAGER'] },
   { href: '/staff', label: 'Staff', roles: ['MANAGER'] },
   { href: '/audit-logs', label: 'Audit Logs', roles: ['MANAGER'] },
   { href: '/settings', label: 'Settings', roles: ['MANAGER'] },

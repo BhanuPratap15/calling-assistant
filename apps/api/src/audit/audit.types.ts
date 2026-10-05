@@ -40,6 +40,7 @@ export const AuditAction = {
   CAMPAIGN_CUSTOMERS_ADDED: 'campaign.customers_added',
   CAMPAIGN_CUSTOMERS_REMOVED: 'campaign.customers_removed',
   CAMPAIGN_FIELDS_UPDATED: 'campaign.fields_updated',
+  CALL_DIALED: 'call.dialed',
   IMPORT_PREVIEWED: 'import.previewed',
   IMPORT_CONFIRMED: 'import.confirmed',
   IMPORT_COMPLETED: 'import.completed',

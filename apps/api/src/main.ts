@@ -3,7 +3,8 @@ import { AppModule } from './app.module.js';
 import { configureApp } from './app.setup.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: webhook signature raw bytes pe check hoti hai (Phase 7)
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   configureApp(app);
 
   // Frontend (Next.js, port 3000) ko is API ko call karne ki permission

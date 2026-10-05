@@ -12,6 +12,7 @@ import { customerProfileInclude } from '../customers/customer-profile.js';
 import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { TelephonyService } from '../telephony/telephony.service.js';
 import { validateCustomFields } from '../campaigns/campaign-rules.js';
 import { validateCallForm } from './call-form-validation.js';
 import type { CompleteCallDto } from './dto/complete-call.dto.js';
@@ -32,6 +33,7 @@ export class CallingService {
     private readonly callConfig: CallConfigService,
     private readonly followUps: FollowUpsService,
     private readonly categories: CategoriesService,
+    private readonly telephony: TelephonyService,
   ) {}
 
   /** Assistant ka current (IN_PROGRESS) customer — profile ke saath. Nahi hai to null. */
@@ -398,6 +400,8 @@ export class CallingService {
         staffId: actor.id,
         followUpAt: values.followUpAt,
       });
+      // Is customer pe kiye dial attempts (provider ki duration / recording) → is call se link
+      await this.telephony.linkToCall(tx, assignment.id, created.id);
       await tx.assignment.update({
         where: { id: assignment.id },
         data: {

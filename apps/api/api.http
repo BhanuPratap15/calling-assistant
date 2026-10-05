@@ -474,3 +474,25 @@ Authorization: Bearer {{login.response.body.accessToken}}
 ### 61. Import history
 GET {{baseUrl}}/imports
 Authorization: Bearer {{login.response.body.accessToken}}
+
+# ============ Calling provider (Phase 7) ============
+
+### 62. Kaunsa provider chal raha hai
+GET {{baseUrl}}/telephony/config
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 63. 📞 Dial current customer (ASSISTANT token; pehle Start Calling). number: primary | alternate
+POST {{baseUrl}}/calling/dial
+Authorization: Bearer {{login.response.body.accessToken}}
+Content-Type: application/json
+
+{
+  "number": "primary"
+}
+
+### 64. Current customer ke dial attempts (status, duration, recording)
+GET {{baseUrl}}/calling/sessions
+Authorization: Bearer {{login.response.body.accessToken}}
+
+# Webhook (provider → CRM) ko signature chahiye (HMAC) — REST Client se nahi, script se bhejo:
+# docs/telephony-provider-guide.md (section 3)

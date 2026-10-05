@@ -58,6 +58,17 @@ export const customerProfileInclude = {
       staff: { select: { id: true, name: true } },
       campaign: { select: { id: true, name: true } },
       customFields: true,
+      // Provider ki asli call(s): status, duration, recording (Phase 7)
+      telephony: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          status: true,
+          durationSec: true,
+          recordingUrl: true,
+          toNumber: true,
+        },
+      },
     },
   },
   campaigns: {

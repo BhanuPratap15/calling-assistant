@@ -2,14 +2,19 @@ import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { TelephonyService } from '../telephony/telephony.service.js';
 import { CallingService } from './calling.service.js';
+import { DialDto } from './dto/dial.dto.js';
 import { CompleteCallDto } from './dto/complete-call.dto.js';
 
 /** Assistant ki calling screen ke APIs. Response me `null` = abhi koi customer nahi. */
 @Roles('ASSISTANT', 'TEAM_LEADER')
 @Controller('calling')
 export class CallingController {
-  constructor(private readonly calling: CallingService) {}
+  constructor(
+    private readonly calling: CallingService,
+    private readonly telephony: TelephonyService,
+  ) {}
 
   // GET /api/calling/current → current customer (ya null)
   @Get('current')
@@ -22,6 +27,19 @@ export class CallingController {
   @HttpCode(200)
   async next(@CurrentUser() user: AuthUser) {
     return { current: await this.calling.next(user) };
+  }
+
+  // POST /api/calling/dial → "📞 Call" (current customer ko, provider ke through)
+  @Post('dial')
+  @HttpCode(200)
+  dial(@CurrentUser() user: AuthUser, @Body() dto: DialDto) {
+    return this.telephony.dial(user, dto.number);
+  }
+
+  // GET /api/calling/sessions → current customer ke dial attempts (status, duration, recording)
+  @Get('sessions')
+  async sessions(@CurrentUser() user: AuthUser) {
+    return { sessions: await this.telephony.currentSessions(user.id) };
   }
 
   // POST /api/calling/complete → "Save & Next"

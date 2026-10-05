@@ -98,6 +98,7 @@ model Staff {
   followUpsOriginal FollowUp[]               @relation("FollowUpOriginalOwner")
   notifications     Notification[]
   importBatches     ImportBatch[]
+  callSessions      CallSession[]
 
   lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(3)
   /// Heartbeat: aakhri API request kab aayi (har ~1 min update). Browser band = AVAILABLE hote hue bhi "away"
@@ -162,9 +163,10 @@ model Customer {
   tags            CustomerTag[]
   campaigns       CampaignCustomer[]
 
-  assignments Assignment[]
-  calls       Call[]
-  followUps   FollowUp[]
+  assignments  Assignment[]
+  calls        Call[]
+  followUps    FollowUp[]
+  callSessions CallSession[]
 
   createdById String? @map("created_by_id") @db.Uuid
   createdBy   Staff?  @relation("CustomerCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -304,7 +306,8 @@ model Assignment {
   followUpId String?   @map("follow_up_id") @db.Uuid // source = FOLLOW_UP ho to kaunsa follow-up
   followUp   FollowUp? @relation(fields: [followUpId], references: [id], onDelete: SetNull)
 
-  calls Call[]
+  calls        Call[]
+  callSessions CallSession[]
 
   startedAt   DateTime? @map("started_at") @db.Timestamptz(3) // IN_PROGRESS kab hua
   completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
@@ -345,6 +348,7 @@ model Call {
   createdFollowUp    FollowUp?                @relation("FollowUpSourceCall")
   categoryChanges    CustomerCategoryChange[]
   completedFollowUps FollowUp[]               @relation("FollowUpCompletedBy")
+  telephony          CallSession[] // provider ki asli call(s): duration, recording (Phase 7)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -717,4 +721,78 @@ model ImportRow {
   @@unique([batchId, rowNumber])
   @@index([batchId, status, rowNumber])
   @@map("import_rows")
+}
+
+// =====================================================================
+// CALLING PROVIDER (Phase 7) — design doc section 17
+// CRM = control layer; asli call + recording provider (telecalling.ai) karta hai.
+// Provider kaunsa hai wo env se (TELEPHONY_PROVIDER) — code sirf TelephonyProvider interface jaanta hai.
+// =====================================================================
+
+enum CallSessionStatus {
+  DIALED // manual provider: phone app ko number de diya (aage ka pata nahi)
+  INITIATED // provider ko "call lagao" bola
+  RINGING
+  ANSWERED // customer ne uthaya — baat chal rahi hai
+  COMPLETED // baat hui, call khatam
+  NO_ANSWER
+  BUSY
+  FAILED
+  CANCELED
+
+  @@map("call_session_status")
+}
+
+/// Ek dial attempt (assistant ne "Call" dabaya). Ek CRM call (form) ke kai attempts ho sakte hain.
+model CallSession {
+  id             String  @id @default(uuid()) @db.Uuid
+  provider       String // "manual" | "mock" | "telecalling" ...
+  providerCallId String? @map("provider_call_id") // provider ki call ID (webhook isi se match)
+
+  customerId   String      @map("customer_id") @db.Uuid
+  customer     Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  staffId      String      @map("staff_id") @db.Uuid
+  staff        Staff       @relation(fields: [staffId], references: [id])
+  assignmentId String?     @map("assignment_id") @db.Uuid
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  callId       String?     @map("call_id") @db.Uuid // Save & Next ke baad CRM call se link
+  call         Call?       @relation(fields: [callId], references: [id], onDelete: SetNull)
+
+  toNumber     String            @map("to_number")
+  status       CallSessionStatus
+  answeredAt   DateTime?         @map("answered_at") @db.Timestamptz(3)
+  endedAt      DateTime?         @map("ended_at") @db.Timestamptz(3)
+  durationSec  Int?              @map("duration_sec") // baat kitni der hui
+  recordingUrl String?           @map("recording_url") // provider ka recording link (sirf https)
+  failReason   String?           @map("fail_reason")
+
+  events CallEvent[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([provider, providerCallId])
+  @@index([assignmentId, createdAt])
+  @@index([customerId, createdAt])
+  @@index([staffId, createdAt])
+  @@map("call_sessions")
+}
+
+/// Provider se aaya har webhook event (debug + audit). eventId se duplicate ignore.
+model CallEvent {
+  id        String      @id @default(uuid()) @db.Uuid
+  sessionId String      @map("session_id") @db.Uuid
+  session   CallSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  provider  String
+  eventId   String?     @map("event_id") // provider ki event ID (retry pe same aati hai)
+  type      String // ringing | answered | completed | no_answer | busy | failed | canceled
+  payload   Json // jaisa aaya waisa (sensitive headers nahi)
+  applied   Boolean // false = purana / out-of-order event, status nahi badla
+
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
+  @@index([sessionId, occurredAt])
+  @@map("call_events")
 }

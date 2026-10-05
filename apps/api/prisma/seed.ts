@@ -41,6 +41,8 @@ async function main() {
         email,
         passwordHash: await hashPassword(password),
         role: 'SUPER_ADMIN',
+        // .env wala password sabko pata hota hai → pehle login pe badalna zaroori
+        mustChangePassword: true,
       },
     });
     console.log(`✔ Super Admin ready: ${admin.email} (id: ${admin.id})`);

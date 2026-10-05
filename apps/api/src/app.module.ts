@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AssignmentsModule } from './assignments/assignments.module.js';
@@ -25,6 +26,13 @@ import { TeamsModule } from './teams/teams.module.js';
   imports: [
     // .env load karta hai. Root .env (local dev) — CI/production me real env variables use hote hain.
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['../../.env'] }),
+    // Har IP se max RATE_LIMIT_PER_MIN requests / minute (default 3000 — poora office ek NAT IP pe hota hai)
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        { ttl: 60_000, limit: Number(config.get('RATE_LIMIT_PER_MIN', 3000)) },
+      ],
+    }),
     PrismaModule,
     AuditModule,
     NotificationsModule,

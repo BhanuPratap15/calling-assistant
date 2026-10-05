@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { AvailabilitySelect } from '@/components/layout/availability-select';
+import { ChangePasswordForm } from '@/components/account/change-password-form';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { useAuth } from '@/lib/auth-context';
 import { canSee, findNavItem, NAV_ITEMS } from '@/lib/navigation';
@@ -49,6 +50,30 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
+  // Manager ne password set / reset kiya → pehle khud ka password (baaki app band — backend bhi 403 deta hai)
+  if (user.mustChangePassword) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h1 className="text-lg font-semibold text-slate-900">
+            Naya password set karein
+          </h1>
+          <p className="mt-1 mb-4 text-sm text-slate-600">
+            Namaste {user.name}! Aapka password manager ne set kiya hai —
+            security ke liye pehle apna khud ka password banaiye.
+          </p>
+          <ChangePasswordForm />
+          <button
+            onClick={logout}
+            className="mt-4 text-sm text-slate-500 hover:underline"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const menu = NAV_ITEMS.filter((item) => canSee(item, user.role));
   const current = findNavItem(pathname);
   const allowed = !current || canSee(current, user.role);
@@ -90,10 +115,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               />
             )}
           <NotificationBell />
-          <div className="text-right">
+          <Link
+            href="/account"
+            className="text-right hover:opacity-80"
+            title="My account"
+          >
             <p className="text-sm font-medium text-slate-900">{user.name}</p>
             <p className="text-xs text-slate-500">{user.email}</p>
-          </div>
+          </Link>
           <button
             onClick={logout}
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"

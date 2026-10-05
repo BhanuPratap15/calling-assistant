@@ -42,6 +42,7 @@ export class StaffService {
               role: dto.role,
               teamId: dto.teamId,
               passwordHash,
+              mustChangePassword: true, // manager ne password diya → staff pehle login pe khud badlega
             },
             select: staffPublicSelect,
           });
@@ -119,6 +120,8 @@ export class StaffService {
           role: dto.role,
           teamId: dto.teamId, // null = team se hatao
           isActive: dto.isActive,
+          // Deactivate → saare login tokens bekaar (baad me reactivate ho to purane token na chalein)
+          tokenVersion: dto.isActive === false ? { increment: 1 } : undefined,
         },
         select: staffPublicSelect,
       });
@@ -163,7 +166,15 @@ export class StaffService {
     this.assertCanManage(actor, target.role);
     const passwordHash = await hashPassword(newPassword);
     await this.prisma.$transaction(async (tx) => {
-      await tx.staff.update({ where: { id }, data: { passwordHash } });
+      // Naya (temporary) password: pehle login pe khud badlega + purane sessions logout
+      await tx.staff.update({
+        where: { id },
+        data: {
+          passwordHash,
+          mustChangePassword: true,
+          tokenVersion: { increment: 1 },
+        },
+      });
       // Password ki value KABHI log nahi hoti — sirf "reset hua" ka record
       await this.audit.record(
         {

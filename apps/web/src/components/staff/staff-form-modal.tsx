@@ -119,7 +119,7 @@ export function StaffFormModal({
         {!isEdit && (
           <Field
             label="Initial password"
-            hint="8+ characters, kam se kam 1 letter aur 1 number"
+            hint="8+ characters, kam se kam 1 letter aur 1 number. Staff pehle login pe ise badlega"
           >
             <Input
               type="password"

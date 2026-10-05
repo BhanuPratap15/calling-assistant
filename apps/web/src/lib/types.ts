@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   role: StaffRole;
   availability?: Availability; // /auth/me se (login response me nahi)
+  mustChangePassword?: boolean; // manager ne password set kiya → pehle khud badlo (Phase 9)
 }
 
 export const ROLE_LABELS: Record<StaffRole, string> = {

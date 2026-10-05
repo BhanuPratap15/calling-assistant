@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { AuditService } from '../audit/audit.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { LoginLimiter } from '../security/login-limiter.js';
 import { AuthService } from './auth.service.js';
 import { hashPassword } from './password.js';
 
@@ -32,6 +33,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: JwtService, useValue: jwtMock },
         { provide: AuditService, useValue: auditMock },
+        { provide: LoginLimiter, useValue: new LoginLimiter(3, 60_000) },
       ],
     }).compile();
     service = moduleRef.get(AuthService);
@@ -44,6 +46,8 @@ describe('AuthService', () => {
     role: 'ASSISTANT',
     isActive: true,
     passwordHash,
+    tokenVersion: 4,
+    mustChangePassword: false,
   });
 
   it('returns token and user for correct credentials', async () => {
@@ -58,6 +62,7 @@ describe('AuthService', () => {
     expect(jwtMock.signAsync).toHaveBeenCalledWith({
       sub: 'staff-1',
       role: 'ASSISTANT',
+      ver: 4, // tokenVersion token me jaata hai (logout / password change pe purane token bekaar)
     });
     expect(result).toEqual({
       accessToken: 'signed-token',
@@ -67,6 +72,7 @@ describe('AuthService', () => {
         name: 'Amit',
         email: 'amit@crm.local',
         role: 'ASSISTANT',
+        mustChangePassword: false,
       },
     });
     expect(result.user).not.toHaveProperty('passwordHash');
@@ -85,7 +91,11 @@ describe('AuthService', () => {
       expect.objectContaining({
         action: 'auth.login_failed',
         actorId: null,
-        metadata: { email: 'amit@crm.local', reason: 'wrong_password' },
+        metadata: {
+          email: 'amit@crm.local',
+          reason: 'wrong_password',
+          ip: 'unknown',
+        },
       }),
     );
   });
@@ -105,5 +115,25 @@ describe('AuthService', () => {
     await expect(
       service.login('amit@crm.local', 'Correct@123'),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('locks an IP + email after repeated failures (429), even with the right password', async () => {
+    prismaMock.staff.findUnique.mockResolvedValue(activeStaff());
+    for (let i = 0; i < 3; i++) {
+      await expect(
+        service.login('amit@crm.local', 'wrong', '9.9.9.9'),
+      ).rejects.toThrow(UnauthorizedException);
+    }
+    await expect(
+      service.login('amit@crm.local', 'Correct@123', '9.9.9.9'),
+    ).rejects.toMatchObject({
+      status: 429,
+    });
+    // doosre IP se sahi password chal jaata hai
+    await expect(
+      service.login('amit@crm.local', 'Correct@123', '8.8.8.8'),
+    ).resolves.toMatchObject({
+      accessToken: 'signed-token',
+    });
   });
 });

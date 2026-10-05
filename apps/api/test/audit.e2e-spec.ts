@@ -100,6 +100,7 @@ describe('Audit log (e2e)', () => {
     expect(entry.metadata).toEqual({
       email: email('mgr'),
       reason: 'wrong_password',
+      ip: expect.any(String), // kis IP se try hua (brute-force jaanch)
     });
     expect(JSON.stringify(entry)).not.toContain('wrong-pass-1');
   });

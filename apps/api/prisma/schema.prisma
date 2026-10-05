@@ -77,6 +77,10 @@ model Staff {
   availability Availability @default(OFFLINE)
   isActive     Boolean      @default(true) @map("is_active") // delete ki jagah deactivate (history bachi rahe)
 
+  // Security (Phase 9)
+  tokenVersion       Int     @default(0) @map("token_version") // badla → saare purane login tokens bekaar (logout / password change)
+  mustChangePassword Boolean @default(false) @map("must_change_password") // manager ne password set kiya → pehle login pe khud badlo
+
   teamId String? @map("team_id") @db.Uuid
   team   Team?   @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
 

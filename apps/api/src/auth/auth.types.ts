@@ -5,6 +5,7 @@ import type { StaffRole } from '../generated/prisma/enums.js';
 export interface JwtPayload {
   sub: string; // staff id ("subject" — JWT standard naam)
   role: StaffRole;
+  ver: number; // staff.tokenVersion — badla (logout / password change) → ye token bekaar
 }
 
 /** Login hua staff — guard isko request.user me daalta hai */

@@ -1,11 +1,15 @@
 import { type INestApplication, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 /**
  * App-level settings ek jagah — main.ts aur e2e tests dono yahi use karte hain,
  * taaki test bilkul real app jaisa behave kare.
  */
 export function configureApp(app: INestApplication): void {
+  // Security headers (X-Content-Type-Options, HSTS, frame block, X-Powered-By hatao...) — Phase 9
+  app.use(helmet());
+
   // Request ki cookies padh ke req.cookies me daalo (browser login cookie ke liye)
   app.use(cookieParser());
 

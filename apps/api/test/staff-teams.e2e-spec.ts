@@ -160,8 +160,40 @@ describe('Staff & Teams management (e2e)', () => {
     expect(team.body.members[0].id).toBe(assistantId);
   });
 
+  it('staff created by a manager must change the password first (then old token is dead)', async () => {
+    const firstToken = await login(email('lead'));
+    const blocked = await http()
+      .get('/api/teams')
+      .set(auth(firstToken))
+      .expect(403);
+    expect(blocked.body.message).toBe('Password change required');
+    const me = await http()
+      .get('/api/auth/me')
+      .set(auth(firstToken))
+      .expect(200);
+    expect(me.body.mustChangePassword).toBe(true);
+    // naya password purane jaisa nahi ho sakta
+    await http()
+      .post('/api/auth/change-password')
+      .set(auth(firstToken))
+      .send({ currentPassword: password, newPassword: password })
+      .expect(400);
+    const changed = await http()
+      .post('/api/auth/change-password')
+      .set(auth(firstToken))
+      .send({ currentPassword: password, newPassword: 'Leader@456' })
+      .expect(200);
+    expect(changed.body.accessToken).toEqual(expect.any(String));
+    await http().get('/api/auth/me').set(auth(firstToken)).expect(401); // purana token bekaar
+    const me2 = await http()
+      .get('/api/auth/me')
+      .set(auth(changed.body.accessToken))
+      .expect(200);
+    expect(me2.body.mustChangePassword).toBe(false);
+  });
+
   it('TEAM_LEADER sees only own teams; ASSISTANT cannot see teams', async () => {
-    const leaderToken = await login(email('lead'));
+    const leaderToken = await login(email('lead'), 'Leader@456');
     const list = await http()
       .get('/api/teams')
       .set(auth(leaderToken))
@@ -195,7 +227,8 @@ describe('Staff & Teams management (e2e)', () => {
   });
 
   it('staff changes own password (needs correct current password)', async () => {
-    const token = await login(email('lead'));
+    const token = await login(email('lead'), 'Leader@456');
+    const otherDevice = await login(email('lead'), 'Leader@456');
     await http()
       .post('/api/auth/change-password')
       .set(auth(token))
@@ -204,8 +237,10 @@ describe('Staff & Teams management (e2e)', () => {
     await http()
       .post('/api/auth/change-password')
       .set(auth(token))
-      .send({ currentPassword: password, newPassword: 'Leader@789' })
-      .expect(204);
+      .send({ currentPassword: 'Leader@456', newPassword: 'Leader@789' })
+      .expect(200);
+    // Doosre device ka session bhi khatam
+    await http().get('/api/teams').set(auth(otherDevice)).expect(401);
     expect(await login(email('lead'), 'Leader@789')).toEqual(
       expect.any(String),
     );

@@ -12,6 +12,7 @@ import type { CookieOptions, Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { AUTH_COOKIE, type AuthUser } from './auth.types.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
+import { AllowDuringPasswordChange } from './decorators/allow-password-change.decorator.js';
 import { Public } from './decorators/public.decorator.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -21,12 +22,14 @@ import { SetAvailabilityDto } from './dto/set-availability.dto.js';
  * Cookie settings:
  *  httpOnly  → browser ki JavaScript cookie padh nahi sakti (XSS se token chori nahi)
  *  sameSite  → doosri website se aayi request ke saath cookie nahi jaati (CSRF se bachav)
- *  secure    → production me sirf HTTPS pe
+ *  secure    → sirf HTTPS pe (production default). COOKIE_SECURE=false sirf HTTP pe testing ke liye.
  */
 const cookieOptions = (): CookieOptions => ({
   httpOnly: true,
   sameSite: 'lax',
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.COOKIE_SECURE
+    ? process.env.COOKIE_SECURE === 'true'
+    : process.env.NODE_ENV === 'production',
   path: '/',
 });
 
@@ -41,9 +44,15 @@ export class AuthController {
   @HttpCode(200) // POST ka default 201 (Created) hota hai; login kuch "create" nahi karta
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response, // passthrough: return value normal JSON hi rahe
   ) {
-    const result = await this.authService.login(dto.email, dto.password);
+    // req.ip: Nginx ke peeche asli client IP ke liye main.ts me TRUST_PROXY set karo
+    const result = await this.authService.login(
+      dto.email,
+      dto.password,
+      req.ip,
+    );
     res.cookie(AUTH_COOKIE, result.accessToken, {
       ...cookieOptions(),
       expires: new Date(result.expiresAt),
@@ -62,11 +71,12 @@ export class AuthController {
     const cookie = (req.cookies as Record<string, string> | undefined)?.[
       AUTH_COOKIE
     ];
-    await this.authService.markOfflineFromToken(bearer ?? cookie); // availability → OFFLINE
+    await this.authService.logout(bearer ?? cookie); // token revoke + availability → OFFLINE
     res.clearCookie(AUTH_COOKIE, cookieOptions());
   }
 
   // GET /api/auth/me  (header: Authorization: Bearer <token>)  →  logged-in staff
+  @AllowDuringPasswordChange()
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
     return this.authService.me(user);
@@ -81,17 +91,25 @@ export class AuthController {
     return this.authService.setAvailability(user.id, dto.availability);
   }
 
-  // POST /api/auth/change-password  { currentPassword, newPassword }  →  204
+  // POST /api/auth/change-password  { currentPassword, newPassword }  →  { accessToken, expiresAt }
+  // Baaki saare sessions logout; is browser ko naya token (cookie bhi update)
+  @AllowDuringPasswordChange()
   @Post('change-password')
-  @HttpCode(204)
+  @HttpCode(200)
   async changePassword(
     @CurrentUser() user: AuthUser,
     @Body() dto: ChangePasswordDto,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.changePassword(
+    const token = await this.authService.changePassword(
       user.id,
       dto.currentPassword,
       dto.newPassword,
     );
+    res.cookie(AUTH_COOKIE, token.accessToken, {
+      ...cookieOptions(),
+      expires: new Date(token.expiresAt),
+    });
+    return token;
   }
 }

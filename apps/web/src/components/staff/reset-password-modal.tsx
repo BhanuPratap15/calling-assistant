@@ -41,7 +41,7 @@ export function ResetPasswordModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field
           label="New password"
-          hint="8+ characters, kam se kam 1 letter aur 1 number"
+          hint="8+ characters, kam se kam 1 letter aur 1 number. Staff ke saare sessions logout honge; pehle login pe naya password banana hoga"
         >
           <Input
             type="password"

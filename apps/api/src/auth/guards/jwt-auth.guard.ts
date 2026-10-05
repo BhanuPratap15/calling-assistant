@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import {
   type AuthenticatedRequest,
   type JwtPayload,
 } from '../auth.types.js';
+import { ALLOW_PASSWORD_CHANGE_KEY } from '../decorators/allow-password-change.decorator.js';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 
 /**
@@ -19,7 +21,9 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
  * 1. @Public() route → seedha jaane do
  * 2. Token nikalo — header "Authorization: Bearer <token>" (api.http, mobile)
  *    YA httpOnly cookie "access_token" (browser / Next.js frontend) — phir verify karo
- * 3. DB se staff check karo (deactivate hua staff turant block ho jaaye)
+ * 3. DB se staff check karo (deactivate hua staff turant block ho jaaye) + token version
+ *    (logout / password change ke baad purana token kaam nahi karta)
+ *    + mustChangePassword (manager ka diya password → pehle khud badlo)
  * 4. lastSeenAt heartbeat update (presence — follow-up escalation isi se decide hota hai)
  * 5. request.user set karo
  */
@@ -62,10 +66,25 @@ export class JwtAuthGuard implements CanActivate {
         role: true,
         isActive: true,
         lastSeenAt: true,
+        tokenVersion: true,
+        mustChangePassword: true,
       },
     });
     if (!staff || !staff.isActive) {
       throw new UnauthorizedException('Account not found or deactivated');
+    }
+    // Logout / password change ke baad version badal jaata hai → chura hua purana token bekaar
+    if ((payload.ver ?? 0) !== staff.tokenVersion) {
+      throw new UnauthorizedException('Session expired — please log in again');
+    }
+    if (
+      staff.mustChangePassword &&
+      !this.reflector.getAllAndOverride<boolean>(ALLOW_PASSWORD_CHANGE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      throw new ForbiddenException('Password change required');
     }
 
     // Heartbeat: "ye banda abhi online hai" — har request pe nahi, max 1 baar / minute (DB load kam)

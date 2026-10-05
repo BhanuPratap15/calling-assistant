@@ -143,4 +143,12 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | BOM (Byte Order Mark)             | File ke shuru me invisible `\uFEFF` — Excel ko batata hai "ye UTF-8 hai"                     | Template / problems CSV                       |
 | CSV / formula injection           | Cell `=HYPERLINK(...)` se shuru ho to Excel formula chala deta hai — aage `'` lagao          | `csvCell()`                                   |
 | Header aliases                    | Alag naam, same field ("Mobile No" = phone) — user ki file badalni na pade                   | `mapHeaders()`                                |
+| Adapter pattern                   | Ek common interface, har provider ki alag class — CRM sirf interface jaanta hai              | `TelephonyProvider`                           |
+| Webhook                           | Doosra system event hone pe hamare URL pe POST karta hai ("call answered")                   | `/telephony/webhooks/:provider`               |
+| HMAC signature                    | Secret + body se banaya code — body badli ya secret galat to match nahi hoga                 | `verifyWebhookSignature`                      |
+| Replay attack                     | Purana sahi request dobara bhejna — timestamp sign karke 5 min window se rokte hain          | `X-CRM-Timestamp`                             |
+| `timingSafeEqual`                 | Compare jisme time same lagta hai — time naap ke secret guess nahi ho sakta                  | Signature compare                             |
+| Raw body                          | Parse se pehle ke exact bytes — signature inhi pe check hoti hai                             | `rawBody: true` (main.ts)                     |
+| Out-of-order events               | Network me events aage-peeche aa sakte hain — status sirf aage badhao                        | `applyEvent` rank                             |
+| Fail fast config                  | Galat env pe app start hi na ho — production me silent galti nahi                            | `createProvider()`                            |
 | Job recovery on startup           | Server start pe adhoore kaam (DB me status) dobara queue                                     | `ImportRunner.onApplicationBootstrap`         |

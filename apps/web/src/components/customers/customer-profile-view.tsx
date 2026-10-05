@@ -1,9 +1,11 @@
 import { CategoryBadge } from '@/components/categories/category-badge';
 import { TagEditor } from '@/components/categories/tag-editor';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CAMPAIGN_STATUS_TONE, formatCustomValue } from '@/lib/campaign';
 import { formatDateTime, humanize } from '@/lib/format';
+import { formatDuration, SESSION_LABEL, SESSION_TONE } from '@/lib/telephony';
 import type { CustomerProfile } from '@/lib/types';
 
 const PRIORITY_TONE = {
@@ -31,10 +33,12 @@ export function CustomerProfileView({
   customer,
   canEditTags = false,
   linkCampaigns = false,
+  phoneAction,
 }: {
   customer: CustomerProfile;
   canEditTags?: boolean;
   linkCampaigns?: boolean; // Manager / TL: campaign pe click → campaign page
+  phoneAction?: ReactNode; // calling screen: 📞 provider se dial (DialPanel); warna tel: link
 }) {
   const assignedTo = customer.assignments[0]?.staff.name;
 
@@ -66,17 +70,21 @@ export function CustomerProfileView({
           </div>
         </div>
 
-        {/* tel: link — mobile/softphone pe click karte hi dial (provider integration Phase 7) */}
-        <a
-          href={`tel:${customer.phone}`}
-          className="mt-4 inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 font-mono text-lg font-semibold text-white hover:bg-green-700"
-        >
-          📞 {customer.phone}
-        </a>
-        {customer.alternatePhone && (
-          <p className="mt-2 text-sm text-slate-600">
-            Alternate: {customer.alternatePhone}
-          </p>
+        {phoneAction ?? (
+          <>
+            {/* tel: link — mobile/softphone pe click karte hi dial */}
+            <a
+              href={`tel:${customer.phone}`}
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 font-mono text-lg font-semibold text-white hover:bg-green-700"
+            >
+              📞 {customer.phone}
+            </a>
+            {customer.alternatePhone && (
+              <p className="mt-2 text-sm text-slate-600">
+                Alternate: {customer.alternatePhone}
+              </p>
+            )}
+          </>
         )}
 
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
@@ -209,6 +217,32 @@ export function CustomerProfileView({
                 )}
                 {call.notes && (
                   <p className="mt-1 text-sm text-slate-600">{call.notes}</p>
+                )}
+                {call.telephony.length > 0 && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    {call.telephony.map((t) => (
+                      <span
+                        key={t.id}
+                        className="inline-flex items-center gap-1"
+                      >
+                        <Badge tone={SESSION_TONE[t.status]}>
+                          📞 {SESSION_LABEL[t.status]}
+                          {t.status === 'COMPLETED' &&
+                            ` · ${formatDuration(t.durationSec)}`}
+                        </Badge>
+                        {t.recordingUrl && (
+                          <a
+                            href={t.recordingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 hover:underline"
+                          >
+                            ▶ Recording
+                          </a>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 {call.followUpAt && (
                   <p className="mt-1 text-xs text-amber-700">

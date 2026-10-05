@@ -5,19 +5,19 @@ Phases design doc (section 25) se liye gaye hain.
 
 ## Summary
 
-| Phase                    | Steps  | Estimate (working days) | Status  |
-| ------------------------ | ------ | ----------------------- | ------- |
-| 0 — Project Setup        | 6      | —                       | ✅ Done |
-| 1 — Foundation           | 9      | —                       | ✅ Done |
-| 2 — Calling Workflow     | 7      | —                       | ✅ Done |
-| 3 — Follow-ups           | 6      | —                       | ✅ Done |
-| 4 — Rating & Categories  | 4      | —                       | ✅ Done |
-| 5 — Campaigns            | 4      | —                       | ✅ Done |
-| 6 — Bulk Import          | 4      | —                       | ✅ Done |
-| 7 — Calling Provider     | 3      | 3–5 (provider docs pe)  | ⬜      |
-| 8 — Dashboard & Reports  | 3      | 4                       | ⬜      |
-| 9 — Production Hardening | 5      | 5–7                     | ⬜      |
-| **Total**                | **51** | **~42–50 working days** |         |
+| Phase                    | Steps  | Estimate (working days) | Status                                            |
+| ------------------------ | ------ | ----------------------- | ------------------------------------------------- |
+| 0 — Project Setup        | 6      | —                       | ✅ Done                                           |
+| 1 — Foundation           | 9      | —                       | ✅ Done                                           |
+| 2 — Calling Workflow     | 7      | —                       | ✅ Done                                           |
+| 3 — Follow-ups           | 6      | —                       | ✅ Done                                           |
+| 4 — Rating & Categories  | 4      | —                       | ✅ Done                                           |
+| 5 — Campaigns            | 4      | —                       | ✅ Done                                           |
+| 6 — Bulk Import          | 4      | —                       | ✅ Done                                           |
+| 7 — Calling Provider     | 3      | —                       | ✅ Layer done (telecalling adapter: docs ka wait) |
+| 8 — Dashboard & Reports  | 3      | 4                       | ⬜                                                |
+| 9 — Production Hardening | 5      | 5–7                     | ⬜                                                |
+| **Total**                | **51** | **~42–50 working days** |                                                   |
 
 ### Timeline (full-time, ~6–8 ghante/din, seekhte hue)
 
@@ -111,11 +111,12 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 6.3 Background import job + import history (BullMQ, restart-safe, retry; 20k ≈ 10 sec)
 - [x] 6.4 Frontend: import wizard (upload → preview → progress → result, problem rows CSV)
 
-## Phase 7 — Calling Provider Integration (telecalling.ai docs ke baad)
+## Phase 7 — Calling Provider Integration ✅ (ADR 0012)
 
-- [ ] 7.1 Provider adapter interface (provider badalna aasaan)
-- [ ] 7.2 Click-to-call / open call from CRM
-- [ ] 7.3 Webhooks → call events + recording link in history
+- [x] 7.1 Provider adapter interface (provider badalna aasaan) — `manual` (default) + `mock`
+- [x] 7.2 Click-to-call / open call from CRM — 📞 dial, live status, alternate number, one live call
+- [x] 7.3 Webhooks → call events + recording link in history — HMAC signed, duplicate / out-of-order safe
+- [ ] 7.4 **telecalling.ai adapter** — unke API/webhook docs + sandbox milte hi ([guide](telephony-provider-guide.md))
 
 ## Phase 8 — Dashboard & Reports
 

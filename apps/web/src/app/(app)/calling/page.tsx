@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CallForm } from '@/components/calling/call-form';
+import { DialPanel } from '@/components/calling/dial-panel';
 import { CustomerProfileView } from '@/components/customers/customer-profile-view';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -159,7 +160,18 @@ export default function CallingPage() {
                 )}
               </div>
             )}
-            <CustomerProfileView customer={current.customer} canEditTags />
+            <CustomerProfileView
+              customer={current.customer}
+              canEditTags
+              phoneAction={
+                // key = naya customer → attempts list fresh
+                <DialPanel
+                  key={current.id}
+                  phone={current.customer.phone}
+                  alternatePhone={current.customer.alternatePhone}
+                />
+              }
+            />
           </div>
           {/* key = naye customer pe form fresh banega */}
           <CallForm

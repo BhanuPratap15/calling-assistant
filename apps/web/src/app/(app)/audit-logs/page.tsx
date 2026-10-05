@@ -31,6 +31,7 @@ const ACTIONS = [
   'assignment.reassigned',
   'assignment.cancelled',
   'call.completed',
+  'call.dialed',
   'staff.availability_changed',
   'follow_up.created',
   'follow_up.completed',

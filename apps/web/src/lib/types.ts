@@ -152,6 +152,10 @@ export interface CallRecord {
   staff: { id: string; name: string };
   campaign: { id: string; name: string } | null;
   customFields: Record<string, CustomFieldValue> | null;
+  telephony: Pick<
+    CallSession,
+    'id' | 'status' | 'durationSec' | 'recordingUrl' | 'toNumber'
+  >[];
 }
 
 export interface OpenAssignmentSummary {
@@ -411,4 +415,34 @@ export interface ImportRow {
   status: ImportRowStatus;
   errors: string[];
   customerId: string | null;
+}
+
+// ---- Calling provider (Phase 7) ----
+export type CallSessionStatus =
+  | 'DIALED'
+  | 'INITIATED'
+  | 'RINGING'
+  | 'ANSWERED'
+  | 'COMPLETED'
+  | 'NO_ANSWER'
+  | 'BUSY'
+  | 'FAILED'
+  | 'CANCELED';
+
+export interface CallSession {
+  id: string;
+  provider: string;
+  status: CallSessionStatus;
+  toNumber: string;
+  answeredAt: string | null;
+  endedAt: string | null;
+  durationSec: number | null;
+  recordingUrl: string | null;
+  failReason: string | null;
+  createdAt: string;
+}
+
+export interface TelephonyConfig {
+  provider: string;
+  mode: 'manual' | 'api';
 }

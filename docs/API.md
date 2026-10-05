@@ -73,14 +73,29 @@ Rating → category **Save & Next** ke andar apne aap (`interestRating` diya ho 
 
 ## Calling (assistant workflow)
 
-| Method | URL                 | Access                 | Notes                                                                                                                                                    |
-| ------ | ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/calling/current`  | ASSISTANT, TEAM_LEADER | `{ current }` — null = koi nahi                                                                                                                          |
-| POST   | `/calling/next`     | ASSISTANT, TEAM_LEADER | "Start Calling": current → due follow-ups → manager queue → campaign queue → fresh (priority). Idempotent                                                |
-| POST   | `/calling/complete` | ASSISTANT, TEAM_LEADER | "Save & Next": `{ outcomeId, nextActionId, userResponse?, notes?, interestRating?, followUpAt?, customFields? }` → `{ call, current }`. 409 = reassigned |
+| Method | URL                 | Access                 | Notes                                                                                                                                                                                          |
+| ------ | ------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/calling/current`  | ASSISTANT, TEAM_LEADER | `{ current }` — null = koi nahi                                                                                                                                                                |
+| POST   | `/calling/next`     | ASSISTANT, TEAM_LEADER | "Start Calling": current → due follow-ups → manager queue → campaign queue → fresh (priority). Idempotent                                                                                      |
+| POST   | `/calling/complete` | ASSISTANT, TEAM_LEADER | "Save & Next": `{ outcomeId, nextActionId, userResponse?, notes?, interestRating?, followUpAt?, customFields? }` → `{ call, current }`. 409 = reassigned                                       |
+| POST   | `/calling/dial`     | ASSISTANT, TEAM_LEADER | "📞 Call" current customer: `{ number?: 'primary' \| 'alternate' }` → `{ session, dialUrl }` (manual: `tel:` link). 400 = current customer nahi, 409 = call already live, 502 = provider error |
+| GET    | `/calling/sessions` | ASSISTANT, TEAM_LEADER | Current customer ke dial attempts: `status, durationSec, recordingUrl, failReason` (UI 2s poll)                                                                                                |
 
 `current.campaign` = `{ id, name, script, fields[] }` (campaign customer ho to). `customFields` = `{ "<field key>": value }` —
 campaign ke active fields se validate (unknown key / required / type → 400).
+
+## Calling provider (telephony)
+
+| Method | URL                             | Access            | Notes                                                                                    |
+| ------ | ------------------------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| GET    | `/telephony/config`             | Any logged-in     | `{ provider, mode: 'manual' \| 'api' }`                                                  |
+| POST   | `/telephony/webhooks/:provider` | **Public** + HMAC | Provider → CRM call events. Response `{ received, applied, stale, duplicates, unknown }` |
+
+Webhook (mock / generic format) — headers `X-CRM-Timestamp: <unix sec>`, `X-CRM-Signature: sha256=<hex HMAC-SHA256(secret, "<timestamp>.<raw body>")>`;
+body `{ "events": [ { eventId, callId, type, occurredAt?, durationSec?, recordingUrl?, reason? } ] }`.
+`type`: `ringing | answered | completed | no_answer | busy | failed | canceled | recording`. 5 min se purana timestamp → 401.
+Session status: `DIALED` (manual) / `INITIATED → RINGING → ANSWERED → COMPLETED | NO_ANSWER | BUSY | FAILED | CANCELED` (sirf aage badhta hai).
+Save & Next pe attempts CRM call se link → profile `calls[].telephony[]`. Details: [ADR 0012](decisions/0012-calling-provider.md).
 
 ## Assignments
 

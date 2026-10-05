@@ -25,6 +25,9 @@ const clean = (value?: string) => (value?.trim() ? value.trim() : null);
  *   current()  → abhi kaunsa customer khula hai (profile ke saath)
  *   complete() → "Save & Next": validate → call save → assignment complete → agla customer
  */
+/** Ek saath kai assistants → unique-constraint takraav pe itni baar dobara (ADR 0014) */
+const MAX_PICK_ATTEMPTS = 10;
+
 @Injectable()
 export class CallingService {
   constructor(
@@ -96,9 +99,12 @@ export class CallingService {
     const existing = await this.current(actor.id);
     if (existing) return this.withPresence(actor.id, existing);
 
-    // Race: ek hi customer do campaigns me ho aur do assistants ek saath uthayein →
-    // unique constraint (P2002) ek ko rokega → wo dobara try kare (ab wo customer "open" dikhega)
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Race: kai assistants EK SAATH queue ka pehla customer maangein. SKIP LOCKED zyaadatar alag rows
+    // deta hai, par jis pal doosre ki transaction commit ho rahi ho, purana snapshot wahi customer dikha
+    // sakta hai → unique constraint (P2002) duplicate rokta hai (data hamesha safe).
+    // Har P2002 = kisi aur ko customer mil gaya → naya snapshot use chhod deta hai → dobara try.
+    // Load test (Phase 9.5): 3 tries kam the — 12 log ek saath pe kuch ko galti se "koi customer nahi".
+    for (let attempt = 0; attempt < MAX_PICK_ATTEMPTS; attempt++) {
       try {
         await this.prisma.$transaction((tx) => this.pickNext(tx, actor));
         break;
@@ -110,6 +116,10 @@ export class CallingService {
           throw error;
         }
         if (await this.current(actor.id)) break; // double click: doosri request ne bana diya
+        // Thoda random ruk ke (sab ek hi pal me dobara na takrayein)
+        await new Promise((r) =>
+          setTimeout(r, 5 + Math.random() * 20 * (attempt + 1)),
+        );
       }
     }
     return this.withPresence(actor.id, await this.current(actor.id));

@@ -446,3 +446,80 @@ export interface TelephonyConfig {
   provider: string;
   mode: 'manual' | 'api';
 }
+
+// ---- Dashboard & reports (Phase 8) ----
+export type RangePreset = 'today' | 'yesterday' | '7d' | '30d' | 'custom';
+
+export interface ReportRange {
+  preset: RangePreset;
+  start: string;
+  end: string;
+  days?: number;
+  timezone: string;
+}
+
+export interface ReportSummary {
+  range: ReportRange;
+  kpis: {
+    calls: number;
+    connected: number;
+    connectRate: number | null;
+    avgRating: number | null;
+    customers: number;
+    followUpsPromised: number;
+    dials: number;
+    answered: number;
+    talkTimeSec: number;
+  };
+  previous: {
+    calls: number;
+    connectRate: number | null;
+    avgRating: number | null;
+  };
+  daily: { day: string; calls: number; connected: number }[];
+  byHour: { hour: number; calls: number; connected: number }[];
+  outcomes: { label: string; isConnected: boolean; calls: number }[];
+  followUps: {
+    due: number;
+    completed: number;
+    onTime: number;
+    onTimeRate: number | null;
+    escalated: number;
+    overdueNow: number;
+  };
+}
+
+export interface AssistantReportRow {
+  id: string;
+  name: string;
+  role: StaffRole;
+  team: string | null;
+  availability: Availability;
+  lastSeenAt: string | null;
+  calls: number;
+  connected: number;
+  connectRate: number | null;
+  avgRating: number | null;
+  followUpsPromised: number;
+  dials: number;
+  talkTimeSec: number;
+  avgTalkSec: number | null;
+  followUpsDue: number;
+  followUpsCompleted: number;
+  overdueNow: number;
+  lastCallAt: string | null;
+}
+
+export interface CampaignReportRow {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  priority: number;
+  customers: number;
+  called: number;
+  progress: number | null;
+  calls: number;
+  connected: number;
+  connectRate: number | null;
+  avgRating: number | null;
+}

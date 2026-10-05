@@ -124,6 +124,21 @@ Save & Next pe attempts CRM call se link → profile `calls[].telephony[]`. Deta
 Engine (Start Calling) campaign ke customers tabhi deta hai jab campaign **ACTIVE** ho, date window ke andar ho, aur
 assistant member ho (ya campaign ke koi members na hon). Details: [ADR 0010](decisions/0010-campaigns.md).
 
+## Dashboard & reports
+
+Query (sab endpoints): `range=today|yesterday|7d|30d|custom` (default `7d`), custom → `from=YYYY-MM-DD&to=YYYY-MM-DD`
+(inclusive, max 366 din), optional `teamId`, `staffId`, `campaignId`. Time zone: `REPORT_TIMEZONE` (default Asia/Kolkata).
+Scope apne aap: ASSISTANT = khud, TEAM_LEADER = apni team (doosri team / staff → 403), MANAGER = sab.
+
+| Method | URL                                                              | Access                          | Notes                                                                                                                                                                                                                                                      |
+| ------ | ---------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/reports/summary`                                               | MANAGER, TEAM_LEADER, ASSISTANT | `kpis` (calls, connected, connectRate, avgRating, customers, followUpsPromised, dials, answered, talkTimeSec), `previous` (pichhla period), `daily[]`, `byHour[24]`, `outcomes[]`, `followUps` (due, completed, onTime, onTimeRate, escalated, overdueNow) |
+| GET    | `/reports/assistants`                                            | MANAGER, TEAM_LEADER            | Har assistant: calls, connectRate, avgRating, talk time, follow-ups, overdue now, availability                                                                                                                                                             |
+| GET    | `/reports/campaigns`                                             | MANAGER, TEAM_LEADER            | Progress (all time) + period ke calls, connectRate, avgRating                                                                                                                                                                                              |
+| GET    | `/reports/export/calls.csv` · `assistants.csv` · `campaigns.csv` | MANAGER, TEAM_LEADER            | Same filters; max 50,000 rows (zyada → 400); audit `report.exported`                                                                                                                                                                                       |
+
+Details: [ADR 0013](decisions/0013-dashboard-and-reports.md).
+
 ## Bulk import
 
 Sirf **MANAGER** (+ SUPER_ADMIN). Flow: upload → preview → confirm → background → result. Details: [ADR 0011](decisions/0011-bulk-import.md).

@@ -15,7 +15,7 @@ Phases design doc (section 25) se liye gaye hain.
 | 5 — Campaigns            | 4      | —                       | ✅ Done                                           |
 | 6 — Bulk Import          | 4      | —                       | ✅ Done                                           |
 | 7 — Calling Provider     | 3      | —                       | ✅ Layer done (telecalling adapter: docs ka wait) |
-| 8 — Dashboard & Reports  | 3      | 4                       | ⬜                                                |
+| 8 — Dashboard & Reports  | 3      | —                       | ✅ Done                                           |
 | 9 — Production Hardening | 5      | 5–7                     | ⬜                                                |
 | **Total**                | **51** | **~42–50 working days** |                                                   |
 
@@ -118,11 +118,11 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 7.3 Webhooks → call events + recording link in history — HMAC signed, duplicate / out-of-order safe
 - [ ] 7.4 **telecalling.ai adapter** — unke API/webhook docs + sandbox milte hi ([guide](telephony-provider-guide.md))
 
-## Phase 8 — Dashboard & Reports
+## Phase 8 — Dashboard & Reports ✅ (ADR 0013)
 
-- [ ] 8.1 Dashboard APIs (today/week/month/custom filters)
-- [ ] 8.2 Frontend: management dashboard
-- [ ] 8.3 Reports + CSV export (assistant, campaign, follow-ups)
+- [x] 8.1 Dashboard APIs (today / yesterday / 7d / 30d / custom, India time, previous-period comparison)
+- [x] 8.2 Frontend: dashboard (har role) — KPI tiles, calls per day, best time to call, outcomes, follow-up health
+- [x] 8.3 Reports + CSV export (assistant, campaign, calls; team / assistant / campaign filters; export audit)
 
 ## Phase 9 — Production Hardening
 

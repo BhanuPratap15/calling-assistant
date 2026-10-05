@@ -143,6 +143,13 @@ Jo bhi naya concept aayega, yahan short me add hoga.
 | BOM (Byte Order Mark)             | File ke shuru me invisible `\uFEFF` — Excel ko batata hai "ye UTF-8 hai"                     | Template / problems CSV                       |
 | CSV / formula injection           | Cell `=HYPERLINK(...)` se shuru ho to Excel formula chala deta hai — aage `'` lagao          | `csvCell()`                                   |
 | Header aliases                    | Alag naam, same field ("Mobile No" = phone) — user ki file badalni na pade                   | `mapHeaders()`                                |
+| Aggregate query                   | DB khud gine / jod / average kare (`count`, `avg`) — lakhs rows JS me laane ki zaroorat nahi | `ReportsService`                              |
+| `FILTER (WHERE …)`                | Ek hi query me alag-alag counts: total + connected + follow-up                               | Summary KPIs                                  |
+| Time zone bucketing               | UTC timestamp ko India ke din / ghante me badal ke group (`AT TIME ZONE`)                    | Calls per day, best hour                      |
+| Period comparison (delta)         | Isi length ka pichhla period — ▲▼ se trend                                                   | KPI tiles                                     |
+| Stat tile / KPI                   | Ek number + label + badlav — chart nahi                                                      | Dashboard tiles                               |
+| Emphasis chart                    | Jo zaroori hai wo rang me, baaki gray (rainbow nahi)                                         | Connected vs not connected                    |
+| PII export audit                  | Personal data (phone) bahar jaaye to log karo kisne nikala                                   | `report.exported`                             |
 | Adapter pattern                   | Ek common interface, har provider ki alag class — CRM sirf interface jaanta hai              | `TelephonyProvider`                           |
 | Webhook                           | Doosra system event hone pe hamare URL pe POST karta hai ("call answered")                   | `/telephony/webhooks/:provider`               |
 | HMAC signature                    | Secret + body se banaya code — body badli ya secret galat to match nahi hoga                 | `verifyWebhookSignature`                      |

@@ -95,6 +95,8 @@ npm run db:migrate       # naye DB changes
 | CI    | `.github/workflows/ci.yml`    | Har push: format → lint → typecheck → unit → migrations → e2e → build → **smoke test** (built API + real Redis; DB + scheduler `up`)                                                                                                                                                                                                                                                                                               |
 
 E2E files ek-ek karke chalti hain (shared DB) aur apna data khud saaf karti hain.
+CI ka DB **khaali** hota hai, local DB me data bhara hota hai — dono pe pass hona chahiye. CI jaisa check:
+`createdb calling_crm_ci` → `DATABASE_URL=.../calling_crm_ci npx -w @crm/api prisma migrate deploy` → `DATABASE_URL=.../calling_crm_ci npm run test:e2e`.
 
 ## Environment variables
 

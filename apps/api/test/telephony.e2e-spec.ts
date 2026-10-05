@@ -113,16 +113,11 @@ describe('Telephony provider layer (e2e)', () => {
         },
       })
     ).id;
-    ids.customer2 = (
-      await prisma.customer.create({
-        data: { name: `Tel Manual ${suffix}`, phone: `+9191${block}0003` },
-      })
-    ).id;
   });
 
   afterAll(async () => {
     const staffIds = [ids.mgr, ids.a1, ids.a2];
-    const customerIds = [ids.customer, ids.customer2];
+    const customerIds = [ids.customer, ids.customer2].filter(Boolean);
     await prisma.callSession.deleteMany({
       where: { staffId: { in: staffIds } },
     }); // events cascade
@@ -338,6 +333,13 @@ describe('Telephony provider layer (e2e)', () => {
           .expect(200)
       ).body,
     ).toEqual({ provider: 'manual', mode: 'manual' });
+    // Yahin banao (beforeAll me nahi): khaali DB me Save & Next ke baad engine
+    // ise a1 ko de deta (general pool ka akela fresh customer)
+    ids.customer2 = (
+      await prisma.customer.create({
+        data: { name: `Tel Manual ${suffix}`, phone: `+9191${block}0003` },
+      })
+    ).id;
     await http(manualApp)
       .post('/api/assignments')
       .set(as('mgr'))

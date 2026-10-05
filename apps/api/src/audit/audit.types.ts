@@ -41,6 +41,7 @@ export const AuditAction = {
   CAMPAIGN_CUSTOMERS_REMOVED: 'campaign.customers_removed',
   CAMPAIGN_FIELDS_UPDATED: 'campaign.fields_updated',
   CALL_DIALED: 'call.dialed',
+  REPORT_EXPORTED: 'report.exported',
   IMPORT_PREVIEWED: 'import.previewed',
   IMPORT_CONFIRMED: 'import.confirmed',
   IMPORT_COMPLETED: 'import.completed',
@@ -65,6 +66,7 @@ export const AUDIT_ENTITY_TYPES = [
   'tag',
   'campaign',
   'import',
+  'report',
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 

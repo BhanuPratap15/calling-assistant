@@ -496,3 +496,25 @@ Authorization: Bearer {{login.response.body.accessToken}}
 
 # Webhook (provider → CRM) ko signature chahiye (HMAC) — REST Client se nahi, script se bhejo:
 # docs/telephony-provider-guide.md (section 3)
+
+# ============ Dashboard & reports (Phase 8) ============
+
+### 65. Summary — last 7 days (range: today | yesterday | 7d | 30d | custom)
+GET {{baseUrl}}/reports/summary?range=7d
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 66. Custom range + team filter
+GET {{baseUrl}}/reports/summary?range=custom&from=2026-10-01&to=2026-10-05
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 67. Assistant performance
+GET {{baseUrl}}/reports/assistants?range=30d
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 68. Campaign performance
+GET {{baseUrl}}/reports/campaigns?range=30d
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### 69. CSV export (calls / assistants / campaigns)
+GET {{baseUrl}}/reports/export/calls.csv?range=today
+Authorization: Bearer {{login.response.body.accessToken}}

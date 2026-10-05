@@ -218,11 +218,5 @@ export function checkRows(
   });
 }
 
-/** Error report CSV ke liye: ek value ko CSV-safe banao (comma / quote / newline) */
-export function csvCell(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value);
-  // Excel formula injection se bachav ("=HYPERLINK(...)") — aage ' laga do.
-  // "+91..." / "-5" jaise number safe hain (digit se pehle +/-), unhe nahi chhedte.
-  const safe = /^[=@\t\r]|^[+-][^\d\s]/.test(s) ? `'${s}` : s;
-  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
+// Shared helper (common/csv.ts) — purane imports ke liye yahan se bhi
+export { csvCell } from '../common/csv.js';

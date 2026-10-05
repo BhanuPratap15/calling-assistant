@@ -10,6 +10,10 @@ build/
 .env
 .env.*
 !.env.example
+!.env.production.example
+
+# Production backups (server pe) — repo me nahi
+backups/
 
 # Logs
 *.log
@@ -26,3 +30,14 @@ npm-debug.log*
 
 # Redis snapshot (local redis-server repo folder se chalaya ho to)
 dump.rdb
+
+# TLS keys (ops/certs) — repo me nahi
+ops/certs/*.pem
+
+# Smoke test (ops/smoke) ke temporary files
+.env.smoke
+.smoke-certs/
+.smoke-backups/
+
+# Load test output
+load-test-result.json

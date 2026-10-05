@@ -26,6 +26,8 @@ export class AppService {
       service: 'calling-crm-api',
       database,
       scheduler: await this.schedulerStatus(),
+      version: process.env.APP_VERSION ?? 'dev', // Docker image tag (git sha) — kaunsa code chal raha hai
+      uptimeSec: Math.round(process.uptime()),
     };
   }
 

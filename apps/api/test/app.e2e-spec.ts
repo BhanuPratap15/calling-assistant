@@ -19,12 +19,19 @@ describe('AppController (e2e)', () => {
 
   // Ye test REAL database use karta hai (local: docker, CI: postgres service)
   it('/api/health (GET) is public', () => {
-    return request(app.getHttpServer()).get('/api/health').expect(200).expect({
-      status: 'ok',
-      service: 'calling-crm-api',
-      database: 'up',
-      scheduler: 'disabled',
-    });
+    return request(app.getHttpServer())
+      .get('/api/health')
+      .expect(200)
+      .expect((res) =>
+        expect(res.body).toEqual({
+          status: 'ok',
+          service: 'calling-crm-api',
+          database: 'up',
+          scheduler: 'disabled',
+          version: 'dev',
+          uptimeSec: expect.any(Number),
+        }),
+      );
   });
 
   afterEach(async () => {

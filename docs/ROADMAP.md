@@ -16,17 +16,17 @@ Phases design doc (section 25) se liye gaye hain.
 | 6 — Bulk Import          | 4      | —                       | ✅ Done                                           |
 | 7 — Calling Provider     | 3      | —                       | ✅ Layer done (telecalling adapter: docs ka wait) |
 | 8 — Dashboard & Reports  | 3      | —                       | ✅ Done                                           |
-| 9 — Production Hardening | 5      | 5–7                     | ⬜                                                |
+| 9 — Production Hardening | 5      | —                       | ✅ Done                                           |
 | **Total**                | **51** | **~42–50 working days** |                                                   |
 
 ### Timeline (full-time, ~6–8 ghante/din, seekhte hue)
 
-| Milestone                                                                                                       | Kab tak (approx.)                  |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **M1 — Foundation ready** (login, staff/teams/customers admin UI)                                               | ✅ Done                            |
-| **M2 — Pilot / MVP** (assistants real calling shuru kar sakein: assignment, call form, Save & Next, follow-ups) | ✅ Done (pilot test ke liye ready) |
-| **M3 — Feature complete** (categories, campaigns, import, provider, dashboard)                                  | Week 7–8                           |
-| **M4 — Production live** (security, deploy, backups, monitoring, load test)                                     | Week 9–10                          |
+| Milestone                                                                                                       | Kab tak (approx.)                             |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **M1 — Foundation ready** (login, staff/teams/customers admin UI)                                               | ✅ Done                                       |
+| **M2 — Pilot / MVP** (assistants real calling shuru kar sakein: assignment, call form, Save & Next, follow-ups) | ✅ Done (pilot test ke liye ready)            |
+| **M3 — Feature complete** (categories, campaigns, import, provider, dashboard)                                  | Week 7–8                                      |
+| **M4 — Production ready** (security, deploy, backups, monitoring, load test)                                    | ✅ Ready — server + domain + UAT ke baad live |
 
 > Estimates hain, promise nahi. Ye badal sakte hain agar:
 >
@@ -124,10 +124,10 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 8.2 Frontend: dashboard (har role) — KPI tiles, calls per day, best time to call, outcomes, follow-up health
 - [x] 8.3 Reports + CSV export (assistant, campaign, calls; team / assistant / campaign filters; export audit)
 
-## Phase 9 — Production Hardening
+## Phase 9 — Production Hardening ✅ (ADR 0014)
 
-- [ ] 9.1 Security: rate limiting, refresh tokens, security headers, password reset
-- [ ] 9.2 Production Dockerfiles + Nginx + environment configs
-- [ ] 9.3 CD pipeline (GitHub Actions → server deploy)
-- [ ] 9.4 Backups + monitoring + logging + alerts
-- [ ] 9.5 Load test (20k customers, 10+ assistants) + UAT with real team
+- [x] 9.1 Security: rate limiting, brute-force lock, token revoke, forced password change, security headers (ADR 0014)
+- [x] 9.2 Production Dockerfiles + Nginx (HTTPS) + compose + environment configs
+- [x] 9.3 CI prod-stack smoke test + CD pipeline (GHCR → SSH deploy → health check)
+- [x] 9.4 Backups (tested restore) + JSON logs + request ids + health 503 + alert script
+- [x] 9.5 Load test (20k customers, 10 / 20 assistants — 0 errors, 0 duplicates; contention bug fixed) + [UAT checklist](UAT-CHECKLIST.md)

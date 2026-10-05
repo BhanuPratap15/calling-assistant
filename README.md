@@ -8,18 +8,18 @@ remind / escalate hote hain, aur managers ko poori visibility milti hai.
 
 ## Status
 
-| Phase                                                                          |     |                                                                                  |
-| ------------------------------------------------------------------------------ | --- | -------------------------------------------------------------------------------- |
-| 0 — Setup (monorepo, Docker, CI)                                               | ✅  |                                                                                  |
-| 1 — Foundation (auth, roles, staff, teams, customers, audit, admin UI)         | ✅  |                                                                                  |
-| 2 — Calling workflow (assignment engine, call form, Save & Next, 360° profile) | ✅  |                                                                                  |
-| 3 — Follow-ups (availability, reminders, escalation, notifications)            | ✅  | **Pilot-ready (M2)**                                                             |
-| 4 — Rating & categories (configurable thresholds, history, tags)               | ✅  |                                                                                  |
-| 5 — Campaigns (customer groups, scripts, custom fields, priority)              | ✅  |                                                                                  |
-| 6 — Bulk import (CSV / Excel, preview, background job, 20k tested)             | ✅  |                                                                                  |
-| 7 — Calling provider layer (dial, call status webhooks, recordings)            | ✅  | telecalling.ai adapter: docs ka wait ([guide](docs/telephony-provider-guide.md)) |
-| 8 — Dashboard & reports (KPIs, trends, best hour, assistants, campaigns, CSV)  | ✅  |                                                                                  |
-| 9 — Production hardening                                                       | ⬜  | [Roadmap](docs/ROADMAP.md)                                                       |
+| Phase                                                                                           |     |                                                                                  |
+| ----------------------------------------------------------------------------------------------- | --- | -------------------------------------------------------------------------------- |
+| 0 — Setup (monorepo, Docker, CI)                                                                | ✅  |                                                                                  |
+| 1 — Foundation (auth, roles, staff, teams, customers, audit, admin UI)                          | ✅  |                                                                                  |
+| 2 — Calling workflow (assignment engine, call form, Save & Next, 360° profile)                  | ✅  |                                                                                  |
+| 3 — Follow-ups (availability, reminders, escalation, notifications)                             | ✅  | **Pilot-ready (M2)**                                                             |
+| 4 — Rating & categories (configurable thresholds, history, tags)                                | ✅  |                                                                                  |
+| 5 — Campaigns (customer groups, scripts, custom fields, priority)                               | ✅  |                                                                                  |
+| 6 — Bulk import (CSV / Excel, preview, background job, 20k tested)                              | ✅  |                                                                                  |
+| 7 — Calling provider layer (dial, call status webhooks, recordings)                             | ✅  | telecalling.ai adapter: docs ka wait ([guide](docs/telephony-provider-guide.md)) |
+| 8 — Dashboard & reports (KPIs, trends, best hour, assistants, campaigns, CSV)                   | ✅  |                                                                                  |
+| 9 — Production hardening (security, Docker + Nginx + HTTPS, CD, backups, monitoring, load test) | ✅  | **Production-ready (M4)** — [Deployment](docs/DEPLOYMENT.md)                     |
 
 ## Features (abhi tak)
 
@@ -102,20 +102,21 @@ CI ka DB **khaali** hota hai, local DB me data bhara hota hai — dono pe pass h
 
 ## Environment variables
 
-| Variable                       | Kahan  | Matlab                                                       |
-| ------------------------------ | ------ | ------------------------------------------------------------ |
-| `DATABASE_URL`                 | api    | Postgres connection                                          |
-| `REDIS_URL`                    | api    | Redis (BullMQ)                                               |
-| `SCHEDULER_ENABLED`            | api    | `false` = background scheduler band (tests me automatically) |
-| `TELEPHONY_PROVIDER`           | api    | `manual` (tel: link, default) / `mock` (demo provider)       |
-| `TELEPHONY_WEBHOOK_SECRET`     | api    | Provider webhooks ka HMAC secret                             |
-| `TELEPHONY_MOCK_AUTOPLAY`      | api    | mock: call events apne aap simulate                          |
-| `REPORT_TIMEZONE`              | api    | Reports ka time zone (default `Asia/Kolkata`)                |
-| `JWT_SECRET`, `JWT_EXPIRES_IN` | api    | Login token sign / expiry (default 8h)                       |
-| `API_PORT`, `WEB_ORIGIN`       | api    | Port 4000, CORS origin                                       |
-| `API_URL`                      | web    | Next.js `/api/*` kahan forward kare                          |
-| `SEED_ADMIN_*`                 | seed   | Pehla Super Admin                                            |
-| `POSTGRES_*`, `REDIS_PORT`     | docker | Local containers                                             |
+| Variable                                     | Kahan                           | Matlab                                                       |
+| -------------------------------------------- | ------------------------------- | ------------------------------------------------------------ |
+| `DATABASE_URL`                               | api                             | Postgres connection                                          |
+| `REDIS_URL`                                  | api                             | Redis (BullMQ)                                               |
+| `SCHEDULER_ENABLED`                          | api                             | `false` = background scheduler band (tests me automatically) |
+| `TELEPHONY_PROVIDER`                         | api                             | `manual` (tel: link, default) / `mock` (demo provider)       |
+| `TELEPHONY_WEBHOOK_SECRET`                   | api                             | Provider webhooks ka HMAC secret                             |
+| `TELEPHONY_MOCK_AUTOPLAY`                    | api                             | mock: call events apne aap simulate                          |
+| \1                                           | `RATE_LIMIT_PER_MIN`, `LOGIN_*` | api                                                          | Rate limit / brute-force lock (defaults theek) |
+| `TRUST_PROXY`, `COOKIE_SECURE`, `LOG_FORMAT` | api                             | Production (Nginx ke peeche, HTTPS cookie, JSON logs)        |
+| `JWT_SECRET`, `JWT_EXPIRES_IN`               | api                             | Login token sign / expiry (default 8h)                       |
+| `API_PORT`, `WEB_ORIGIN`                     | api                             | Port 4000, CORS origin                                       |
+| `API_URL`                                    | web                             | Next.js `/api/*` kahan forward kare                          |
+| `SEED_ADMIN_*`                               | seed                            | Pehla Super Admin                                            |
+| `POSTGRES_*`, `REDIS_PORT`                   | docker                          | Local containers                                             |
 
 Poori list + comments: [.env.example](.env.example). `.env` **kabhi commit nahi** hota.
 
@@ -147,6 +148,7 @@ calling-assistant/
 │   │   │   ├── imports/          #   CSV / Excel parse, validation, preview, background import (BullMQ)
 │   │   │   ├── telephony/        #   calling provider layer: providers/ (manual, mock), webhooks, call sessions
 │   │   │   ├── reports/          #   dashboard KPIs, assistant / campaign reports, CSV export
+│   │   │   ├── security/         #   login brute-force limiter
 │   │   │   ├── audit/            #   audit log
 │   │   │   ├── common/ prisma/   #   shared helpers, DB connection
 │   │   │   └── main.ts           #   entry point
@@ -160,9 +162,11 @@ calling-assistant/
 │           ├── components/       #   ui/ kit, layout/ (bell, availability), feature components
 │           ├── lib/              #   api, auth-context, use-api, navigation, permissions, call-form, campaign, import, telephony, report
 │           └── proxy.ts          #   login nahi → /login
-├── docs/                         # design, roadmap, API, ADRs, concepts
+├── ops/                          # nginx, backup / restore, monitoring, smoke test, load test
+├── docs/                         # design, roadmap, API, ADRs, concepts, deployment, runbook, UAT
 ├── .github/workflows/ci.yml      # CI pipeline
 ├── docker-compose.yml            # local Postgres + Redis
+├── docker-compose.prod.yml       # production stack (nginx, web, api, migrate, postgres, redis, backup)
 └── .env.example                  # config template
 ```
 
@@ -173,8 +177,11 @@ calling-assistant/
 | [docs/design-v1-summary.md](docs/design-v1-summary.md)               | Business design summary                                       |
 | [docs/ROADMAP.md](docs/ROADMAP.md)                                   | 51 steps, progress, timeline, pending business decisions      |
 | [docs/API.md](docs/API.md)                                           | Saare endpoints + access rules                                |
-| [docs/decisions/](docs/decisions/)                                   | ADRs — har bada technical decision aur uski wajah (0001–0013) |
+| [docs/decisions/](docs/decisions/)                                   | ADRs — har bada technical decision aur uski wajah (0001–0014) |
 | [docs/CONCEPTS.md](docs/CONCEPTS.md)                                 | Seekhne ke notes — har naya concept short me                  |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                             | Production server pe chalana (Docker, HTTPS, CD)              |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md)                                   | Incidents, logs, backup restore drill                         |
+| [docs/UAT-CHECKLIST.md](docs/UAT-CHECKLIST.md)                       | Go-live se pehle asli team ke saath testing                   |
 | [docs/telephony-provider-guide.md](docs/telephony-provider-guide.md) | telecalling.ai jodne ki checklist + unse poochhne wale sawaal |
 
 ## Troubleshooting

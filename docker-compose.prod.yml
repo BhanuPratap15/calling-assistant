@@ -1,0 +1,152 @@
+# =====================================================================
+# PRODUCTION stack — ek server (VPS) pe poora CRM. Guide: docs/DEPLOYMENT.md
+#
+#   cp .env.production.example .env.production   # values bharo (secrets!)
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Bahar sirf Nginx (80/443) khulta hai. Postgres / Redis / API / Web andar ke network me.
+# =====================================================================
+name: calling-crm
+
+x-app-env: &app-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: UTC
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    # Password + data disk pe (appendonly) — restart pe queue / schedules bache rahein
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--requirepass',
+        '${REDIS_PASSWORD}',
+      ]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  # Har deploy pe pehle DB migrations (fail → API start hi nahi hoga)
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    image: ${IMAGE_PREFIX:-calling-crm}-migrate:${IMAGE_TAG:-local}
+    environment:
+      <<: *app-env
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    image: ${IMAGE_PREFIX:-calling-crm}-api:${IMAGE_TAG:-local}
+    restart: always
+    environment:
+      <<: *app-env
+      API_PORT: 4000
+      TRUST_PROXY: 1 # Nginx ke peeche: asli client IP (rate limit / audit)
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      WEB_ORIGIN: https://${SERVER_NAME}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      LOG_FORMAT: json
+      APP_VERSION: ${IMAGE_TAG:-local} # /api/health me dikhta hai — kaunsa build live hai
+      REPORT_TIMEZONE: ${REPORT_TIMEZONE:-Asia/Kolkata}
+      RATE_LIMIT_PER_MIN: ${RATE_LIMIT_PER_MIN:-3000}
+      TELEPHONY_PROVIDER: ${TELEPHONY_PROVIDER:-manual}
+      TELEPHONY_WEBHOOK_SECRET: ${TELEPHONY_WEBHOOK_SECRET:-}
+      TELEPHONY_MOCK_AUTOPLAY: 'false'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    image: ${IMAGE_PREFIX:-calling-crm}-web:${IMAGE_TAG:-local}
+    restart: always
+    depends_on:
+      api:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      SERVER_NAME: ${SERVER_NAME}
+    volumes:
+      - ./ops/nginx/templates:/etc/nginx/templates:ro # SERVER_NAME envsubst → conf.d
+      - ${CERTS_DIR:-./ops/certs}:/etc/nginx/certs:ro # fullchain.pem + privkey.pem
+      - ./ops/certbot-www:/var/www/certbot:ro # Let's Encrypt HTTP challenge (host ka certbot yahan likhta hai)
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  # Roz DB backup (pg_dump) → ./backups, purane BACKUP_RETENTION_DAYS ke baad delete
+  backup:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./ops/backup:/scripts:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    entrypoint: ['sh', '/scripts/backup-loop.sh']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

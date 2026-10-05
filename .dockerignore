@@ -1,0 +1,15 @@
+# Docker build context me ye NAHI jaana chahiye (size + secrets)
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+.git
+.github
+.env
+.env.*
+!.env.example
+!.env.production.example
+backups
+docs
+dump.rdb
+**/*.log

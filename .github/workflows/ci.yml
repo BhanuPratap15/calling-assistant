@@ -95,3 +95,22 @@ jobs:
           if ! grep -q '"database":"up"' health.json || ! grep -q '"scheduler":"up"' health.json; then
             echo "Smoke test failed — API log:"; cat api.log; exit 1
           fi
+
+  # Production Docker images build + poora prod stack (Nginx HTTPS, Postgres, Redis, API, Web, backup)
+  # chala ke end-to-end check — Dockerfiles / compose / nginx config ki galti yahin pakdi jaaye
+  docker:
+    name: Production stack (Docker) smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: |
+          cp .env.production.example .env.production
+          docker compose -f docker-compose.prod.yml --env-file .env.production config --quiet
+          rm .env.production
+
+      - name: Build images + run prod stack smoke test
+        run: ./ops/smoke/prod-stack-smoke.sh

@@ -1,0 +1,117 @@
+# CD = Continuous Deployment. Docs: docs/DEPLOYMENT.md
+#
+#  1) Images build → GitHub Container Registry (ghcr.io/<owner>/calling-crm-{api,migrate,web}:<git sha>)
+#  2) Server pe SSH → wahi commit checkout → images pull → migrate → restart → health check
+#
+# Kab chalta hai: GitHub → Actions → "Deploy" → "Run workflow" (manual), ya tag push (v1.0.0).
+# Deploy step tabhi jab repo Secrets set hon: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_PATH
+# (warna sirf images banti hain — server ko koi haath nahi lagata).
+name: Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: deploy # ek waqt ek hi deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write # GHCR pe images push
+
+jobs:
+  images:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      prefix: ${{ steps.meta.outputs.prefix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/calling-crm" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: API runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: runtime
+          push: true
+          tags: ${{ steps.meta.outputs.prefix }}-api:${{ github.sha }},${{ steps.meta.outputs.prefix }}-api:latest
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: migrate
+          push: true
+          tags: ${{ steps.meta.outputs.prefix }}-migrate:${{ github.sha }},${{ steps.meta.outputs.prefix }}-migrate:latest
+          cache-from: type=gha,scope=api
+
+      - name: Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.prefix }}-web:${{ github.sha }},${{ steps.meta.outputs.prefix }}-web:latest
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+
+  deploy:
+    name: Deploy to server
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production # GitHub me "required reviewers" laga sakte ho (approval ke baad hi deploy)
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      PREFIX: ${{ needs.images.outputs.prefix }}
+    steps:
+      - name: Skip if server secrets missing
+        if: env.DEPLOY_HOST == ''
+        run: echo "::notice::DEPLOY_HOST secret nahi — images ban gayi, server deploy skip (docs/DEPLOYMENT.md)"
+
+      - name: SSH key
+        if: env.DEPLOY_HOST != ''
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy (pull → migrate → restart)
+        if: env.DEPLOY_HOST != ''
+        run: |
+          ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
+            "set -e; cd '$DEPLOY_PATH' && git fetch --quiet origin && git checkout --quiet '${{ github.sha }}' \
+             && export IMAGE_PREFIX='$PREFIX' IMAGE_TAG='${{ github.sha }}' \
+             && docker compose -f docker-compose.prod.yml --env-file .env.production pull \
+             && docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-build --remove-orphans"
+
+      - name: Health check (naya version live?)
+        if: env.DEPLOY_HOST != ''
+        run: |
+          for i in $(seq 1 30); do
+            body=$(ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" "curl -ksf https://localhost/api/health" || true)
+            echo "$body" | grep -q '"version":"${{ github.sha }}"' && echo "$body" | grep -q '"database":"up"' && { echo "✅ $body"; exit 0; }
+            sleep 5
+          done
+          echo "❌ New version not healthy: $body"; exit 1

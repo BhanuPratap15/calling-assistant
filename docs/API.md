@@ -11,19 +11,23 @@ Base URL (local): `http://localhost:4000/api` · Frontend se: `/api/...` (Next.j
 
 ## Health
 
+`GET /api/health` (public): `{ status, database, scheduler, version, uptimeSec }` — database down → **503**.
+
 | Method | URL       | Access | Notes                                                        |
 | ------ | --------- | ------ | ------------------------------------------------------------ |
 | GET    | `/health` | Public | `{ status, database: up/down, scheduler: up/down/disabled }` |
 
 ## Auth & availability
 
-| Method | URL                     | Access | Notes                                                                                          |
-| ------ | ----------------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| POST   | `/auth/login`           | Public | `{ email, password }` → `{ accessToken, expiresAt, user }` + cookie. Calling staff → AVAILABLE |
-| POST   | `/auth/logout`          | Public | Cookie clear + OFFLINE                                                                         |
-| GET    | `/auth/me`              | Any    | User + `availability`                                                                          |
-| PATCH  | `/auth/availability`    | Any    | `{ availability: AVAILABLE \| BREAK \| OFFLINE }` (ON_CALL system set karta hai)               |
-| POST   | `/auth/change-password` | Any    | `{ currentPassword, newPassword }` → 204                                                       |
+| Method | URL                     | Access | Notes                                                                                                                                                          |
+| ------ | ----------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/login`           | Public | `{ email, password }` → `{ accessToken, expiresAt, user (+ mustChangePassword) }` + cookie. Calling staff → AVAILABLE. 5 galat (IP + email) / 15 min → **429** |
+| POST   | `/auth/logout`          | Public | Token **revoke** (purana token / cookie dobara kaam nahi karta) + cookie clear + OFFLINE                                                                       |
+| GET    | `/auth/me`              | Any    | User + `availability` + `mustChangePassword`                                                                                                                   |
+| PATCH  | `/auth/availability`    | Any    | `{ availability: AVAILABLE \| BREAK \| OFFLINE }` (ON_CALL system set karta hai)                                                                               |
+| POST   | `/auth/change-password` | Any    | `{ currentPassword, newPassword }` → `{ accessToken, expiresAt }` (naya cookie). Baaki saare sessions logout. Naya ≠ purana                                    |
+
+**Security (Phase 9):** manager ne staff banaya / password reset kiya → `mustChangePassword` — tab tak sirf `/auth/me` + `/auth/change-password`, baaki **403 `Password change required`**. Logout / password change / reset / deactivate → purane tokens **401 `Session expired`**. Har IP: `RATE_LIMIT_PER_MIN` (default 3000) → 429 + `Retry-After`. Har response me `X-Request-Id`.
 
 ## Staff & teams
 

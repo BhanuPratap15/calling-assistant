@@ -20,18 +20,24 @@ describe('AppController', () => {
   describe('health', () => {
     it('reports database up when query succeeds', async () => {
       prismaMock.$queryRaw.mockResolvedValueOnce([{ '?column?': 1 }]);
-      expect(await appController.getHealth()).toEqual({
+      const res = { status: vi.fn() };
+      expect(await appController.getHealth(res as never)).toEqual({
         status: 'ok',
         service: 'calling-crm-api',
         database: 'up',
         scheduler: 'disabled', // unit test me queue nahi
+        version: 'dev',
+        uptimeSec: expect.any(Number),
       });
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('reports database down when query fails', async () => {
       prismaMock.$queryRaw.mockRejectedValueOnce(new Error('no db'));
-      const result = await appController.getHealth();
+      const res = { status: vi.fn() };
+      const result = await appController.getHealth(res as never);
       expect(result.database).toBe('down');
+      expect(res.status).toHaveBeenCalledWith(503); // monitor / Docker ko "unhealthy"
     });
   });
 });

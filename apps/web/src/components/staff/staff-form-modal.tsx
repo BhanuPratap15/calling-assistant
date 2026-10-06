@@ -100,7 +100,7 @@ export function StaffFormModal({
         </Field>
         <Field
           label="Email"
-          hint={isEdit ? 'Email badla nahi ja sakta' : undefined}
+          hint={isEdit ? 'Email cannot be changed' : undefined}
         >
           <Input
             type="email"
@@ -119,7 +119,7 @@ export function StaffFormModal({
         {!isEdit && (
           <Field
             label="Initial password"
-            hint="8+ characters, kam se kam 1 letter aur 1 number. Staff pehle login pe ise badlega"
+            hint="8+ characters, at least 1 letter and 1 number. The staff member must change it at first login"
           >
             <Input
               type="password"
@@ -166,7 +166,7 @@ export function StaffFormModal({
               checked={form.isActive}
               onChange={(e) => set('isActive', e.target.checked)}
             />
-            Active (uncheck = deactivate, login band)
+            Active (uncheck = deactivate, cannot log in)
           </label>
         )}
 

@@ -53,7 +53,7 @@ export default function StaffPage() {
     <div>
       <PageHeader
         title="Staff"
-        description="Assistants, Team Leaders aur Managers"
+        description="Assistants, Team Leaders and Managers"
         actions={
           <Button onClick={() => setModal({ type: 'create' })}>
             + Add staff
@@ -191,7 +191,7 @@ export default function StaffPage() {
           staff={modal.staff}
           onClose={() => setModal(null)}
           onDone={() =>
-            closeAndReload(`${modal.staff.name} ka password reset ho gaya`)
+            closeAndReload(`Password reset for ${modal.staff.name}`)
           }
         />
       )}

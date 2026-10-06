@@ -23,7 +23,7 @@ export default function ImportsPage() {
     <div>
       <PageHeader
         title="Import"
-        description="CSV / Excel se customers ek saath add karo — pehle preview, phir confirm"
+        description="Add customers in bulk from CSV / Excel — preview first, then confirm"
         actions={
           <Link
             href="/imports/new"

@@ -19,7 +19,7 @@ export class ApiError extends Error {
 }
 
 export const BACKEND_UNREACHABLE_MESSAGE =
-  'Backend (API) se connect nahi ho paya. Check karein: `npm run dev:api` chal raha hai aur uske terminal me koi error to nahi?';
+  'Cannot connect to the server (API). Please try again; if it keeps happening, contact your administrator.';
 
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

@@ -95,7 +95,7 @@ export function TagEditor({
               ))}
             {all.data?.length === 0 && (
               <p className="text-xs text-slate-500">
-                Koi tag nahi — Manager Settings me banaye.
+                No tags yet — a manager can create them in Settings.
               </p>
             )}
           </div>

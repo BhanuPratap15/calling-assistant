@@ -131,8 +131,8 @@ export function DialPanel({
         ['NO_ANSWER', 'BUSY', 'FAILED'].includes(last.status) && (
           <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
             Provider: <b>{SESSION_LABEL[last.status]}</b>
-            {last.failReason && ` (${last.failReason})`} — call form me matching
-            outcome chuniye, ya dobara try karein.
+            {last.failReason && ` (${last.failReason})`} — pick the matching
+            outcome in the call form, or try again.
           </p>
         )}
 

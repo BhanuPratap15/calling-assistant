@@ -35,12 +35,12 @@ const STRATEGIES: { value: Strategy; label: string; hint: string }[] = [
   {
     value: 'LOAD_BASED',
     label: 'Load-based',
-    hint: 'Jiske paas kam kaam, use zyada — aakhir me sab barabar',
+    hint: 'Whoever has less work gets more — everyone ends up even',
   },
   {
     value: 'ROUND_ROBIN',
     label: 'Round-robin',
-    hint: 'Baari baari — sabko barabar naye customers',
+    hint: 'Take turns — everyone gets the same number of new customers',
   },
 ];
 
@@ -89,7 +89,7 @@ export function DistributeModal({
   async function run(dryRun: boolean) {
     setError(null);
     if (!selected.length) {
-      setError('Kam se kam ek assistant chuniye');
+      setError('Select at least one assistant');
       return;
     }
     setBusy(true);
@@ -125,7 +125,7 @@ export function DistributeModal({
       <div className="space-y-4">
         <fieldset>
           <legend className="mb-1 text-sm font-medium text-slate-700">
-            Kisko? ({selected.length} selected)
+            Assign to ({selected.length} selected)
           </legend>
           <div className="mb-1 flex gap-3 text-xs">
             <button
@@ -170,7 +170,7 @@ export function DistributeModal({
 
         <fieldset>
           <legend className="mb-1 text-sm font-medium text-slate-700">
-            Kaise baantein?
+            How to distribute
           </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {STRATEGIES.map((s) => (
@@ -198,7 +198,7 @@ export function DistributeModal({
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
             label="Campaign (optional)"
-            hint="Diya → us campaign ke abhi tak na call hue customers"
+            hint="If set → that campaign's customers not yet called"
           >
             <Select
               value={form.campaignId}
@@ -278,7 +278,7 @@ export function DistributeModal({
               checked={form.onlyFresh}
               onChange={(e) => change({ onlyFresh: e.target.checked })}
             />
-            Sirf fresh leads (kabhi call nahi hue)
+            Only fresh leads (never called)
           </label>
         )}
 
@@ -316,7 +316,7 @@ export function DistributeModal({
             </table>
             {preview.eligible === 0 && (
               <p className="mt-2 text-amber-800">
-                Koi eligible customer nahi — filters badal ke dekhiye.
+                No eligible customers — try different filters.
               </p>
             )}
           </div>
@@ -333,7 +333,7 @@ export function DistributeModal({
           <Button
             onClick={() => run(false)}
             disabled={busy || !preview || preview.assigned === 0}
-            title={!preview ? 'Pehle Preview dekhiye' : undefined}
+            title={!preview ? 'Run Preview first' : undefined}
           >
             {busy
               ? 'Working…'

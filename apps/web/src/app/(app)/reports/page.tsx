@@ -65,8 +65,8 @@ export default function ReportsPage() {
         title="Reports"
         description={
           isManager(user.role)
-            ? 'Poori team ka performance'
-            : 'Aapki team ka performance'
+            ? 'Performance of the whole team'
+            : "Your team's performance"
         }
         actions={
           <div className="flex flex-wrap gap-2">
@@ -138,7 +138,7 @@ export default function ReportsPage() {
                 checked={showIdle}
                 onChange={(e) => setShowIdle(e.target.checked)}
               />
-              Bina calls wale staff bhi dikhao (
+              Also show staff with no calls (
               {assistants.data.assistants.filter((a) => a.calls === 0).length})
             </label>
             <AssistantTable

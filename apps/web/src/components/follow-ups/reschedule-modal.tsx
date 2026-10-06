@@ -55,7 +55,7 @@ export function RescheduleModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field
           label="New date & time"
-          hint="Reminder aur due alerts naye time ke hisaab se dobara jaayenge"
+          hint="Reminder and due alerts will be sent again for the new time"
         >
           <Input
             type="datetime-local"

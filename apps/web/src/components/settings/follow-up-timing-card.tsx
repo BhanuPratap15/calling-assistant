@@ -14,17 +14,17 @@ const FIELDS: {
   {
     key: 'reminderMinutesBefore',
     label: 'Reminder (minutes before due)',
-    hint: 'e.g. 1 → 3:59 PM pe reminder',
+    hint: 'e.g. 1 → reminder at 3:59 PM for a 4 PM follow-up',
   },
   {
     key: 'gracePeriodMinutes',
     label: 'Grace period (minutes)',
-    hint: 'Due ke baad itna intezaar, phir escalate / overdue alert',
+    hint: 'Wait this long after the due time, then escalate / send an overdue alert',
   },
   {
     key: 'presenceTimeoutMinutes',
     label: 'Away after (minutes)',
-    hint: 'Itni der koi activity nahi → assistant "away" (browser band)',
+    hint: 'No activity for this long → assistant counts as away (browser closed)',
   },
 ];
 

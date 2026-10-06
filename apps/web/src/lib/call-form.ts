@@ -34,8 +34,8 @@ export function validateCallForm(
   rules: RequiredFieldsConfig,
 ): string[] {
   const errors: string[] = [];
-  if (!outcome) errors.push('Call Outcome chuniye');
-  if (!nextAction) errors.push('Next Action chuniye');
+  if (!outcome) errors.push('Select a Call Outcome');
+  if (!nextAction) errors.push('Select a Next Action');
   if (!outcome || !nextAction) return errors;
 
   for (const field of Object.keys(rules) as (keyof RequiredFieldsConfig)[]) {
@@ -43,12 +43,12 @@ export function validateCallForm(
     const value = form[field];
     const blank =
       value === null || (typeof value === 'string' && !value.trim());
-    if (blank) errors.push(`${FIELD_LABELS[field]} zaroori hai`);
+    if (blank) errors.push(`${FIELD_LABELS[field]} is required`);
   }
   if (nextAction.requiresFollowUp) {
-    if (!form.followUpAt) errors.push('Follow-up date/time zaroori hai');
+    if (!form.followUpAt) errors.push('Follow-up date/time is required');
     else if (new Date(form.followUpAt).getTime() <= Date.now())
-      errors.push('Follow-up time future me hona chahiye');
+      errors.push('Follow-up time must be in the future');
   }
   return errors;
 }

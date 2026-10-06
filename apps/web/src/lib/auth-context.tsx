@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSessionError(
             error instanceof Error
               ? error.message
-              : 'Session load nahi ho paya',
+              : 'Could not load your session',
           );
         }
         setUser(null);

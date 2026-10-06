@@ -98,9 +98,9 @@ export function CategoriesCard({
       });
       setRows(res.categories);
       setResult(
-        `Saved ✓ — ${res.recalculated} customers ki category badli` +
+        `Saved ✓ — ${res.recalculated} customers changed category` +
           (res.uncovered.length
-            ? ` · ⚠ in ratings pe koi category nahi: ${res.uncovered.join(', ')}`
+            ? ` · ⚠ no category covers these ratings: ${res.uncovered.join(', ')}`
             : ''),
       );
       onSaved();
@@ -114,9 +114,10 @@ export function CategoriesCard({
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-5">
       <p className="mb-4 text-sm text-slate-500">
-        Call me di gayi Interest Rating (0–10) se customer ki category apne aap
-        set hoti hai. Range badalne pe <b>saare customers</b> recalculate honge.
-        Priority: category me aate hi customer ki priority (blank = mat badlo).
+        A customer&apos;s category is set automatically from the Interest Rating
+        (0–10) given on a call. Changing a range recalculates{' '}
+        <b>all customers</b>. Priority: the priority a customer gets on entering
+        the category (blank = don&apos;t change).
       </p>
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">

@@ -100,15 +100,14 @@ export function CampaignFieldsTab({
     const keys = new Set<string>();
     rows.forEach((r, i) => {
       const name = r.label.trim() || `Row ${i + 1}`;
-      if (!r.label.trim()) problems.push(`Row ${i + 1}: label zaroori hai`);
+      if (!r.label.trim()) problems.push(`Row ${i + 1}: label is required`);
       if (!KEY_RULE.test(r.key))
-        problems.push(
-          `${name}: key snake_case honi chahiye (e.g. deposit_amount)`,
-        );
-      if (keys.has(r.key)) problems.push(`${name}: key "${r.key}" do baar hai`);
+        problems.push(`${name}: key must be snake_case (e.g. deposit_amount)`);
+      if (keys.has(r.key))
+        problems.push(`${name}: key "${r.key}" is used twice`);
       keys.add(r.key);
       if (r.type === 'SELECT' && !splitOptions(r.optionsText).length)
-        problems.push(`${name}: dropdown ke options daalo (comma se alag)`);
+        problems.push(`${name}: add dropdown options (comma separated)`);
     });
     return problems;
   }
@@ -181,10 +180,10 @@ export function CampaignFieldsTab({
   return (
     <div className="space-y-4">
       <p className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
-        Ye fields is campaign ke har call form me extra dikhenge (e.g.
-        &quot;Deposit amount&quot;, &quot;Bonus accepted?&quot;). Key aur type
-        save ke baad badal nahi sakte — field nahi chahiye to <b>Active</b> hata
-        do.
+        These fields appear as extra inputs on every call form in this campaign
+        (e.g. &quot;Deposit amount&quot;, &quot;Bonus accepted?&quot;). Key and
+        type cannot be changed after saving — to retire a field, untick
+        <b>Active</b>.
       </p>
       <Table
         headers={[

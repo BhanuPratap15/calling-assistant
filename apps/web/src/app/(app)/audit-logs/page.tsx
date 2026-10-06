@@ -118,7 +118,7 @@ export default function AuditLogsPage() {
     <div>
       <PageHeader
         title="Audit Logs"
-        description="Kisne, kya, kab kiya — newest first"
+        description="Who did what, and when — newest first"
       />
 
       <div className="mb-4 flex flex-wrap gap-3">

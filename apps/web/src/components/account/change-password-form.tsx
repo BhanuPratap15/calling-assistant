@@ -25,12 +25,12 @@ export function ChangePasswordForm({ onDone }: { onDone?: () => void }) {
     setDone(false);
     if (!RULE.test(form.next))
       return setError(
-        'Naya password 8+ characters ka ho, kam se kam 1 letter aur 1 number',
+        'New password must be 8+ characters with at least 1 letter and 1 number',
       );
     if (form.next !== form.confirm)
-      return setError('Dono naye password same nahi hain');
+      return setError('The two new passwords do not match');
     if (form.next === form.current)
-      return setError('Naya password purane se alag hona chahiye');
+      return setError('New password must be different from the current one');
     setSaving(true);
     setError(null);
     try {
@@ -62,7 +62,7 @@ export function ChangePasswordForm({ onDone }: { onDone?: () => void }) {
       </Field>
       <Field
         label="New password"
-        hint="8+ characters, kam se kam 1 letter aur 1 number"
+        hint="8+ characters, at least 1 letter and 1 number"
       >
         <Input
           type="password"
@@ -87,7 +87,7 @@ export function ChangePasswordForm({ onDone }: { onDone?: () => void }) {
           role="status"
           className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800"
         >
-          Password badal gaya ✓ — doosre devices se logout ho gaye
+          Password changed ✓ — other devices have been signed out
         </p>
       )}
       <Button type="submit" disabled={saving}>

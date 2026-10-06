@@ -87,7 +87,7 @@ export function CustomerFormModal({
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Phone" hint="Kisi bhi format me — +91 apne aap">
+          <Field label="Phone" hint="Any format — +91 is added automatically">
             <Input
               required
               value={form.phone}

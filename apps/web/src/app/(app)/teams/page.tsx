@@ -30,7 +30,7 @@ export default function TeamsPage() {
     <div>
       <PageHeader
         title="Teams"
-        description={canEdit ? 'Saari teams' : 'Aapki teams'}
+        description={canEdit ? 'All teams' : 'Your teams'}
         actions={
           canEdit && <Button onClick={() => setModal({})}>+ New team</Button>
         }

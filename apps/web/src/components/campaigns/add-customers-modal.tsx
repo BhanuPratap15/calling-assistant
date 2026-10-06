@@ -53,7 +53,7 @@ export function AddCustomersModal({
     if (
       noFilter &&
       !window.confirm(
-        'Koi filter nahi — SAARE active customers add honge. Pakka?',
+        'No filter selected — ALL active customers will be added. Are you sure?',
       )
     )
       return;
@@ -112,8 +112,8 @@ export function AddCustomersModal({
     <Modal title="Add customers" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-sm text-slate-600">
-          Jo customers in <b>sab</b> filters se match karenge (aur ACTIVE hain)
-          wo add honge.
+          Customers matching <b>all</b> of these filters (and ACTIVE) will be
+          added.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Interest category">
@@ -176,7 +176,7 @@ export function AddCustomersModal({
               setFilter({ ...filter, neverCalled: e.target.checked })
             }
           />
-          Sirf fresh leads (jinko kabhi call nahi hua)
+          Only fresh leads (never called)
         </label>
         <ErrorMessage message={error} />
         <div className="flex justify-end gap-2">

@@ -28,14 +28,14 @@ const OUTCOME_FORM: OptionFormConfig = {
   title: 'call outcome',
   flagKey: 'isConnected',
   flagLabel:
-    'Connected — customer se baat hui (notes/rating maange ja sakte hain)',
+    'Connected — spoke with the customer (notes / rating can be required)',
 };
 
 const ACTION_FORM: OptionFormConfig = {
   endpoint: '/call-config/next-actions',
   title: 'next action',
   flagKey: 'requiresFollowUp',
-  flagLabel: 'Follow-up date/time zaroori',
+  flagLabel: 'Requires follow-up date/time',
 };
 
 type ModalState =
@@ -79,7 +79,7 @@ export default function SettingsPage() {
     <div>
       <PageHeader
         title="Settings"
-        description="Call form ke options — company ki zaroorat ke hisaab se badlo, code change nahi"
+        description="Call form options — change them to fit the business, no code change needed"
       />
       <ErrorMessage message={config.error} />
       {config.loading && !config.data && (

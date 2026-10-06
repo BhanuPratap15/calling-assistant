@@ -52,7 +52,7 @@ export default function CallingPage() {
       void refreshUser();
       if (!r.current)
         setMessage(
-          'Abhi koi customer available nahi hai. Thodi der baad try karein.',
+          'No customer is available right now. Please try again in a little while.',
         );
     } catch (e) {
       setError((e as Error).message);
@@ -73,7 +73,7 @@ export default function CallingPage() {
         );
         setCurrent(fresh.current);
         setMessage(
-          'Ye customer manager ne kisi aur ko de diya. Screen refresh ho gayi.',
+          'A manager gave this customer to someone else. The screen has been refreshed.',
         );
         return;
       }
@@ -82,10 +82,10 @@ export default function CallingPage() {
     setCurrent(r.current);
     setMessage(
       body.stop
-        ? 'Call saved ✓ — aap Break pe hain. Wapas aakar Start Calling dabaiye.'
+        ? 'Call saved ✓ — you are now on Break. Press Start Calling when you are back.'
         : r.current
-          ? 'Call saved ✓ — agla customer'
-          : 'Call saved ✓ — aur customers abhi nahi hain',
+          ? 'Call saved ✓ — next customer'
+          : 'Call saved ✓ — no more customers right now',
     );
     if (body.stop) void refreshUser(); // header: BREAK
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -95,7 +95,7 @@ export default function CallingPage() {
   async function stopCalling() {
     if (
       !window.confirm(
-        'Is customer ko bina call ke chhod dein? Ye wapas queue me jayega aur aap Break pe ho jayenge.',
+        'Leave this customer without a call? They go back to the queue and you will be on Break.',
       )
     )
       return;
@@ -104,7 +104,7 @@ export default function CallingPage() {
     try {
       await api('/calling/release', { method: 'POST', body: {} });
       setCurrent(null);
-      setMessage('Customer chhod diya — aap Break pe hain.');
+      setMessage('Customer released — you are now on Break.');
       void refreshUser();
     } catch (e) {
       setError((e as Error).message); // 409: dial ho chuka → form save karo
@@ -115,7 +115,7 @@ export default function CallingPage() {
     <div>
       <PageHeader
         title="Calling"
-        description="Ek customer, ek waqt — form poora karke hi agla milega"
+        description="One customer at a time — complete the form to get the next one"
       />
       <ErrorMessage message={error ?? config.error} />
       {message && (
@@ -129,7 +129,7 @@ export default function CallingPage() {
       ) : current === null ? (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center">
           <p className="text-slate-600">
-            Ready? Agla customer lene ke liye button dabaiye.
+            Ready? Press the button to get your next customer.
           </p>
           <Button
             onClick={startCalling}
@@ -158,7 +158,7 @@ export default function CallingPage() {
                 variant="ghost"
                 onClick={stopCalling}
                 className="ml-auto text-xs"
-                title="Dial nahi kiya ho tab — customer wapas queue me"
+                title="Only before dialling — the customer goes back to the queue"
               >
                 ⏹ Stop calling
               </Button>
@@ -189,7 +189,7 @@ export default function CallingPage() {
                 </p>
                 {current.followUp.sourceCall.userResponse && (
                   <p className="mt-1">
-                    Customer ne kaha tha: “
+                    The customer said: “
                     {current.followUp.sourceCall.userResponse}”
                   </p>
                 )}

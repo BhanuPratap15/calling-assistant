@@ -140,7 +140,7 @@ export function CallForm({
       {nextAction?.requiresFollowUp && (
         <Field
           label="Follow-up date & time *"
-          hint="Customer ne kab call karne ko kaha (e.g. aaj 4 PM)"
+          hint="When the customer asked to be called back (e.g. today 4 PM)"
         >
           <Input
             type="datetime-local"
@@ -152,7 +152,7 @@ export function CallForm({
 
       <Field label={`User Response${star(required('userResponse'))}`}>
         <Input
-          placeholder="Customer ne kya kaha (short)"
+          placeholder="What the customer said (short)"
           value={form.userResponse}
           onChange={(e) => set('userResponse', e.target.value)}
         />
@@ -160,7 +160,7 @@ export function CallForm({
       <Field label={`Conversation Notes${star(required('notes'))}`}>
         <Textarea
           rows={4}
-          placeholder="Kya baat hui…"
+          placeholder="What was discussed…"
           value={form.notes}
           onChange={(e) => set('notes', e.target.value)}
         />
@@ -264,7 +264,7 @@ export function CallForm({
           variant="secondary"
           disabled={saving}
           className="py-3"
-          title="Call save karo, agla customer mat do (break / shift khatam)"
+          title="Save the call without opening the next customer (break / end of shift)"
         >
           Save & Stop ⏸
         </Button>

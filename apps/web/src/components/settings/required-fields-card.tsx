@@ -48,8 +48,8 @@ export function RequiredFieldsCard({
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-5">
       <p className="mb-4 text-sm text-slate-500">
-        Call Outcome aur Next Action hamesha zaroori hain. Follow-up date/time
-        tab zaroori hai jab Next Action follow-up maange.
+        Call Outcome and Next Action are always required. Follow-up date/time is
+        required when the Next Action needs a follow-up.
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
         {FIELDS.map((f) => (

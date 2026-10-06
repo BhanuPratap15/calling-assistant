@@ -25,7 +25,9 @@ export default function NewImportPage() {
     e.preventDefault();
     if (!file) return;
     if (file.size > MAX_FILE_MB * 1024 * 1024) {
-      setError(`File ${MAX_FILE_MB} MB se badi hai — chhote hisson me baanto`);
+      setError(
+        `File is larger than ${MAX_FILE_MB} MB — split it into smaller files`,
+      );
       return;
     }
     setUploading(true);
@@ -65,12 +67,12 @@ export default function NewImportPage() {
         >
           <span className="text-3xl">📄</span>
           <span className="text-sm font-medium text-slate-800">
-            {file ? file.name : 'CSV ya Excel (.xlsx) file chuniye'}
+            {file ? file.name : 'Choose a CSV or Excel (.xlsx) file'}
           </span>
           <span className="text-xs text-slate-500">
             {file
               ? `${(file.size / 1024).toFixed(0)} KB`
-              : `Max ${MAX_FILE_MB} MB · 50,000 rows · pehli sheet padhi jaati hai`}
+              : `Max ${MAX_FILE_MB} MB · 50,000 rows · only the first sheet is read`}
           </span>
           <input
             id="import-file"
@@ -96,11 +98,11 @@ export default function NewImportPage() {
 
       <h2 className="mb-2 mt-6 font-semibold text-slate-900">Columns</h2>
       <p className="mb-3 text-sm text-slate-600">
-        Pehli line = headers. Order kuch bhi ho; extra columns (e.g. City)
-        ignore hote hain. Same phone (file me ya pehle se CRM me) = duplicate,
-        import nahi hoga.
+        The first line must be the headers. Column order does not matter; extra
+        columns (e.g. City) are ignored. A phone number already in the file or
+        in the CRM is a duplicate and will not be imported.
       </p>
-      <Table headers={['Column', 'Required', 'Ye naam bhi chalenge']}>
+      <Table headers={['Column', 'Required', 'Also accepted as']}>
         {IMPORT_COLUMNS.map((c) => (
           <tr key={c.column}>
             <Td className="font-mono text-xs">{c.column}</Td>

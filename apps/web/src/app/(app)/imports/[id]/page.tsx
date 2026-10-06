@@ -83,7 +83,7 @@ export default function ImportDetailPage() {
 
           {b.ignoredColumns.length > 0 && (
             <p className="mb-4 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-600">
-              Ye columns ignore hue (CRM me field nahi):{' '}
+              These columns were ignored (no matching CRM field):{' '}
               <b>{b.ignoredColumns.join(', ')}</b>
             </p>
           )}
@@ -95,7 +95,7 @@ export default function ImportDetailPage() {
               onCancel={() => {
                 if (
                   window.confirm(
-                    'Ye preview cancel karein? Kuch import nahi hoga.',
+                    'Cancel this preview? Nothing will be imported.',
                   )
                 )
                   void action('cancel');
@@ -106,8 +106,8 @@ export default function ImportDetailPage() {
           {RUNNING.includes(b.status) && (
             <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50 p-5">
               <p className="mb-2 font-semibold text-sky-900">
-                ⏳ Import chal raha hai… (background me — page band kar sakte
-                ho)
+                ⏳ Import in progress… (runs in the background — you can close
+                this page)
               </p>
               <ProgressBar
                 done={b.importedRows + b.skippedRows}
@@ -120,11 +120,11 @@ export default function ImportDetailPage() {
           {b.status === 'COMPLETED' && (
             <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-5 text-sm text-green-900">
               <p className="font-semibold">
-                ✓ {b.importedRows.toLocaleString('en-IN')} customers add ho gaye
+                ✓ {b.importedRows.toLocaleString('en-IN')} customers added
                 {b.finishedAt && ` · ${formatDateTime(b.finishedAt)}`}
               </p>
               <p className="mt-1">
-                Ab ye Start Calling (assignment engine) me available hain
+                They are now available via Start Calling
                 {b.campaign && (
                   <>
                     {' '}
@@ -155,10 +155,10 @@ export default function ImportDetailPage() {
 
           {b.status === 'FAILED' && (
             <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-900">
-              <p className="font-semibold">Import fail ho gaya: {b.error}</p>
+              <p className="font-semibold">Import failed: {b.error}</p>
               <p className="mt-1">
-                {b.importedRows} customers ban chuke the. Retry wahin se aage
-                chalega (duplicate nahi banenge).
+                {b.importedRows} customers were already created. Retry continues
+                from there (no duplicates are created).
               </p>
               <Button className="mt-3" onClick={() => action('retry')}>
                 ↻ Retry
@@ -168,7 +168,7 @@ export default function ImportDetailPage() {
 
           {b.status === 'CANCELLED' && (
             <p className="mb-5 rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-600">
-              Ye preview cancel hua — kuch import nahi hua.
+              This preview was cancelled — nothing was imported.
             </p>
           )}
 
@@ -243,9 +243,9 @@ function ConfirmPanel({
     <div className="mb-5 rounded-lg border border-indigo-200 bg-white p-5">
       <h2 className="font-semibold text-slate-900">Step 2 — check & confirm</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Neeche rows check karo. Confirm karte hi <b>{batch.validRows}</b> valid
-        customers background me add honge; invalid / duplicate rows chhod di
-        jaayengi.
+        Check the rows below. On confirm, <b>{batch.validRows}</b> valid
+        customers are added in the background; invalid and duplicate rows are
+        skipped.
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <Field label="Add to campaign (optional)">
@@ -265,7 +265,7 @@ function ConfirmPanel({
         </Field>
         <Field
           label="Tag (optional)"
-          hint="Baad me is batch ke customers filter karne ke liye"
+          hint="Lets you filter this batch's customers later"
         >
           <Select value={tagId} onChange={(e) => setTagId(e.target.value)}>
             <option value="">— None —</option>

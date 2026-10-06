@@ -64,7 +64,7 @@ export function ReportCharts({ summary }: { summary: ReportSummary }) {
         summary.range.preset !== 'yesterday' && (
           <Card
             title="Calls per day"
-            sub="Connected vs not connected — column pe hover / Tab karke exact numbers"
+            sub="Connected vs not connected — hover or Tab to a column for exact numbers"
           >
             <ColumnChart
               ariaLabel="Calls per day"
@@ -113,7 +113,7 @@ export function ReportCharts({ summary }: { summary: ReportSummary }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card
           title="Best time to call"
-          sub="Calls by hour (India time) — kis ghante me zyada log uthate hain"
+          sub="Calls by hour (India time) — when customers pick up most"
         >
           <ColumnChart
             ariaLabel="Calls by hour"
@@ -126,7 +126,7 @@ export function ReportCharts({ summary }: { summary: ReportSummary }) {
             )}
           />
         </Card>
-        <Card title="Call outcomes" sub="Har outcome kitni baar">
+        <Card title="Call outcomes" sub="How often each outcome was chosen">
           <OutcomeBars outcomes={outcomes} />
         </Card>
       </div>

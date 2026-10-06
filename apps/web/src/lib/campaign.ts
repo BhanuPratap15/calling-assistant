@@ -56,21 +56,21 @@ export function validateCustomFieldInputs(
     if (f.type === 'BOOLEAN') {
       // Checkbox: required BOOLEAN = "haan/na me se ek chuno" → select use karte hain
       if (raw === undefined || raw === '') {
-        if (f.required) errors.push(`${f.label} zaroori hai`);
+        if (f.required) errors.push(`${f.label} is required`);
       } else values[f.key] = raw === true || raw === 'true';
       continue;
     }
     const text = typeof raw === 'string' ? raw.trim() : '';
     if (!text) {
-      if (f.required) errors.push(`${f.label} zaroori hai`);
+      if (f.required) errors.push(`${f.label} is required`);
       continue;
     }
     if (f.type === 'NUMBER') {
       const n = Number(text);
-      if (!Number.isFinite(n)) errors.push(`${f.label} number hona chahiye`);
+      if (!Number.isFinite(n)) errors.push(`${f.label} must be a number`);
       else values[f.key] = n;
     } else if (f.type === 'TEXT' && text.length > 500) {
-      errors.push(`${f.label} bahut lamba hai (max 500)`);
+      errors.push(`${f.label} is too long (max 500)`);
     } else {
       values[f.key] = text;
     }

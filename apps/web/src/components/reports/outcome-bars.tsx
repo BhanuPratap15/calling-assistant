@@ -13,7 +13,7 @@ export function OutcomeBars({
   const total = outcomes.reduce((n, o) => n + o.calls, 0);
   const max = Math.max(1, ...outcomes.map((o) => o.calls));
   if (!total)
-    return <p className="text-sm text-slate-400">Is period me koi call nahi</p>;
+    return <p className="text-sm text-slate-400">No calls in this period</p>;
   return (
     <ul className="space-y-2" aria-label="Calls by outcome">
       {outcomes.map((o) => (

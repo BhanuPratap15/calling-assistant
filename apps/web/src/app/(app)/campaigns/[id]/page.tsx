@@ -47,9 +47,7 @@ export default function CampaignDetailPage() {
   async function changeStatus(to: CampaignStatus) {
     if (
       to === 'COMPLETED' &&
-      !window.confirm(
-        'Complete karne ke baad campaign dobara chalu nahi hoga. Pakka?',
-      )
+      !window.confirm('A completed campaign cannot be restarted. Are you sure?')
     )
       return;
     setError(null);
@@ -99,9 +97,9 @@ export default function CampaignDetailPage() {
 
           {c.status === 'DRAFT' && (
             <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              Draft: customers add karo, script / fields set karo, phir{' '}
-              <b>Activate</b> — tabhi assistants ko is campaign ke customers
-              milenge.
+              Draft: add customers, set the script / fields, then{' '}
+              <b>Activate</b> — only then will assistants get this
+              campaign&apos;s customers.
             </p>
           )}
 
@@ -149,7 +147,7 @@ export default function CampaignDetailPage() {
                 {c.script}
               </p>
             ) : (
-              <p className="text-sm text-slate-400">Koi script nahi</p>
+              <p className="text-sm text-slate-400">No script</p>
             )}
           </div>
 
@@ -228,7 +226,7 @@ function Results({ campaign }: { campaign: CampaignDetail }) {
   if (totalCalls === 0)
     return (
       <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-400">
-        Abhi is campaign me koi call nahi hua
+        No calls in this campaign yet
       </p>
     );
 

@@ -15,13 +15,13 @@ const FIELDS: {
   {
     key: 'incompleteFormMinutes',
     label: 'Form pending reminder (minutes)',
-    hint: 'Customer itni der se khula, form save nahi → assistant ko reminder (ek baar)',
+    hint: 'Customer open this long without a saved form → one reminder to the assistant',
     min: 1,
   },
   {
     key: 'autoReleaseMinutes',
     label: 'Auto-release when away (minutes)',
-    hint: 'Itni der se khula AUR assistant break / offline → customer wapas queue. 0 = band',
+    hint: 'Open this long AND assistant on break / offline → customer goes back to the queue. 0 = off',
     min: 0,
   },
 ];

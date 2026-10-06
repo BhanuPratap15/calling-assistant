@@ -86,8 +86,7 @@ function FollowUpsContent() {
   };
 
   async function cancel(f: FollowUp) {
-    if (!window.confirm(`${f.customer.name} ka follow-up cancel karein?`))
-      return;
+    if (!window.confirm(`Cancel the follow-up for ${f.customer.name}?`)) return;
     setError(null);
     try {
       await api(`/follow-ups/${f.id}/cancel`, { method: 'POST' });
@@ -103,10 +102,10 @@ function FollowUpsContent() {
         title="Follow-ups"
         description={
           user?.role === 'ASSISTANT'
-            ? 'Aapke follow-ups. Due wale "Start Calling" pe sabse pehle milte hain.'
+            ? 'Your follow-ups. Due ones come first when you press "Start Calling".'
             : user?.role === 'TEAM_LEADER'
-              ? 'Aapki team ke follow-ups'
-              : 'Saare follow-ups'
+              ? "Your team's follow-ups"
+              : 'All follow-ups'
         }
         actions={
           user?.role !== 'MANAGER' && user?.role !== 'SUPER_ADMIN' ? (

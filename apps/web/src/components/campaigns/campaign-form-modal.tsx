@@ -99,7 +99,7 @@ export function CampaignFormModal({
         </Field>
         <Field
           label="Priority (0–100)"
-          hint="Do campaigns chalu hon to bada number pehle call hota hai"
+          hint="When two campaigns are active, the higher number is called first"
         >
           <Input
             type="number"
@@ -128,12 +128,12 @@ export function CampaignFormModal({
         </div>
         <Field
           label="Call script (optional)"
-          hint="Calling screen pe assistant ko dikhega — kya bolna hai"
+          hint="Shown to the assistant on the calling screen — what to say"
         >
           <Textarea
             rows={5}
             maxLength={5000}
-            placeholder="Namaste {naam} ji, main ... se bol raha hoon. Is Diwali ..."
+            placeholder="Hello {name}, this is ... calling from ... This Diwali ..."
             value={form.script}
             onChange={(e) => set('script')(e.target.value)}
           />

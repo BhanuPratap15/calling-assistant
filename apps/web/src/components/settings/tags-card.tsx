@@ -65,7 +65,7 @@ export function TagsCard() {
       <ErrorMessage message={error ?? tags.error} />
       <ul className="divide-y divide-slate-100">
         {tags.data?.length === 0 && (
-          <li className="py-2 text-sm text-slate-400">Abhi koi tag nahi</li>
+          <li className="py-2 text-sm text-slate-400">No tags yet</li>
         )}
         {tags.data?.map((t) => (
           <li key={t.id} className="flex flex-wrap items-center gap-3 py-2">

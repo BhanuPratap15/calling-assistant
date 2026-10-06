@@ -37,7 +37,7 @@ export function Table({
                 colSpan={headers.length}
                 className="px-4 py-10 text-center text-slate-400"
               >
-                Koi record nahi mila
+                No records found
               </td>
             </tr>
           ) : (

@@ -84,7 +84,7 @@ function CustomersContent() {
         description={
           customers.data
             ? `${customers.data.meta.total} customers`
-            : 'Jinko call karna hai'
+            : 'People to call'
         }
         actions={
           canEdit && (

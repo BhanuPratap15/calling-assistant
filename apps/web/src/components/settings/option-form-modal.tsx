@@ -86,7 +86,7 @@ export function OptionFormModal({
           label="Code"
           hint={
             isEdit
-              ? 'Code badla nahi ja sakta (reports isi se)'
+              ? 'Code cannot be changed (reports use it)'
               : 'UPPER_SNAKE_CASE, e.g. CALLBACK_REQUESTED'
           }
         >
@@ -99,14 +99,14 @@ export function OptionFormModal({
             }
           />
         </Field>
-        <Field label="Label" hint="Assistant ko dropdown me yahi dikhega">
+        <Field label="Label" hint="This is what assistants see in the dropdown">
           <Input
             required
             value={label}
             onChange={(e) => setLabel(e.target.value)}
           />
         </Field>
-        <Field label="Sort order" hint="Chhota number = list me upar">
+        <Field label="Sort order" hint="Smaller number = higher in the list">
           <Input
             type="number"
             min={0}
@@ -129,7 +129,7 @@ export function OptionFormModal({
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
             />
-            Active (uncheck = assistants ke form se hat jaayega)
+            Active (uncheck = removed from the assistants&apos; form)
           </label>
         )}
         <ErrorMessage message={error} />

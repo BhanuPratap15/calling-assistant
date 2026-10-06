@@ -30,10 +30,10 @@ function LoginForm() {
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401
-          ? 'Email ya password galat hai'
+          ? 'Incorrect email or password'
           : err instanceof ApiError && err.unreachable
             ? err.message
-            : 'Login nahi ho paya. Thodi der baad try karein.',
+            : 'Login failed. Please try again in a little while.',
       );
       setSubmitting(false);
     }
@@ -102,7 +102,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="text-xl font-semibold text-slate-900">Calling CRM</h1>
         <p className="mb-6 mt-1 text-sm text-slate-500">
-          Apne account se login karein
+          Sign in to your account
         </p>
         {/* useSearchParams ke liye Suspense zaroori hai (Next.js rule) */}
         <Suspense>

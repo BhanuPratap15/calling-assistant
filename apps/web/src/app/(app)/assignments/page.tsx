@@ -38,7 +38,7 @@ export default function AssignmentsPage() {
   async function cancel(a: Assignment) {
     if (
       !window.confirm(
-        `${a.customer.name} ko ${a.staff.name} se hata ke wapas pool me daalein?`,
+        `Take ${a.customer.name} away from ${a.staff.name} and put them back in the pool?`,
       )
     )
       return;
@@ -55,7 +55,7 @@ export default function AssignmentsPage() {
     <div>
       <PageHeader
         title="Assignments"
-        description="Kaunsa customer kiske paas hai. Ek customer: Customers page pe 'Assign'. Bahut saare: Distribute."
+        description="Who has which customer. One customer: use 'Assign' on the Customers page. Many: Distribute."
         actions={
           <Button onClick={() => setDistributing(true)}>⇄ Distribute</Button>
         }

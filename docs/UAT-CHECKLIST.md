@@ -21,7 +21,7 @@ Load test aur security checks automated hain (CI + `ops/load-test`), ye checklis
 - [ ] Break pe jao → due follow-up kisi aur available assistant ko jaata hai (escalation)
 - [ ] Campaign customer → script + campaign fields dikhte hain, required field zaroori
 - [ ] Rating 9–10 → customer High / VIP category me
-- [ ] Dashboard "Mera performance" numbers sahi lagte hain
+- [ ] Dashboard "My performance" numbers sahi lagte hain
 - [ ] **Save & Stop** → call save, agla customer nahi, status Break; Start Calling se wapas kaam
 - [ ] **⏹ Stop calling** (dial se pehle) → customer chhoot jaata hai; dial ke baad → "form save karo" error
 - [ ] Customer khula chhod ke 15+ min → 🔔 "Call form pending" reminder

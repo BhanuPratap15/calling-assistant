@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="max-w-md rounded-xl border border-amber-200 bg-white p-6 shadow-sm">
           <h1 className="text-lg font-semibold text-slate-900">
-            Server se connection nahi
+            Cannot reach the server
           </h1>
           <p className="mt-2 text-sm text-slate-600">{sessionError}</p>
           <button
@@ -56,11 +56,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-lg font-semibold text-slate-900">
-            Naya password set karein
+            Set a new password
           </h1>
           <p className="mt-1 mb-4 text-sm text-slate-600">
-            Namaste {user.name}! Aapka password manager ne set kiya hai —
-            security ke liye pehle apna khud ka password banaiye.
+            Hello {user.name}! Your password was set by a manager — for
+            security, please choose your own password first.
           </p>
           <ChangePasswordForm />
           <button
@@ -136,8 +136,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             children
           ) : (
             <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-700">
-              Aapke role ({ROLE_LABELS[user.role]}) ko is page ki permission
-              nahi hai.
+              Your role ({ROLE_LABELS[user.role]}) does not have permission to
+              view this page.
             </div>
           )}
         </main>

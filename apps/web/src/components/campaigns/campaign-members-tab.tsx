@@ -43,9 +43,7 @@ export function CampaignMembersTab({
     ];
     return (
       <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-700">
-        {names.length
-          ? names.join(', ')
-          : 'Sab assistants (koi restriction nahi)'}
+        {names.length ? names.join(', ') : 'All assistants (no restriction)'}
       </p>
     );
   }
@@ -82,8 +80,8 @@ export function CampaignMembersTab({
     <div className="space-y-4">
       <p className="rounded-md bg-sky-50 px-3 py-2 text-sm text-sky-900">
         {staffIds.length + teamIds.length === 0
-          ? 'Abhi koi nahi chuna → SAB assistants is campaign ke customers call kar sakte hain.'
-          : 'Sirf chune hue staff + chuni hui teams ke members ko is campaign ke customers milenge.'}
+          ? "Nobody selected → ALL assistants can call this campaign's customers."
+          : "Only the selected staff and members of the selected teams will get this campaign's customers."}
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <fieldset className="rounded-lg border border-slate-200 bg-white p-4">
@@ -109,7 +107,7 @@ export function CampaignMembersTab({
               </label>
             ))}
           {teams.data?.length === 0 && (
-            <p className="text-sm text-slate-400">Koi team nahi</p>
+            <p className="text-sm text-slate-400">No teams</p>
           )}
         </fieldset>
         <fieldset className="rounded-lg border border-slate-200 bg-white p-4">

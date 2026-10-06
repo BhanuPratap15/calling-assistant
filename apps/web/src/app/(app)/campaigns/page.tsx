@@ -32,7 +32,7 @@ export default function CampaignsPage() {
     <div>
       <PageHeader
         title="Campaigns"
-        description="Customers ka group + script + extra fields — ACTIVE campaign ke customers assistants ko pehle milte hain"
+        description="A group of customers with a script and extra fields — customers of ACTIVE campaigns are called first"
         actions={
           canEdit && (
             <Button onClick={() => setCreating(true)}>+ New campaign</Button>

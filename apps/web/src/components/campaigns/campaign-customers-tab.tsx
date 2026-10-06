@@ -50,7 +50,11 @@ export function CampaignCustomersTab({
   }
 
   async function removeSelected() {
-    if (!window.confirm(`${selected.length} customer(s) campaign se hatayein?`))
+    if (
+      !window.confirm(
+        `Remove ${selected.length} customer(s) from the campaign?`,
+      )
+    )
       return;
     setError(null);
     try {

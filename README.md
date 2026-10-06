@@ -173,17 +173,18 @@ calling-assistant/
 
 ## Docs
 
-| File                                                                 | Kya hai                                                       |
-| -------------------------------------------------------------------- | ------------------------------------------------------------- |
-| [docs/design-v1-summary.md](docs/design-v1-summary.md)               | Business design summary                                       |
-| [docs/ROADMAP.md](docs/ROADMAP.md)                                   | 51 steps, progress, timeline, pending business decisions      |
-| [docs/API.md](docs/API.md)                                           | Saare endpoints + access rules                                |
-| [docs/decisions/](docs/decisions/)                                   | ADRs — har bada technical decision aur uski wajah (0001–0015) |
-| [docs/CONCEPTS.md](docs/CONCEPTS.md)                                 | Seekhne ke notes — har naya concept short me                  |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                             | Production server pe chalana (Docker, HTTPS, CD)              |
-| [docs/RUNBOOK.md](docs/RUNBOOK.md)                                   | Incidents, logs, backup restore drill                         |
-| [docs/UAT-CHECKLIST.md](docs/UAT-CHECKLIST.md)                       | Go-live se pehle asli team ke saath testing                   |
-| [docs/telephony-provider-guide.md](docs/telephony-provider-guide.md) | telecalling.ai jodne ki checklist + unse poochhne wale sawaal |
+| File                                                                 | Kya hai                                                                                                                                  |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [docs/design-v1-summary.md](docs/design-v1-summary.md)               | Business design summary                                                                                                                  |
+| [docs/ROADMAP.md](docs/ROADMAP.md)                                   | 51 steps, progress, timeline, pending business decisions                                                                                 |
+| [docs/API.md](docs/API.md)                                           | Saare endpoints + access rules                                                                                                           |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md)                             | **User guide (English)** — every role, step by step: create staff, settings, import, campaigns, distribute, calling, follow-ups, reports |
+| [docs/decisions/](docs/decisions/)                                   | ADRs — har bada technical decision aur uski wajah (0001–0015)                                                                            |
+| [docs/CONCEPTS.md](docs/CONCEPTS.md)                                 | Seekhne ke notes — har naya concept short me                                                                                             |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)                             | Production server pe chalana (Docker, HTTPS, CD)                                                                                         |
+| [docs/RUNBOOK.md](docs/RUNBOOK.md)                                   | Incidents, logs, backup restore drill                                                                                                    |
+| [docs/UAT-CHECKLIST.md](docs/UAT-CHECKLIST.md)                       | Go-live se pehle asli team ke saath testing                                                                                              |
+| [docs/telephony-provider-guide.md](docs/telephony-provider-guide.md) | telecalling.ai jodne ki checklist + unse poochhne wale sawaal                                                                            |
 
 ## Troubleshooting
 

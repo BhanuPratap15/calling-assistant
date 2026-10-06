@@ -75,7 +75,7 @@ export function AssignModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <Field
           label="Assign to"
-          hint="Ye customer us assistant ki queue me sabse aage jaayega"
+          hint="This customer goes to the front of that assistant's queue"
         >
           <Select
             required
@@ -97,7 +97,7 @@ export function AssignModal({
         {!reassignId && campaigns.length > 0 && (
           <Field
             label="Campaign (optional)"
-            hint="Chuna to assistant ko us campaign ka script + fields dikhenge"
+            hint="If chosen, the assistant sees that campaign's script and fields"
           >
             <Select
               value={campaignId}

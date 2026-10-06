@@ -169,7 +169,7 @@ export function CustomerProfileView({
       <div className="rounded-lg border border-slate-200 bg-white p-5">
         <h3 className="mb-3 font-semibold text-slate-900">Call history</h3>
         {customer.calls.length === 0 ? (
-          <p className="text-sm text-slate-400">Pehli baar call ho raha hai</p>
+          <p className="text-sm text-slate-400">First call to this customer</p>
         ) : (
           <ol className="space-y-3">
             {customer.calls.map((call) => (

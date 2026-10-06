@@ -84,7 +84,7 @@ export function TeamFormModal({
         </Field>
         <Field
           label="Team Leader"
-          hint="Sirf active Team Leader role wale staff"
+          hint="Only active staff with the Team Leader role"
         >
           <Select
             value={form.leaderId}

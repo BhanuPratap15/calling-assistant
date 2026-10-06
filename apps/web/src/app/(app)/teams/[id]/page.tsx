@@ -55,7 +55,8 @@ export default function TeamDetailPage() {
             ))}
           </Table>
           <p className="mt-3 text-xs text-slate-400">
-            Member add/remove: Staff page pe us person ko Edit karke Team badlo.
+            To add or remove a member: edit that person on the Staff page and
+            change their Team.
           </p>
         </>
       )}

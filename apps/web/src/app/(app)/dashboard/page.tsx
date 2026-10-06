@@ -26,17 +26,16 @@ import {
 import { toQuery, useApi } from '@/lib/use-api';
 
 const DESCRIPTIONS: Record<string, string> = {
-  '/calling': 'Agla customer lo, call karo, form bharo — Save & Next',
-  '/follow-ups': 'Aaj ke due aur overdue follow-ups',
-  '/customers': 'Customers ki list, search, add aur edit',
-  '/assignments': 'Kaunsa customer kiske paas — assign, reassign, cancel',
-  '/teams': 'Teams aur unke members',
-  '/staff': 'Assistants aur Team Leaders manage karo',
-  '/audit-logs': 'Kisne kya kab kiya — poori history',
-  '/settings':
-    'Call outcomes, categories, tags, mandatory fields, follow-up timing',
+  '/calling': 'Get the next customer, call, fill the form — Save & Next',
+  '/follow-ups': 'Follow-ups due today and overdue',
+  '/customers': 'Customer list — search, add and edit',
+  '/assignments': 'Who has which customer — assign, reassign, distribute',
+  '/teams': 'Teams and their members',
+  '/staff': 'Manage assistants, team leaders and managers',
+  '/audit-logs': 'Who did what, and when — full history',
+  '/settings': 'Call outcomes, categories, tags, mandatory fields, timing',
   '/campaigns': 'Customer groups, scripts, extra fields, priority',
-  '/imports': 'CSV / Excel se customers ek saath add karo',
+  '/imports': 'Add customers in bulk from CSV / Excel',
   '/reports': 'Assistant, campaign, follow-up reports + CSV export',
 };
 
@@ -73,16 +72,16 @@ export default function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold text-slate-900">
-        Namaste, {user.name} 👋
+        Welcome, {user.name} 👋
       </h1>
       <p className="mt-1 text-slate-500">
-        Aap {ROLE_LABELS[user.role]} ke roop me logged in hain.
+        You are logged in as {ROLE_LABELS[user.role]}.
       </p>
 
       <div className="mt-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
           {user.role === 'ASSISTANT'
-            ? 'Mera performance'
+            ? 'My performance'
             : user.role === 'TEAM_LEADER'
               ? 'Team performance'
               : 'Performance'}

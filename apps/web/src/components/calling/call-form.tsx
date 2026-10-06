@@ -60,8 +60,11 @@ export function CallForm({
     value: CallFormState[K],
   ) => setForm((f) => ({ ...f, [key]: value }));
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Kaunsa button dabaya: "Save & Next" ya "Save & Stop" (agla customer nahi, break)
+    const stop =
+      (e.nativeEvent as SubmitEvent).submitter?.getAttribute('name') === 'stop';
     const customResult = validateCustomFieldInputs(campaignFields, custom);
     const problems = [
       ...validateCallForm(form, outcome, nextAction, config.requiredFields),
@@ -85,6 +88,7 @@ export function CallForm({
             ? new Date(form.followUpAt).toISOString()
             : undefined,
         customFields: campaignFields.length ? customResult.values : undefined,
+        stop: stop || undefined,
       });
       setForm(EMPTY); // agla customer → khaali form
       setCustom({});
@@ -246,9 +250,25 @@ export function CallForm({
       )}
       <ErrorMessage message={serverError} />
 
-      <Button type="submit" disabled={saving} className="w-full py-3 text-base">
-        {saving ? 'Saving…' : 'Save & Next →'}
-      </Button>
+      <div className="flex gap-3">
+        <Button
+          type="submit"
+          disabled={saving}
+          className="flex-1 py-3 text-base"
+        >
+          {saving ? 'Saving…' : 'Save & Next →'}
+        </Button>
+        <Button
+          type="submit"
+          name="stop"
+          variant="secondary"
+          disabled={saving}
+          className="py-3"
+          title="Call save karo, agla customer mat do (break / shift khatam)"
+        >
+          Save & Stop ⏸
+        </Button>
+      </div>
     </form>
   );
 }

@@ -6,6 +6,8 @@
 export const RANGE_PRESETS = [
   'today',
   'yesterday',
+  'week', // is hafte (Monday se aaj tak) — design doc section 14 "This Week"
+  'month', // is mahine (1 tareekh se aaj tak) — "This Month"
   '7d',
   '30d',
   'custom',
@@ -91,6 +93,18 @@ export function resolveRange(args: {
     case 'yesterday':
       first = last = addDays(today, -1);
       break;
+    case 'week': {
+      // getUTCDay: 0 = Sunday → Monday se kitne din pehle
+      const [y, m, d] = today.split('-').map(Number);
+      const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+      first = addDays(today, -((dow + 6) % 7));
+      last = today;
+      break;
+    }
+    case 'month':
+      first = `${today.slice(0, 8)}01`;
+      last = today;
+      break;
     case '7d':
       first = addDays(today, -6);
       last = today;
@@ -128,12 +142,35 @@ export function resolveRange(args: {
   };
 }
 
-/** Pichhli barabar ki range (comparison ke liye: "pichhle 7 din vs usse pehle ke 7") */
+/**
+ * Pichhli barabar ki range (comparison ke liye: "pichhle 7 din vs usse pehle ke 7").
+ *   week  → pichhle hafte ke utne hi din (Mon–Wed vs pichhla Mon–Wed — weekend beech me na aaye)
+ *   month → pichhle mahine ki 1 tareekh se utne hi din (mahina chhota ho to uske end tak)
+ */
 export function previousRange(
   r: ResolvedRange,
   tz: string,
 ): { start: Date; end: Date } {
   const n = r.days.length;
+  if (r.preset === 'week') {
+    const first = addDays(r.days[0], -7);
+    return {
+      start: zonedMidnight(first, tz),
+      end: zonedMidnight(addDays(first, n), tz),
+    };
+  }
+  if (r.preset === 'month') {
+    const prevFirst = `${addDays(r.days[0], -1).slice(0, 8)}01`;
+    const prevEndExclusive = addDays(prevFirst, n);
+    const monthEnd = r.days[0]; // is mahine ki 1 = pichhle mahine ka exclusive end
+    return {
+      start: zonedMidnight(prevFirst, tz),
+      end: zonedMidnight(
+        prevEndExclusive < monthEnd ? prevEndExclusive : monthEnd,
+        tz,
+      ),
+    };
+  }
   return {
     start: zonedMidnight(addDays(r.days[0], -n), tz),
     end: r.start,

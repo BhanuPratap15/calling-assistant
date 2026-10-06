@@ -22,6 +22,9 @@ Load test aur security checks automated hain (CI + `ops/load-test`), ye checklis
 - [ ] Campaign customer → script + campaign fields dikhte hain, required field zaroori
 - [ ] Rating 9–10 → customer High / VIP category me
 - [ ] Dashboard "Mera performance" numbers sahi lagte hain
+- [ ] **Save & Stop** → call save, agla customer nahi, status Break; Start Calling se wapas kaam
+- [ ] **⏹ Stop calling** (dial se pehle) → customer chhoot jaata hai; dial ke baad → "form save karo" error
+- [ ] Customer khula chhod ke 15+ min → 🔔 "Call form pending" reminder
 - [ ] Logout → doosre tab / back button se app nahi khulta
 
 ## 2. Team Leader
@@ -29,6 +32,8 @@ Load test aur security checks automated hain (CI + `ops/load-test`), ye checklis
 - [ ] Sirf apni team ke customers / assignments / follow-ups / reports dikhte hain
 - [ ] Customer assign / reassign (team member ko)
 - [ ] Overdue follow-up alert 🔔 aata hai
+- [ ] Team member customer khula chhod ke chala gaya (break / browser band, 30+ min) → 🔔 "was away — released"
+- [ ] **⇄ Distribute** apni team me (doosri team ka assistant → error)
 - [ ] Reports → team ka CSV export Excel me sahi khulta hai (Hindi naam / ₹ theek)
 
 ## 3. Manager
@@ -37,7 +42,10 @@ Load test aur security checks automated hain (CI + `ops/load-test`), ye checklis
 - [ ] Customers: search, category / tag filter, highest-interest sort
 - [ ] Staff password reset → us staff ke saare sessions logout + pehle login pe naya password
 - [ ] Staff deactivate → wo turant login nahi kar sakta
-- [ ] Dashboard + Reports: aaj / 7 din / custom range, team / assistant / campaign filter — numbers manual count se match
+- [ ] Dashboard + Reports: aaj / is hafte / is mahine / 7 din / custom range, team / assistant / campaign filter — numbers manual count se match
+- [ ] Assignments → **⇄ Distribute**: load-based + round-robin preview (open now / +new) → Distribute → assistants ko 🔔 "N customers assigned"
+- [ ] Campaign ke saare customers call ho gaye → 🔔 "all customers called" (ek baar)
+- [ ] Settings → Calling workflow: reminder / auto-release minutes
 - [ ] Audit logs: kisne kya kiya (export bhi audit me)
 
 ## 4. Operations (IT / owner)

@@ -11,11 +11,13 @@ import { CategoriesService } from '../categories/categories.service.js';
 import { customerProfileInclude } from '../customers/customer-profile.js';
 import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
 import { Prisma } from '../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TelephonyService } from '../telephony/telephony.service.js';
 import { validateCustomFields } from '../campaigns/campaign-rules.js';
 import { validateCallForm } from './call-form-validation.js';
 import type { CompleteCallDto } from './dto/complete-call.dto.js';
+import { releaseAssignment, type ReleasableAssignment } from './release.js';
 
 const clean = (value?: string) => (value?.trim() ? value.trim() : null);
 
@@ -24,6 +26,8 @@ const clean = (value?: string) => (value?.trim() ? value.trim() : null);
  *   next()     → "Start Calling": ek customer do (pehle se current hai to wahi)
  *   current()  → abhi kaunsa customer khula hai (profile ke saath)
  *   complete() → "Save & Next": validate → call save → assignment complete → agla customer
+ *                ("Save & Stop": stop=true → agla customer NAHI, assistant BREAK pe)
+ *   release()  → "Stop calling": bina call ke current chhodo (sirf jab dial nahi kiya) — ADR 0015
  */
 /** Ek saath kai assistants → unique-constraint takraav pe itni baar dobara (ADR 0014) */
 const MAX_PICK_ATTEMPTS = 10;
@@ -37,6 +41,7 @@ export class CallingService {
     private readonly followUps: FollowUpsService,
     private readonly categories: CategoriesService,
     private readonly telephony: TelephonyService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Assistant ka current (IN_PROGRESS) customer — profile ke saath. Nahi hai to null. */
@@ -440,7 +445,106 @@ export class CallingService {
       return created;
     });
 
-    // Call save ho chuka (commit). Ab agla customer — ye fail ho to bhi call safe hai.
+    // Call save ho chuka (commit). Campaign ka aakhri customer tha? → manager ko alert (fail ho to bhi call safe)
+    if (call.campaignId)
+      await this.notifyIfCampaignExhausted(call.campaignId).catch(
+        () => undefined,
+      );
+    // "Save & Stop" → agla customer nahi; assistant BREAK pe (escalation / auto-assign se bahar)
+    if (dto.stop) {
+      await this.setAvailability(actor.id, 'BREAK');
+      return { call, next: null };
+    }
+    // Ab agla customer — ye fail ho to bhi call safe hai.
     return { call, next: await this.next(actor) };
+  }
+
+  /**
+   * "Stop calling" — current customer bina call record ke chhodo (shift khatam / break / galti se khula).
+   * Dial ho chuka ho to NAHI: baat / attempt hui hai to form bharna zaroori ("No Answer" bhi ek outcome hai),
+   * warna Excel wali "data miss" problem wapas aa jaati (design doc section 7).
+   * Customer kahan jaata hai: release.ts. Assistant BREAK pe.
+   */
+  async release(actor: AuthUser, note?: string) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const [row] = await tx.$queryRaw<
+        {
+          id: string;
+          source: ReleasableAssignment['source'];
+          customer_id: string;
+          staff_id: string;
+          campaign_id: string | null;
+        }[]
+      >`
+        SELECT id, source::text AS source, customer_id, staff_id, campaign_id FROM assignments
+        WHERE in_progress_staff_id = ${actor.id}::uuid
+        FOR UPDATE`;
+      if (!row) throw new ConflictException('You have no current customer');
+      const dials = await tx.callSession.count({
+        where: { assignmentId: row.id },
+      });
+      if (dials) {
+        throw new ConflictException(
+          'You already dialled this customer — save the call form (e.g. "No Answer") instead of stopping',
+        );
+      }
+      return releaseAssignment(
+        tx,
+        this.audit,
+        {
+          id: row.id,
+          source: row.source,
+          customerId: row.customer_id,
+          staffId: row.staff_id,
+          campaignId: row.campaign_id,
+        },
+        { actorId: actor.id, reason: 'stopped_by_assistant', note },
+      );
+    });
+    await this.setAvailability(actor.id, 'BREAK');
+    return { released: true, result };
+  }
+
+  private async setAvailability(staffId: string, availability: 'BREAK') {
+    await this.prisma.staff.update({
+      where: { id: staffId },
+      data: { availability, lastSeenAt: new Date() },
+    });
+  }
+
+  /**
+   * Design doc section 18 "Campaign alerts": active campaign ke saare customers call ho gaye
+   * (pending = 0) → creator + managers ko EK baar alert. Atomic UPDATE ... RETURNING:
+   * do assistants ek saath aakhri calls save karein to bhi alert ek hi baar.
+   * Naye customers add / import → marker reset (campaigns.service, imports.service).
+   */
+  async notifyIfCampaignExhausted(campaignId: string) {
+    const [campaign] = await this.prisma.$queryRaw<
+      { id: string; name: string; created_by_id: string | null }[]
+    >`
+      UPDATE campaigns k SET exhausted_notified_at = now()
+      WHERE k.id = ${campaignId}::uuid AND k.status = 'ACTIVE' AND k.exhausted_notified_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM campaign_customers cc JOIN customers c ON c.id = cc.customer_id
+          WHERE cc.campaign_id = k.id AND cc.call_count = 0 AND c.status = 'ACTIVE')
+      RETURNING k.id, k.name, k.created_by_id`;
+    if (!campaign) return false;
+    const managers = await this.prisma.staff.findMany({
+      where: { isActive: true, role: { in: ['MANAGER', 'SUPER_ADMIN'] } },
+      select: { id: true },
+    });
+    const recipients = new Set(managers.map((m) => m.id));
+    if (campaign.created_by_id) recipients.add(campaign.created_by_id);
+    await this.notifications.notify(
+      [...recipients].map((recipientId) => ({
+        recipientId,
+        type: 'CAMPAIGN_EXHAUSTED' as const,
+        title: `Campaign "${campaign.name}": all customers called`,
+        body: 'Add more customers or mark the campaign Completed.',
+        link: `/campaigns/${campaign.id}`,
+        data: { campaignId: campaign.id },
+      })),
+    );
+    return true;
   }
 }

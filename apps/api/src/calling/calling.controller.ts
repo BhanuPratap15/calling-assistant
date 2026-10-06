@@ -5,7 +5,7 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { TelephonyService } from '../telephony/telephony.service.js';
 import { CallingService } from './calling.service.js';
 import { DialDto } from './dto/dial.dto.js';
-import { CompleteCallDto } from './dto/complete-call.dto.js';
+import { CompleteCallDto, ReleaseCurrentDto } from './dto/complete-call.dto.js';
 
 /** Assistant ki calling screen ke APIs. Response me `null` = abhi koi customer nahi. */
 @Roles('ASSISTANT', 'TEAM_LEADER')
@@ -42,7 +42,14 @@ export class CallingController {
     return { sessions: await this.telephony.currentSessions(user.id) };
   }
 
-  // POST /api/calling/complete → "Save & Next"
+  // POST /api/calling/release → "Stop calling": current customer bina call ke chhodo (dial nahi kiya ho)
+  @Post('release')
+  @HttpCode(200)
+  release(@CurrentUser() user: AuthUser, @Body() dto: ReleaseCurrentDto) {
+    return this.calling.release(user, dto.note?.trim() || undefined);
+  }
+
+  // POST /api/calling/complete → "Save & Next" (body.stop=true → "Save & Stop")
   @Post('complete')
   @HttpCode(200)
   async complete(@CurrentUser() user: AuthUser, @Body() dto: CompleteCallDto) {

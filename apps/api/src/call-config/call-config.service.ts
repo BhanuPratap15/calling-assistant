@@ -7,10 +7,13 @@ import { withUniqueConflict } from '../common/prisma-errors.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
+  CALLING_WORKFLOW_KEY,
+  DEFAULT_CALLING_WORKFLOW,
   DEFAULT_FOLLOW_UP_TIMING,
   DEFAULT_REQUIRED_FIELDS,
   FOLLOW_UP_TIMING_KEY,
   REQUIRED_FIELDS_KEY,
+  type CallingWorkflowConfig,
   type FollowUpTimingConfig,
   type RequiredFieldsConfig,
 } from './call-config.types.js';
@@ -18,6 +21,7 @@ import type {
   CreateCallOutcomeDto,
   CreateNextActionDto,
   UpdateCallOutcomeDto,
+  UpdateCallingWorkflowDto,
   UpdateNextActionDto,
   UpdateFollowUpTimingDto,
   UpdateRequiredFieldsDto,
@@ -38,14 +42,26 @@ export class CallConfigService {
    */
   async getConfig(includeInactive = false) {
     const where = includeInactive ? undefined : { isActive: true };
-    const [outcomes, nextActions, requiredFields, followUpTiming] =
-      await Promise.all([
-        this.prisma.callOutcome.findMany({ where, orderBy: ORDER }),
-        this.prisma.nextAction.findMany({ where, orderBy: ORDER }),
-        this.getRequiredFields(),
-        this.getFollowUpTiming(),
-      ]);
-    return { outcomes, nextActions, requiredFields, followUpTiming };
+    const [
+      outcomes,
+      nextActions,
+      requiredFields,
+      followUpTiming,
+      callingWorkflow,
+    ] = await Promise.all([
+      this.prisma.callOutcome.findMany({ where, orderBy: ORDER }),
+      this.prisma.nextAction.findMany({ where, orderBy: ORDER }),
+      this.getRequiredFields(),
+      this.getFollowUpTiming(),
+      this.getCallingWorkflow(),
+    ]);
+    return {
+      outcomes,
+      nextActions,
+      requiredFields,
+      followUpTiming,
+      callingWorkflow,
+    };
   }
 
   async getRequiredFields(): Promise<RequiredFieldsConfig> {
@@ -96,6 +112,47 @@ export class CallConfigService {
           'reminderMinutesBefore',
           'gracePeriodMinutes',
           'presenceTimeoutMinutes',
+        ]),
+      );
+    });
+    return value;
+  }
+
+  async getCallingWorkflow(): Promise<CallingWorkflowConfig> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: CALLING_WORKFLOW_KEY },
+    });
+    return {
+      ...DEFAULT_CALLING_WORKFLOW,
+      ...((row?.value ?? {}) as Partial<CallingWorkflowConfig>),
+    };
+  }
+
+  async updateCallingWorkflow(dto: UpdateCallingWorkflowDto, actor: AuthUser) {
+    const before = await this.getCallingWorkflow();
+    const value: CallingWorkflowConfig = {
+      incompleteFormMinutes: dto.incompleteFormMinutes,
+      autoReleaseMinutes: dto.autoReleaseMinutes,
+    };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.systemSetting.upsert({
+        where: { key: CALLING_WORKFLOW_KEY },
+        create: {
+          key: CALLING_WORKFLOW_KEY,
+          value: { ...value },
+          updatedById: actor.id,
+        },
+        update: { value: { ...value }, updatedById: actor.id },
+      });
+      await this.recordUpdate(
+        tx,
+        actor,
+        AuditAction.SETTING_UPDATED,
+        'setting',
+        CALLING_WORKFLOW_KEY,
+        diffChanges(before, value, [
+          'incompleteFormMinutes',
+          'autoReleaseMinutes',
         ]),
       );
     });

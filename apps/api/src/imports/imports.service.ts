@@ -549,6 +549,10 @@ export class ImportsService {
             })),
             skipDuplicates: true,
           });
+          await tx.campaign.update({
+            where: { id: batch.campaignId },
+            data: { exhaustedNotifiedAt: null }, // naye customers → "khatam" alert reset
+          });
         }
         if (batch.tagId && customerIds.length) {
           await tx.customerTag.createMany({

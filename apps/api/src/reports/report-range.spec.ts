@@ -83,6 +83,50 @@ describe('report ranges (India time)', () => {
     );
   });
 
+  it('this week = Monday se aaj tak; previous = pichhle hafte ke wahi din', () => {
+    const thu = new Date('2026-10-08T06:00:00Z'); // Thursday IST
+    const w = resolveRange({ preset: 'week', now: thu, tz: IST });
+    expect(w.days).toEqual([
+      '2026-10-05',
+      '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+    ]);
+    const prev = previousRange(w, IST);
+    expect(prev.start).toEqual(zonedMidnight('2026-09-28', IST));
+    expect(prev.end).toEqual(zonedMidnight('2026-10-02', IST)); // Mon–Thu only
+    // Sunday → poora hafta; Monday → sirf aaj
+    const sun = new Date('2026-10-11T06:00:00Z');
+    expect(
+      resolveRange({ preset: 'week', now: sun, tz: IST }).days,
+    ).toHaveLength(7);
+    expect(resolveRange({ preset: 'week', now, tz: IST }).days).toEqual([
+      '2026-10-05', // `now` = Monday 02:00 IST
+    ]);
+  });
+
+  it('this month = 1 tareekh se aaj; previous clamps to a shorter month', () => {
+    const m = resolveRange({
+      preset: 'month',
+      now: new Date('2026-10-08T06:00:00Z'),
+      tz: IST,
+    });
+    expect(m.days[0]).toBe('2026-10-01');
+    expect(m.days).toHaveLength(8);
+    const prev = previousRange(m, IST);
+    expect(prev.start).toEqual(zonedMidnight('2026-09-01', IST));
+    expect(prev.end).toEqual(zonedMidnight('2026-09-09', IST));
+
+    const mar31 = resolveRange({
+      preset: 'month',
+      now: new Date('2026-03-31T06:00:00Z'),
+      tz: IST,
+    });
+    const feb = previousRange(mar31, IST);
+    expect(feb.start).toEqual(zonedMidnight('2026-02-01', IST));
+    expect(feb.end).toEqual(zonedMidnight('2026-03-01', IST)); // Feb ke 28 din hi
+  });
+
   it('works for a zone with DST too', () => {
     // New York: 8 Mar 2026 ko DST shuru — midnight phir bhi sahi
     expect(zonedMidnight('2026-03-09', 'America/New_York').toISOString()).toBe(

@@ -320,6 +320,12 @@ export class CampaignsService {
         })),
         skipDuplicates: true, // pehle se hai to chhod do (composite primary key)
       });
+      // Naye customers aaye → "campaign khatam" alert dobara bhej sakein (ADR 0015)
+      if (count)
+        await tx.campaign.update({
+          where: { id },
+          data: { exhaustedNotifiedAt: null },
+        });
       await this.audit.record(
         {
           actorId: actor.id,

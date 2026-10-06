@@ -17,6 +17,9 @@ import { useApi } from '@/lib/use-api';
 /**
  * Assistant ka main kaam (design doc section 5):
  *   Start Calling → ek customer → call → form → Save & Next → agla customer
+ * Phase 10 (ADR 0015):
+ *   Save & Stop   → call save, agla customer NAHI, assistant BREAK pe (shift khatam / break)
+ *   Stop calling  → bina call ke customer chhodo (dial nahi kiya ho tab) → wapas queue
  */
 export default function CallingPage() {
   const config = useApi<CallConfig>('/call-config');
@@ -78,11 +81,34 @@ export default function CallingPage() {
     }
     setCurrent(r.current);
     setMessage(
-      r.current
-        ? 'Call saved ✓ — agla customer'
-        : 'Call saved ✓ — aur customers abhi nahi hain',
+      body.stop
+        ? 'Call saved ✓ — aap Break pe hain. Wapas aakar Start Calling dabaiye.'
+        : r.current
+          ? 'Call saved ✓ — agla customer'
+          : 'Call saved ✓ — aur customers abhi nahi hain',
     );
+    if (body.stop) void refreshUser(); // header: BREAK
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** Bina call ke current customer chhodo (galti se khula / shift khatam) */
+  async function stopCalling() {
+    if (
+      !window.confirm(
+        'Is customer ko bina call ke chhod dein? Ye wapas queue me jayega aur aap Break pe ho jayenge.',
+      )
+    )
+      return;
+    setError(null);
+    setMessage(null);
+    try {
+      await api('/calling/release', { method: 'POST', body: {} });
+      setCurrent(null);
+      setMessage('Customer chhod diya — aap Break pe hain.');
+      void refreshUser();
+    } catch (e) {
+      setError((e as Error).message); // 409: dial ho chuka → form save karo
+    }
   }
 
   return (
@@ -118,7 +144,8 @@ export default function CallingPage() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
               Current customer
-              {current.source === 'MANUAL' && (
+              {(current.source === 'MANUAL' ||
+                current.source === 'DISTRIBUTED') && (
                 <Badge tone="yellow">Assigned by manager</Badge>
               )}
               {current.source === 'FOLLOW_UP' && (
@@ -127,6 +154,14 @@ export default function CallingPage() {
               {current.campaign && (
                 <Badge tone="indigo">📣 {current.campaign.name}</Badge>
               )}
+              <Button
+                variant="ghost"
+                onClick={stopCalling}
+                className="ml-auto text-xs"
+                title="Dial nahi kiya ho tab — customer wapas queue me"
+              >
+                ⏹ Stop calling
+              </Button>
             </div>
             {current.campaign?.script && (
               <details

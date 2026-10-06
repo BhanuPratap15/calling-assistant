@@ -53,14 +53,15 @@ Base URL (local): `http://localhost:4000/api` · Frontend se: `/api/...` (Next.j
 
 ## Call form settings
 
-| Method       | URL                               | Access  | Notes                                                                         |
-| ------------ | --------------------------------- | ------- | ----------------------------------------------------------------------------- |
-| GET          | `/call-config`                    | Any     | Active outcomes, next actions, required-field rules, follow-up timing         |
-| GET          | `/call-config/admin`              | MANAGER | Inactive bhi                                                                  |
-| POST / PATCH | `/call-config/outcomes[/:id]`     | MANAGER | `code` UPPER_SNAKE, immutable; `isConnected`                                  |
-| POST / PATCH | `/call-config/next-actions[/:id]` | MANAGER | `requiresFollowUp`                                                            |
-| PUT          | `/call-config/required-fields`    | MANAGER | `{ userResponse, notes, interestRating }` = `always \| connected \| optional` |
-| PUT          | `/call-config/follow-up-timing`   | MANAGER | `{ reminderMinutesBefore, gracePeriodMinutes, presenceTimeoutMinutes }`       |
+| Method       | URL                               | Access  | Notes                                                                                           |
+| ------------ | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------- |
+| GET          | `/call-config`                    | Any     | Active outcomes, next actions, required-field rules, follow-up timing                           |
+| GET          | `/call-config/admin`              | MANAGER | Inactive bhi                                                                                    |
+| POST / PATCH | `/call-config/outcomes[/:id]`     | MANAGER | `code` UPPER_SNAKE, immutable; `isConnected`                                                    |
+| POST / PATCH | `/call-config/next-actions[/:id]` | MANAGER | `requiresFollowUp`                                                                              |
+| PUT          | `/call-config/required-fields`    | MANAGER | `{ userResponse, notes, interestRating }` = `always \| connected \| optional`                   |
+| PUT          | `/call-config/follow-up-timing`   | MANAGER | `{ reminderMinutesBefore, gracePeriodMinutes, presenceTimeoutMinutes }`                         |
+| PUT          | `/call-config/calling-workflow`   | MANAGER | `{ incompleteFormMinutes (1–480), autoReleaseMinutes (0–1440, 0 = off) }` — watchdog (ADR 0015) |
 
 ## Categories & tags
 
@@ -77,13 +78,14 @@ Rating → category **Save & Next** ke andar apne aap (`interestRating` diya ho 
 
 ## Calling (assistant workflow)
 
-| Method | URL                 | Access                 | Notes                                                                                                                                                                                          |
-| ------ | ------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/calling/current`  | ASSISTANT, TEAM_LEADER | `{ current }` — null = koi nahi                                                                                                                                                                |
-| POST   | `/calling/next`     | ASSISTANT, TEAM_LEADER | "Start Calling": current → due follow-ups → manager queue → campaign queue → fresh (priority). Idempotent                                                                                      |
-| POST   | `/calling/complete` | ASSISTANT, TEAM_LEADER | "Save & Next": `{ outcomeId, nextActionId, userResponse?, notes?, interestRating?, followUpAt?, customFields? }` → `{ call, current }`. 409 = reassigned                                       |
-| POST   | `/calling/dial`     | ASSISTANT, TEAM_LEADER | "📞 Call" current customer: `{ number?: 'primary' \| 'alternate' }` → `{ session, dialUrl }` (manual: `tel:` link). 400 = current customer nahi, 409 = call already live, 502 = provider error |
-| GET    | `/calling/sessions` | ASSISTANT, TEAM_LEADER | Current customer ke dial attempts: `status, durationSec, recordingUrl, failReason` (UI 2s poll)                                                                                                |
+| Method | URL                 | Access                 | Notes                                                                                                                                                                                                                            |
+| ------ | ------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/calling/current`  | ASSISTANT, TEAM_LEADER | `{ current }` — null = koi nahi                                                                                                                                                                                                  |
+| POST   | `/calling/next`     | ASSISTANT, TEAM_LEADER | "Start Calling": current → due follow-ups → manager queue → campaign queue → fresh (priority). Idempotent                                                                                                                        |
+| POST   | `/calling/complete` | ASSISTANT, TEAM_LEADER | "Save & Next": `{ outcomeId, nextActionId, userResponse?, notes?, interestRating?, followUpAt?, customFields?, stop? }` → `{ call, current }`. `stop: true` = "Save & Stop" (current null, availability BREAK). 409 = reassigned |
+| POST   | `/calling/release`  | ASSISTANT, TEAM_LEADER | "Stop calling": `{ note? }` → `{ released, result: 'released' \| 'requeued' }`. Bina call ke current chhodo; BREAK. 409 = current nahi / **dial ho chuka** (form save karo). ADR 0015                                            |
+| POST   | `/calling/dial`     | ASSISTANT, TEAM_LEADER | "📞 Call" current customer: `{ number?: 'primary' \| 'alternate' }` → `{ session, dialUrl }` (manual: `tel:` link). 400 = current customer nahi, 409 = call already live, 502 = provider error                                   |
+| GET    | `/calling/sessions` | ASSISTANT, TEAM_LEADER | Current customer ke dial attempts: `status, durationSec, recordingUrl, failReason` (UI 2s poll)                                                                                                                                  |
 
 `current.campaign` = `{ id, name, script, fields[] }` (campaign customer ho to). `customFields` = `{ "<field key>": value }` —
 campaign ke active fields se validate (unknown key / required / type → 400).
@@ -103,13 +105,14 @@ Save & Next pe attempts CRM call se link → profile `calls[].telephony[]`. Deta
 
 ## Assignments
 
-| Method | URL                                                                              | Access               | Notes                                                                                            |
-| ------ | -------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------ |
-| GET    | `/assignments?status=open\|ASSIGNED\|IN_PROGRESS\|COMPLETED\|CANCELLED&staffId=` | MANAGER, TEAM_LEADER | TL: apni team                                                                                    |
-| GET    | `/assignments/assignable-staff`                                                  | MANAGER, TEAM_LEADER | Dropdown ke liye (scoped)                                                                        |
-| POST   | `/assignments`                                                                   | MANAGER, TEAM_LEADER | `{ customerId, staffId, campaignId? }` — open hai to 409; campaignId: customer us campaign me ho |
-| POST   | `/assignments/:id/reassign`                                                      | MANAGER, TEAM_LEADER | `{ staffId }`                                                                                    |
-| POST   | `/assignments/:id/cancel`                                                        | MANAGER, TEAM_LEADER | Customer wapas pool me                                                                           |
+| Method | URL                                                                              | Access               | Notes                                                                                                                                                                                                                                                                              |
+| ------ | -------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/assignments?status=open\|ASSIGNED\|IN_PROGRESS\|COMPLETED\|CANCELLED&staffId=` | MANAGER, TEAM_LEADER | TL: apni team                                                                                                                                                                                                                                                                      |
+| GET    | `/assignments/assignable-staff`                                                  | MANAGER, TEAM_LEADER | Dropdown ke liye (scoped)                                                                                                                                                                                                                                                          |
+| POST   | `/assignments`                                                                   | MANAGER, TEAM_LEADER | `{ customerId, staffId, campaignId? }` — open hai to 409; campaignId: customer us campaign me ho                                                                                                                                                                                   |
+| POST   | `/assignments/:id/reassign`                                                      | MANAGER, TEAM_LEADER | `{ staffId }`                                                                                                                                                                                                                                                                      |
+| POST   | `/assignments/:id/cancel`                                                        | MANAGER, TEAM_LEADER | Customer wapas pool me                                                                                                                                                                                                                                                             |
+| POST   | `/assignments/distribute`                                                        | MANAGER, TEAM_LEADER | Bulk: `{ staffIds[], strategy: ROUND_ROBIN \| LOAD_BASED, limit ≤ 2000, perStaffLimit?, campaignId?, categoryId?, tagId?, priority?, onlyFresh = true, dryRun = false }` → `{ eligible, assigned, perStaff[{ name, currentLoad, newCount }] }`. TL: sirf apni team (403). ADR 0015 |
 
 ## Campaigns
 
@@ -130,7 +133,7 @@ assistant member ho (ya campaign ke koi members na hon). Details: [ADR 0010](dec
 
 ## Dashboard & reports
 
-Query (sab endpoints): `range=today|yesterday|7d|30d|custom` (default `7d`), custom → `from=YYYY-MM-DD&to=YYYY-MM-DD`
+Query (sab endpoints): `range=today|yesterday|week|month|7d|30d|custom` (default `7d`; `week` = Monday se, `month` = 1 tareekh se), custom → `from=YYYY-MM-DD&to=YYYY-MM-DD`
 (inclusive, max 366 din), optional `teamId`, `staffId`, `campaignId`. Time zone: `REPORT_TIMEZONE` (default Asia/Kolkata).
 Scope apne aap: ASSISTANT = khud, TEAM_LEADER = apni team (doosri team / staff → 403), MANAGER = sab.
 
@@ -182,6 +185,9 @@ Reminder / due / escalation / overdue — background scheduler (BullMQ, har 30s)
 | GET    | `/notifications/unread-count` | Any    | `{ count }` (header 🔔) |
 | POST   | `/notifications/:id/read`     | Any    | 204                     |
 | POST   | `/notifications/read-all`     | Any    | 204                     |
+
+Types: `FOLLOW_UP_*` (Phase 3), `IMPORT_COMPLETED / FAILED`, `ASSIGNMENT_NEW` (assign / reassign / distribute),
+`FORM_INCOMPLETE` (watchdog), `ASSIGNMENT_AUTO_RELEASED` (assistant + TL / managers), `CAMPAIGN_EXHAUSTED` (creator + managers, ek baar).
 
 ## Audit
 

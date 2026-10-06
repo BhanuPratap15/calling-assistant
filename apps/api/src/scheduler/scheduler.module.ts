@@ -3,6 +3,7 @@ import { Logger, Module, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
 import { redisConnection } from '../common/redis.js';
+import { CallingModule } from '../calling/calling.module.js';
 import { FollowUpsModule } from '../follow-ups/follow-ups.module.js';
 import { FollowUpProcessor } from './follow-up.processor.js';
 import {
@@ -31,6 +32,7 @@ import {
       defaultJobOptions: { removeOnComplete: 100, removeOnFail: 500 }, // Redis me history limited
     }),
     FollowUpsModule,
+    CallingModule, // calling watchdog (ADR 0015)
   ],
   providers: [FollowUpProcessor],
   exports: [BullModule], // health check queue ko dekh sake

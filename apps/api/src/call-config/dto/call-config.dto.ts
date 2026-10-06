@@ -105,3 +105,15 @@ export class UpdateFollowUpTimingDto {
   @Max(120)
   presenceTimeoutMinutes: number;
 }
+
+export class UpdateCallingWorkflowDto {
+  @IsInt()
+  @Min(1)
+  @Max(480)
+  incompleteFormMinutes: number;
+
+  @IsInt()
+  @Min(0) // 0 = auto-release band
+  @Max(1440)
+  autoReleaseMinutes: number;
+}

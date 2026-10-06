@@ -37,3 +37,21 @@ export const DEFAULT_FOLLOW_UP_TIMING: FollowUpTimingConfig = {
   gracePeriodMinutes: 10,
   presenceTimeoutMinutes: 5,
 };
+
+/**
+ * Calling workflow watchdog (Phase 10, ADR 0015) — design doc section 18 "incomplete form":
+ *   incompleteFormMinutes → current customer itni der se khula, form save nahi → assistant ko reminder
+ *   autoReleaseMinutes    → itni der se khula AUR assistant away (break / offline / browser band)
+ *                           → customer wapas queue me (koi aur call kar sake). 0 = band.
+ */
+export interface CallingWorkflowConfig {
+  incompleteFormMinutes: number;
+  autoReleaseMinutes: number;
+}
+
+export const CALLING_WORKFLOW_KEY = 'calling.workflow';
+
+export const DEFAULT_CALLING_WORKFLOW: CallingWorkflowConfig = {
+  incompleteFormMinutes: 15,
+  autoReleaseMinutes: 30,
+};

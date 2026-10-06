@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDate,
   IsInt,
   IsObject,
@@ -47,4 +48,17 @@ export class CompleteCallDto {
   @IsOptional()
   @IsObject()
   customFields?: Record<string, unknown>;
+
+  /** "Save & Stop": call save karo par agla customer mat do (break / shift khatam) */
+  @IsOptional()
+  @IsBoolean()
+  stop?: boolean;
+}
+
+/** "Stop calling" (bina call ke current chhodna) — optional wajah, audit me jaati hai */
+export class ReleaseCurrentDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  note?: string;
 }

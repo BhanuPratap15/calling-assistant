@@ -14,6 +14,7 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { AssignmentsService } from './assignments.service.js';
 import {
   CreateAssignmentDto,
+  DistributeDto,
   ListAssignmentsQueryDto,
   ReassignDto,
 } from './dto/assignment.dto.js';
@@ -41,6 +42,13 @@ export class AssignmentsController {
   @Post()
   create(@Body() dto: CreateAssignmentDto, @CurrentUser() user: AuthUser) {
     return this.service.create(dto, user);
+  }
+
+  // Bulk: round-robin / load-based (dryRun=true → preview)
+  @Post('distribute')
+  @HttpCode(200)
+  distribute(@Body() dto: DistributeDto, @CurrentUser() user: AuthUser) {
+    return this.service.distribute(dto, user);
   }
 
   @Post(':id/reassign')

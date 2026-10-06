@@ -11,10 +11,13 @@ import type { AuthUser } from '../auth/auth.types.js';
 import type { Paginated } from '../common/pagination.dto.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
 import { staffScope } from '../common/team-scope.js';
-import type { AssignmentStatus, Prisma } from '../generated/prisma/client.js';
+import { Prisma, type AssignmentStatus } from '../generated/prisma/client.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { planDistribution } from './distribution.js';
 import type {
   CreateAssignmentDto,
+  DistributeDto,
   ListAssignmentsQueryDto,
 } from './dto/assignment.dto.js';
 
@@ -50,6 +53,7 @@ export class AssignmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(
@@ -168,6 +172,7 @@ export class AssignmentsService {
             },
             tx,
           );
+          await this.notifyNew(tx, dto.staffId, customer.name, actor);
           return assignment;
         }),
       ALREADY_ASSIGNED,
@@ -221,6 +226,7 @@ export class AssignmentsService {
         },
         tx,
       );
+      await this.notifyNew(tx, staffId, created.customer.name, actor);
       return created;
     });
   }
@@ -259,7 +265,173 @@ export class AssignmentsService {
     });
   }
 
+  /**
+   * BULK DISTRIBUTE (design doc section 9: round-robin / load-based) — ADR 0015.
+   *  1) Eligible customers: ACTIVE, kisi ke paas open nahi, open follow-up nahi (+ filters);
+   *     campaign diya → us campaign ke abhi tak na call hue; nahi diya → kisi chalu campaign me nahi
+   *     (warna campaign ki member restriction bypass) aur default sirf fresh (kabhi call nahi hue)
+   *  2) Har staff ka abhi ka open load → planDistribution() (pure, unit-tested)
+   *  3) Ek transaction: rows FOR UPDATE SKIP LOCKED (isi pal koi "Start Calling" se le raha ho to wo row skip)
+   *     → createManyAndReturn(skipDuplicates) — unique openCustomerId DB-level guarantee
+   *  4) Ek audit entry + har assistant ko EK notification ("N customers assigned to you")
+   * dryRun → wahi plan, bina save (preview: kisko kitne).
+   */
+  async distribute(dto: DistributeDto, actor: AuthUser) {
+    for (const id of dto.staffIds) await this.assertAssignableStaff(id, actor);
+    if (dto.campaignId) {
+      const campaign = await this.prisma.campaign.findUnique({
+        where: { id: dto.campaignId },
+        select: { status: true },
+      });
+      if (!campaign) throw new NotFoundException('Campaign not found');
+      if (campaign.status === 'COMPLETED')
+        throw new BadRequestException('Campaign is completed');
+    }
+    const staff = await this.prisma.staff.findMany({
+      where: { id: { in: dto.staffIds } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(staff.map((s) => [s.id, s.name]));
+
+    const run = async (tx: Prisma.TransactionClient) => {
+      const customers = await tx.$queryRaw<{ id: string }[]>`
+        SELECT c.id FROM customers c
+        ${dto.campaignId ? Prisma.sql`JOIN campaign_customers cc ON cc.customer_id = c.id AND cc.campaign_id = ${dto.campaignId}::uuid` : Prisma.empty}
+        WHERE c.status = 'ACTIVE'
+          AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = c.id)
+          AND NOT EXISTS (SELECT 1 FROM follow_ups f WHERE f.open_customer_id = c.id)
+          ${
+            dto.campaignId
+              ? Prisma.sql`AND cc.call_count = 0`
+              : Prisma.sql`AND NOT EXISTS (
+                  SELECT 1 FROM campaign_customers cc2 JOIN campaigns k ON k.id = cc2.campaign_id
+                  WHERE cc2.customer_id = c.id AND k.status <> 'COMPLETED')
+                ${dto.onlyFresh ? Prisma.sql`AND c.last_called_at IS NULL` : Prisma.empty}`
+          }
+          ${dto.categoryId ? Prisma.sql`AND c.category_id = ${dto.categoryId}::uuid` : Prisma.empty}
+          ${dto.priority ? Prisma.sql`AND c.priority = ${dto.priority}::priority` : Prisma.empty}
+          ${dto.tagId ? Prisma.sql`AND EXISTS (SELECT 1 FROM customer_tags t WHERE t.customer_id = c.id AND t.tag_id = ${dto.tagId}::uuid)` : Prisma.empty}
+        ORDER BY c.priority DESC, c.created_at ASC
+        LIMIT ${dto.limit}
+        ${dto.dryRun ? Prisma.empty : Prisma.sql`FOR UPDATE OF c SKIP LOCKED`}`;
+
+      const loads = await tx.assignment.groupBy({
+        by: ['staffId'],
+        where: {
+          staffId: { in: dto.staffIds },
+          status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
+        },
+        _count: { _all: true },
+      });
+      const loadOf = new Map(loads.map((l) => [l.staffId, l._count._all]));
+      const plan = planDistribution(
+        customers.map((c) => c.id),
+        dto.staffIds.map((id) => ({ id, load: loadOf.get(id) ?? 0 })),
+        dto.strategy,
+        dto.perStaffLimit,
+      );
+
+      let assigned = plan;
+      if (!dto.dryRun && plan.length) {
+        const created = await tx.assignment.createManyAndReturn({
+          data: plan.map((p) => ({
+            status: 'ASSIGNED' as const,
+            source: 'DISTRIBUTED' as const,
+            customerId: p.customerId,
+            staffId: p.staffId,
+            campaignId: dto.campaignId ?? null,
+            createdById: actor.id,
+            openCustomerId: p.customerId, // unique → race me bhi duplicate nahi
+          })),
+          skipDuplicates: true,
+          select: { customerId: true, staffId: true },
+        });
+        assigned = created;
+      }
+
+      const perStaff = dto.staffIds.map((id) => ({
+        staffId: id,
+        name: names.get(id) ?? '',
+        currentLoad: loadOf.get(id) ?? 0,
+        newCount: assigned.filter((p) => p.staffId === id).length,
+      }));
+      const summary = {
+        strategy: dto.strategy,
+        dryRun: dto.dryRun,
+        eligible: customers.length,
+        assigned: assigned.length,
+        perStaff,
+      };
+      if (dto.dryRun || !assigned.length) return summary;
+
+      await this.audit.record(
+        {
+          actorId: actor.id,
+          action: AuditAction.ASSIGNMENT_DISTRIBUTED,
+          entityType: 'assignment',
+          metadata: {
+            strategy: dto.strategy,
+            assigned: assigned.length,
+            perStaff: Object.fromEntries(
+              perStaff.map((p) => [p.name, p.newCount]),
+            ),
+            filter: {
+              campaignId: dto.campaignId ?? null,
+              categoryId: dto.categoryId ?? null,
+              tagId: dto.tagId ?? null,
+              priority: dto.priority ?? null,
+              onlyFresh: dto.campaignId ? null : dto.onlyFresh,
+              limit: dto.limit,
+              perStaffLimit: dto.perStaffLimit ?? null,
+            },
+          },
+        },
+        tx,
+      );
+      await this.notifications.notify(
+        perStaff
+          .filter((p) => p.newCount)
+          .map((p) => ({
+            recipientId: p.staffId,
+            type: 'ASSIGNMENT_NEW' as const,
+            title: `${p.newCount} customer${p.newCount > 1 ? 's' : ''} assigned to you by ${actor.name}`,
+            body: 'They come first when you press Start Calling.',
+            link: '/calling',
+            data: { count: p.newCount, by: actor.id },
+          })),
+        tx,
+      );
+      return summary;
+    };
+
+    return dto.dryRun
+      ? run(this.prisma as unknown as Prisma.TransactionClient)
+      : this.prisma.$transaction(run, { timeout: 30_000 });
+  }
+
   // ---------------- helpers ----------------
+
+  /** Assistant ko "naya customer mila" (design doc section 18: "New assignment") */
+  private notifyNew(
+    tx: Prisma.TransactionClient,
+    staffId: string,
+    customerName: string,
+    actor: AuthUser,
+  ) {
+    if (staffId === actor.id) return Promise.resolve(); // TL ne khud ko diya
+    return this.notifications.notify(
+      [
+        {
+          recipientId: staffId,
+          type: 'ASSIGNMENT_NEW',
+          title: `New customer assigned: ${customerName} (by ${actor.name})`,
+          body: 'Comes first when you press Start Calling.',
+          link: '/calling',
+        },
+      ],
+      tx,
+    );
+  }
 
   private staffScope(actor: AuthUser) {
     return staffScope(this.prisma, actor);

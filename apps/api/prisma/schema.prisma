@@ -279,6 +279,7 @@ enum AssignmentSource {
   AUTO // assistant ne "Start Calling" se khud liya (pull)
   MANUAL // manager / team leader ne diya
   FOLLOW_UP // due follow-up (Phase 3) — engine ne sabse pehle diya
+  DISTRIBUTED // manager / TL ne "Distribute" se bulk me baante (round-robin / load-based, Phase 10)
 
   @@map("assignment_source")
 }
@@ -313,11 +314,15 @@ model Assignment {
   calls        Call[]
   callSessions CallSession[]
 
-  startedAt   DateTime? @map("started_at") @db.Timestamptz(3) // IN_PROGRESS kab hua
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
-  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(3)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  startedAt       DateTime? @map("started_at") @db.Timestamptz(3) // IN_PROGRESS kab hua
+  /// "Form incomplete" reminder kab gaya (watchdog — ek assignment pe ek hi baar)
+  staleNotifiedAt DateTime? @map("stale_notified_at") @db.Timestamptz(3)
+  /// Bina call ke chhoda gaya: "stopped_by_assistant" / "assistant_away" (watchdog) — CANCELLED ke saath
+  releaseReason   String?   @map("release_reason")
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz(3)
+  cancelledAt     DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([staffId, status])
   @@index([customerId, createdAt])
@@ -429,6 +434,10 @@ enum NotificationType {
   FOLLOW_UP_REASSIGNED // naya owner: manager ne diya
   IMPORT_COMPLETED // importer: bulk import khatam (design doc 18: "import completion")
   IMPORT_FAILED // importer: import beech me fail
+  ASSIGNMENT_NEW // assistant: manager / TL ne customer(s) diye (assign, reassign, distribute)
+  FORM_INCOMPLETE // assistant: current customer ka form bahut der se pending
+  ASSIGNMENT_AUTO_RELEASED // assistant + TL / manager: assistant away tha → customer wapas queue me
+  CAMPAIGN_EXHAUSTED // campaign creator + managers: active campaign me call karne ko koi customer nahi bacha
 
   @@map("notification_type")
 }
@@ -543,14 +552,16 @@ enum CampaignStatus {
 }
 
 model Campaign {
-  id          String         @id @default(uuid()) @db.Uuid
-  name        String         @unique
-  description String?
-  status      CampaignStatus @default(DRAFT)
-  priority    Int            @default(0) // bada number = engine pehle is campaign ke customers deta hai
-  script      String? // call script — assistant ko calling screen pe dikhta hai
-  startsAt    DateTime?      @map("starts_at") @db.Timestamptz(3) // null = abhi se
-  endsAt      DateTime?      @map("ends_at") @db.Timestamptz(3) // null = koi end nahi
+  id                  String         @id @default(uuid()) @db.Uuid
+  name                String         @unique
+  description         String?
+  status              CampaignStatus @default(DRAFT)
+  priority            Int            @default(0) // bada number = engine pehle is campaign ke customers deta hai
+  script              String? // call script — assistant ko calling screen pe dikhta hai
+  startsAt            DateTime?      @map("starts_at") @db.Timestamptz(3) // null = abhi se
+  endsAt              DateTime?      @map("ends_at") @db.Timestamptz(3) // null = koi end nahi
+  /// "Sab customers ho gaye" alert kab gaya (customers add hone pe reset → dobara alert)
+  exhaustedNotifiedAt DateTime?      @map("exhausted_notified_at") @db.Timestamptz(3)
 
   createdById String? @map("created_by_id") @db.Uuid
   createdBy   Staff?  @relation("CampaignCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)

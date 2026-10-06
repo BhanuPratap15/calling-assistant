@@ -134,12 +134,19 @@ export interface CallConfig {
   nextActions: NextAction[];
   requiredFields: RequiredFieldsConfig;
   followUpTiming: FollowUpTimingConfig;
+  callingWorkflow: CallingWorkflowConfig;
+}
+
+/** Phase 10 (ADR 0015): form pending reminder + away assistant ka customer auto-release */
+export interface CallingWorkflowConfig {
+  incompleteFormMinutes: number;
+  autoReleaseMinutes: number; // 0 = band
 }
 
 // ---- Calling workflow (Phase 2) ----
 export type AssignmentStatus =
   'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-export type AssignmentSource = 'AUTO' | 'MANUAL' | 'FOLLOW_UP';
+export type AssignmentSource = 'AUTO' | 'MANUAL' | 'FOLLOW_UP' | 'DISTRIBUTED';
 
 export interface CallRecord {
   id: string;
@@ -449,7 +456,8 @@ export interface TelephonyConfig {
 }
 
 // ---- Dashboard & reports (Phase 8) ----
-export type RangePreset = 'today' | 'yesterday' | '7d' | '30d' | 'custom';
+export type RangePreset =
+  'today' | 'yesterday' | 'week' | 'month' | '7d' | '30d' | 'custom';
 
 export interface ReportRange {
   preset: RangePreset;

@@ -5,7 +5,15 @@ import { RANGE_LABELS, type ReportFilters } from '@/lib/report';
 import type { AssignableStaff, Campaign, RangePreset, Team } from '@/lib/types';
 import { useApi } from '@/lib/use-api';
 
-const PRESETS: RangePreset[] = ['today', 'yesterday', '7d', '30d', 'custom'];
+const PRESETS: RangePreset[] = [
+  'today',
+  'yesterday',
+  'week',
+  'month',
+  '7d',
+  '30d',
+  'custom',
+];
 
 /**
  * Ek row, charts ke upar — date range pehle (dataviz: filters sab neeche wale charts pe lagte hain).

@@ -16,6 +16,7 @@ import {
   CreateCallOutcomeDto,
   CreateNextActionDto,
   UpdateCallOutcomeDto,
+  UpdateCallingWorkflowDto,
   UpdateFollowUpTimingDto,
   UpdateNextActionDto,
   UpdateRequiredFieldsDto,
@@ -98,5 +99,15 @@ export class CallConfigController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.service.updateFollowUpTiming(dto, user);
+  }
+
+  // "Form incomplete" reminder / away assistant ka customer auto-release (minutes)
+  @Roles('MANAGER')
+  @Put('calling-workflow')
+  updateCallingWorkflow(
+    @Body() dto: UpdateCallingWorkflowDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.updateCallingWorkflow(dto, user);
   }
 }

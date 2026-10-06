@@ -30,6 +30,8 @@ const ACTIONS = [
   'assignment.created',
   'assignment.reassigned',
   'assignment.cancelled',
+  'assignment.released',
+  'assignment.distributed',
   'call.completed',
   'call.dialed',
   'staff.availability_changed',

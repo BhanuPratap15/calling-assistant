@@ -21,6 +21,8 @@ export const AuditAction = {
   ASSIGNMENT_CREATED: 'assignment.created',
   ASSIGNMENT_REASSIGNED: 'assignment.reassigned',
   ASSIGNMENT_CANCELLED: 'assignment.cancelled',
+  ASSIGNMENT_RELEASED: 'assignment.released', // bina call ke chhoda (assistant "Stop" / watchdog)
+  ASSIGNMENT_DISTRIBUTED: 'assignment.distributed', // bulk round-robin / load-based
   CALL_COMPLETED: 'call.completed',
   STAFF_AVAILABILITY_CHANGED: 'staff.availability_changed',
   FOLLOW_UP_CREATED: 'follow_up.created',

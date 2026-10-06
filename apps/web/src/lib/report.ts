@@ -22,6 +22,8 @@ export const DEFAULT_FILTERS: ReportFilters = {
 export const RANGE_LABELS: Record<RangePreset, string> = {
   today: 'Today',
   yesterday: 'Yesterday',
+  week: 'This week',
+  month: 'This month',
   '7d': 'Last 7 days',
   '30d': 'Last 30 days',
   custom: 'Custom range',

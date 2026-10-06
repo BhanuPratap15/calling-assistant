@@ -17,7 +17,8 @@ Phases design doc (section 25) se liye gaye hain.
 | 7 — Calling Provider     | 3      | —                       | ✅ Layer done (telecalling adapter: docs ka wait) |
 | 8 — Dashboard & Reports  | 3      | —                       | ✅ Done                                           |
 | 9 — Production Hardening | 5      | —                       | ✅ Done                                           |
-| **Total**                | **51** | **~42–50 working days** |                                                   |
+| 10 — Workflow completion | 5      | —                       | ✅ Done (full-system test ke baad)                |
+| **Total**                | **56** | **~42–50 working days** |                                                   |
 
 ### Timeline (full-time, ~6–8 ghante/din, seekhte hue)
 
@@ -131,3 +132,14 @@ Phases design doc (section 25) se liye gaye hain.
 - [x] 9.3 CI prod-stack smoke test + CD pipeline (GHCR → SSH deploy → health check)
 - [x] 9.4 Backups (tested restore) + JSON logs + request ids + health 503 + alert script
 - [x] 9.5 Load test (20k customers, 10 / 20 assistants — 0 errors, 0 duplicates; contention bug fixed) + [UAT checklist](UAT-CHECKLIST.md)
+
+## Phase 10 — Calling workflow completion ✅ (ADR 0015)
+
+Phase 9 ke baad poore system ka test hua (automated + browser me design doc section 28 ki journey). Usme mila asli
+workflow gap (assistant ke paas rukne ka tareeka nahi tha) aur design doc ke bache hue items, dono yahan poore kiye:
+
+- [x] 10.1 **Save & Stop** + **Stop calling** (dial se pehle) — customer kabhi lock nahi rehta; audited, anti-skip
+- [x] 10.2 Watchdog: "form pending" reminder + away assistant ka customer auto-release (Settings → Calling workflow)
+- [x] 10.3 **Bulk distribute**: round-robin / load-based, preview (dry run), TL apni team (design doc section 9)
+- [x] 10.4 Notifications: new assignment, campaign exhausted, auto-released (design doc section 18)
+- [x] 10.5 Reports / dashboard: **This week / This month** (design doc section 14)

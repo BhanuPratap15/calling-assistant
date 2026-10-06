@@ -5,6 +5,7 @@ import {
   OptionFormModal,
   type OptionFormConfig,
 } from '@/components/settings/option-form-modal';
+import { CallingWorkflowCard } from '@/components/settings/calling-workflow-card';
 import { CategoriesCard } from '@/components/settings/categories-card';
 import { FollowUpTimingCard } from '@/components/settings/follow-up-timing-card';
 import { RequiredFieldsCard } from '@/components/settings/required-fields-card';
@@ -175,6 +176,13 @@ export default function SettingsPage() {
           <Section title="Follow-up timing">
             <FollowUpTimingCard
               initial={config.data.followUpTiming}
+              onSaved={config.reload}
+            />
+          </Section>
+
+          <Section title="Calling workflow">
+            <CallingWorkflowCard
+              initial={config.data.callingWorkflow}
               onSaved={config.reload}
             />
           </Section>

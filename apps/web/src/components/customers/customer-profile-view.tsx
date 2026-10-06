@@ -44,7 +44,7 @@ export function CustomerProfileView({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">
@@ -166,7 +166,7 @@ export function CustomerProfileView({
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
         <h3 className="mb-3 font-semibold text-slate-900">Call history</h3>
         {customer.calls.length === 0 ? (
           <p className="text-sm text-slate-400">First call to this customer</p>
@@ -256,7 +256,7 @@ export function CustomerProfileView({
       </div>
 
       {customer.categoryChanges.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
           <h3 className="mb-3 font-semibold text-slate-900">
             Category changes
           </h3>

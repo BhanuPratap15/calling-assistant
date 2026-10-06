@@ -75,7 +75,7 @@ export default function ReportsPage() {
               <a
                 key={type}
                 href={`/api/reports/export/${type}.csv${query}`}
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-xs hover:bg-slate-50"
               >
                 ⬇ {type} CSV
               </a>

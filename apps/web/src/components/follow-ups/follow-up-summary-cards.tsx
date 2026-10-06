@@ -45,7 +45,7 @@ export function FollowUpSummaryCards({
           </>
         );
         const cls =
-          'rounded-lg border border-slate-200 bg-white p-4 text-left hover:border-indigo-300';
+          'rounded-xl border border-slate-200 bg-white shadow-card p-4 text-left hover:border-indigo-300';
         return onSelect ? (
           <button
             key={c.key}

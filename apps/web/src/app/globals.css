@@ -1,13 +1,216 @@
 @import 'tailwindcss';
 
-/* Abhi sirf light theme. Dark mode baad me (Phase 9 polish). */
+/* =====================================================================
+ * THEME — poore app ke rang YAHIN se aate hain.
+ *
+ *  --brand-*   = main colour (buttons, active menu, links, focus ring).
+ *                Components me ye `indigo-*` naam se use hota hai
+ *                (bg-indigo-600 …) — isliye rang badalna = sirf ye values.
+ *  --gray-*    = neutral (text, borders, backgrounds) → `slate-*` classes.
+ *  --sidebar-* = left menu (dark).
+ *
+ * Naya theme try karna ho: neeche brand ki 11 values badlo (50 = sabse halka,
+ * 950 = sabse gehra). Ready palettes: uicolors.app / tailwindcss.com/docs/colors
+ * ===================================================================== */
+:root {
+  /* Brand — royal violet */
+  --brand-50: #f5f3ff;
+  --brand-100: #ede9fe;
+  --brand-200: #ddd6fe;
+  --brand-300: #c4b5fd;
+  --brand-400: #a48afb;
+  --brand-500: #8662f6;
+  --brand-600: #6e44eb;
+  --brand-700: #5b33d1;
+  --brand-800: #4b2aab;
+  --brand-900: #3e258a;
+  --brand-950: #26155e;
+
+  /* Neutral — cool gray */
+  --gray-50: #f9fafb;
+  --gray-100: #f2f4f7;
+  --gray-200: #e6e8ee;
+  --gray-300: #d2d6de;
+  --gray-400: #98a2b3;
+  --gray-500: #667085;
+  --gray-600: #475467;
+  --gray-700: #344054;
+  --gray-800: #1d2939;
+  --gray-900: #101828;
+  --gray-950: #0b0f1a;
+
+  /* Sidebar */
+  --sidebar-bg: #0e0f1a;
+  --sidebar-bg-2: #15132a;
+  --sidebar-border: rgb(255 255 255 / 0.06);
+  --sidebar-text: #a3a7bd;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: rgb(255 255 255 / 0.05);
+  --sidebar-active: rgb(134 98 246 / 0.16);
+
+  /* Page */
+  --page-bg: #f6f7fb;
+  --page-text: var(--gray-900);
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-indigo-50: var(--brand-50);
+  --color-indigo-100: var(--brand-100);
+  --color-indigo-200: var(--brand-200);
+  --color-indigo-300: var(--brand-300);
+  --color-indigo-400: var(--brand-400);
+  --color-indigo-500: var(--brand-500);
+  --color-indigo-600: var(--brand-600);
+  --color-indigo-700: var(--brand-700);
+  --color-indigo-800: var(--brand-800);
+  --color-indigo-900: var(--brand-900);
+  --color-indigo-950: var(--brand-950);
+
+  --color-slate-50: var(--gray-50);
+  --color-slate-100: var(--gray-100);
+  --color-slate-200: var(--gray-200);
+  --color-slate-300: var(--gray-300);
+  --color-slate-400: var(--gray-400);
+  --color-slate-500: var(--gray-500);
+  --color-slate-600: var(--gray-600);
+  --color-slate-700: var(--gray-700);
+  --color-slate-800: var(--gray-800);
+  --color-slate-900: var(--gray-900);
+  --color-slate-950: var(--gray-950);
+
+  /* Soft layered shadows (premium cards) */
+  --shadow-card:
+    0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.03);
+  --shadow-card-hover:
+    0 4px 8px -2px rgb(16 24 40 / 0.06), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+  --shadow-pop:
+    0 20px 40px -12px rgb(16 24 40 / 0.18), 0 8px 16px -8px rgb(16 24 40 / 0.08);
+  --shadow-brand:
+    0 1px 2px 0 rgb(16 24 40 / 0.08), inset 0 1px 0 0 rgb(255 255 255 / 0.12);
+
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-fade-up: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop-in: pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-brand-in:
+    brand-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both,
+    shimmer 4s linear 0.7s infinite;
 }
 
-body {
-  background: #f8fafc; /* slate-50 */
-  color: #0f172a; /* slate-900 */
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header "Addaplay": neeche se aata hai + gradient dheere-dheere chalta rehta hai */
+@keyframes brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% center;
+  }
+}
+
+@layer base {
+  body {
+    background: var(--page-bg);
+    color: var(--page-text);
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--brand-200);
+    color: var(--brand-950);
+  }
+
+  /* Har clickable cheez pe smooth hover / focus */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role='button'] {
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  button:not(:disabled),
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  /* Keyboard focus — saaf brand ring (mouse click pe nahi dikhega) */
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--brand-500);
+    outline-offset: 2px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Patla, saaf scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-300) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

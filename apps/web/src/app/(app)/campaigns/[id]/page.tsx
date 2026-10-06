@@ -104,7 +104,7 @@ export default function CampaignDetailPage() {
           )}
 
           <div className="mb-5 grid gap-4 md:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-card p-4">
               <p className="text-xs text-slate-500">Status</p>
               <div className="mt-1">
                 <Badge tone={CAMPAIGN_STATUS_TONE[c.status]}>
@@ -115,14 +115,14 @@ export default function CampaignDetailPage() {
                 Priority <b className="text-slate-800">{c.priority}</b>
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 md:col-span-2">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-card p-4 md:col-span-2">
               <p className="mb-2 text-xs text-slate-500">Progress</p>
               <ProgressBar done={c.stats.called} total={c.stats.total} />
               <p className="mt-1 text-xs text-slate-500">
                 {c.stats.pending} pending
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-card p-4 text-xs text-slate-600">
               <p className="mb-1 text-slate-500">Dates</p>
               {c.startsAt || c.endsAt ? (
                 <>
@@ -138,7 +138,7 @@ export default function CampaignDetailPage() {
             </div>
           </div>
 
-          <div className="mb-5 rounded-lg border border-slate-200 bg-white p-4">
+          <div className="mb-5 rounded-xl border border-slate-200 bg-white shadow-card p-4">
             <p className="mb-1 text-sm font-semibold text-slate-900">
               📜 Call script
             </p>
@@ -225,13 +225,13 @@ function Results({ campaign }: { campaign: CampaignDetail }) {
 
   if (totalCalls === 0)
     return (
-      <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-400">
+      <p className="rounded-xl border border-slate-200 bg-white shadow-card p-5 text-sm text-slate-400">
         No calls in this campaign yet
       </p>
     );
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
       <p className="mb-4 text-sm text-slate-600">
         <b>{totalCalls}</b> calls · <b>{connected}</b> connected (
         {percent(connected, totalCalls)}%)

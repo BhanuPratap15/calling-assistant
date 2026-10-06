@@ -84,10 +84,11 @@ export function shortDay(day: string): string {
   });
 }
 
-/** Chart colors (dataviz reference palette) — sirf marks ke liye, text kabhi nahi */
+/** Chart colors — theme (globals.css) se; sirf marks ke liye, text kabhi nahi */
 export const CHART = {
-  accent: '#2a78d6', // series 1 (blue)
-  muted: '#c3c2b7', // de-emphasis (not connected)
-  grid: '#e1e0d9',
-  axis: '#c3c2b7',
+  accent: 'var(--brand-500)', // series 1 (brand)
+  muted: 'var(--gray-300)', // de-emphasis (not connected)
+  grid: 'var(--gray-200)',
+  axis: 'var(--gray-300)',
+  track: 'var(--brand-100)', // progress bar ka khaali hissa
 };

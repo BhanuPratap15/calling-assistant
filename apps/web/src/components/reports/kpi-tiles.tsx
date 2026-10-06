@@ -14,13 +14,17 @@ function Tile({
   change?: { text: string; up: boolean } | null;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-4">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="mt-2 text-[26px] font-semibold leading-none tracking-tight text-slate-900 tabular-nums">
+        {value}
+      </p>
+      <p className="mt-2.5 text-xs text-slate-500">
         {change && (
           // up = achha (calls / connect rate / rating badhna) → green text + ▲ (rang + nishaan dono)
-          <span className={change.up ? 'text-green-700' : 'text-red-700'}>
+          <span
+            className={`rounded-md px-1.5 py-0.5 font-medium ${change.up ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}
+          >
             {change.up ? '▲' : '▼'} {change.text}
           </span>
         )}

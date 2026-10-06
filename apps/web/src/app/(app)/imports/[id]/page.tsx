@@ -104,7 +104,7 @@ export default function ImportDetailPage() {
           )}
 
           {RUNNING.includes(b.status) && (
-            <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50 p-5">
+            <div className="mb-5 rounded-xl border border-sky-200 bg-sky-50 p-5">
               <p className="mb-2 font-semibold text-sky-900">
                 ⏳ Import in progress… (runs in the background — you can close
                 this page)
@@ -118,7 +118,7 @@ export default function ImportDetailPage() {
           )}
 
           {b.status === 'COMPLETED' && (
-            <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-5 text-sm text-green-900">
+            <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-5 text-sm text-green-900">
               <p className="font-semibold">
                 ✓ {b.importedRows.toLocaleString('en-IN')} customers added
                 {b.finishedAt && ` · ${formatDateTime(b.finishedAt)}`}
@@ -154,7 +154,7 @@ export default function ImportDetailPage() {
           )}
 
           {b.status === 'FAILED' && (
-            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-900">
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-900">
               <p className="font-semibold">Import failed: {b.error}</p>
               <p className="mt-1">
                 {b.importedRows} customers were already created. Retry continues
@@ -214,7 +214,7 @@ function Stat({
     yellow: 'text-amber-700',
   }[tone];
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-4">
       <p className="text-xs text-slate-500">{label}</p>
       <p className={`mt-1 text-2xl font-semibold ${color}`}>
         {value.toLocaleString('en-IN')}
@@ -240,7 +240,7 @@ function ConfirmPanel({
   const [saving, setSaving] = useState(false);
 
   return (
-    <div className="mb-5 rounded-lg border border-indigo-200 bg-white p-5">
+    <div className="mb-5 rounded-xl border border-indigo-200 bg-white p-5">
       <h2 className="font-semibold text-slate-900">Step 2 — check & confirm</h2>
       <p className="mt-1 text-sm text-slate-600">
         Check the rows below. On confirm, <b>{batch.validRows}</b> valid

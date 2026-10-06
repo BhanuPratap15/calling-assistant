@@ -102,7 +102,7 @@ export function CallForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-lg border border-slate-200 bg-white p-5"
+      className="space-y-4 rounded-xl border border-slate-200 bg-white shadow-card p-5"
       noValidate
     >
       <h3 className="font-semibold text-slate-900">Call form</h3>

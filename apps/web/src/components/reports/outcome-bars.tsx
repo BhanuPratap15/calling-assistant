@@ -61,7 +61,7 @@ export function Meter({
     <div className="flex items-center gap-2" title={label}>
       <div
         className="h-1.5 w-20 overflow-hidden rounded-full"
-        style={{ background: '#cde2fb' }}
+        style={{ background: CHART.track }}
       >
         <div
           className="h-full rounded-full"

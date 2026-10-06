@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import type { AppNotification } from '@/lib/types';
+import { Icon } from '@/components/ui/icons';
 import { useInterval } from '@/lib/use-interval';
 
 const POLL_MS = 30_000;
@@ -70,25 +71,25 @@ export function NotificationBell() {
       <button
         onClick={toggle}
         aria-label={`Notifications (${count} unread)`}
-        className="relative rounded-md p-2 text-slate-600 hover:bg-slate-100"
+        className={`relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${open ? 'bg-slate-100 text-slate-900' : ''}`}
       >
-        🔔
+        <Icon name="bell" className="h-[18px] w-[18px]" />
         {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-red-600 px-1 text-center text-xs font-semibold text-white">
+          <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-[18px] text-white ring-2 ring-white">
             {count > 99 ? '99+' : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-96 rounded-lg border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
+        <div className="animate-pop-in absolute right-0 z-40 mt-2 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-pop">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <p className="text-sm font-semibold text-slate-900">
               Notifications
             </p>
             <button
               onClick={readAll}
-              className="text-xs text-indigo-600 hover:underline"
+              className="rounded-md px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
             >
               Mark all read
             </button>
@@ -108,8 +109,11 @@ export function NotificationBell() {
               <li key={n.id}>
                 <button
                   onClick={() => openItem(n)}
-                  className={`block w-full px-4 py-3 text-left hover:bg-slate-50 ${n.readAt ? '' : 'bg-indigo-50/60'}`}
+                  className={`relative block w-full border-b border-slate-50 px-4 py-3 pl-7 text-left hover:bg-slate-50 ${n.readAt ? '' : 'bg-indigo-50/40'}`}
                 >
+                  {!n.readAt && (
+                    <span className="absolute left-3 top-[18px] h-2 w-2 rounded-full bg-indigo-500" />
+                  )}
                   <p
                     className={`text-sm ${n.readAt ? 'text-slate-600' : 'font-medium text-slate-900'}`}
                   >

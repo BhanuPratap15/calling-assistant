@@ -42,7 +42,7 @@ export function CampaignMembersTab({
       ...campaign.staff.map((s) => s.staff.name),
     ];
     return (
-      <p className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-700">
+      <p className="rounded-xl border border-slate-200 bg-white shadow-card p-5 text-sm text-slate-700">
         {names.length ? names.join(', ') : 'All assistants (no restriction)'}
       </p>
     );
@@ -84,7 +84,7 @@ export function CampaignMembersTab({
           : "Only the selected staff and members of the selected teams will get this campaign's customers."}
       </p>
       <div className="grid gap-4 md:grid-cols-2">
-        <fieldset className="rounded-lg border border-slate-200 bg-white p-4">
+        <fieldset className="rounded-xl border border-slate-200 bg-white shadow-card p-4">
           <legend className="px-1 text-sm font-semibold text-slate-900">
             Teams
           </legend>
@@ -110,7 +110,7 @@ export function CampaignMembersTab({
             <p className="text-sm text-slate-400">No teams</p>
           )}
         </fieldset>
-        <fieldset className="rounded-lg border border-slate-200 bg-white p-4">
+        <fieldset className="rounded-xl border border-slate-200 bg-white shadow-card p-4">
           <legend className="px-1 text-sm font-semibold text-slate-900">
             Staff
           </legend>

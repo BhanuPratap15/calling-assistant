@@ -16,26 +16,26 @@ export function Table({
   empty?: boolean;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-card">
       <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50">
+        <thead className="bg-slate-50/80">
           <tr>
             {headers.map((h) => (
               <th
                 key={h}
-                className="whitespace-nowrap px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500"
               >
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-slate-100 [&>tr]:transition-colors [&>tr:hover]:bg-slate-50/70">
           {empty ? (
             <tr>
               <td
                 colSpan={headers.length}
-                className="px-4 py-10 text-center text-slate-400"
+                className="px-4 py-14 text-center text-sm text-slate-400"
               >
                 No records found
               </td>
@@ -57,7 +57,7 @@ export function Td({
   className?: string;
 }) {
   return (
-    <td className={`px-4 py-2.5 align-top text-slate-700 ${className}`}>
+    <td className={`px-4 py-3 align-top text-slate-700 ${className}`}>
       {children}
     </td>
   );

@@ -59,7 +59,7 @@ export default function NewImportPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-4 rounded-lg border border-slate-200 bg-white p-5"
+        className="space-y-4 rounded-xl border border-slate-200 bg-white shadow-card p-5"
       >
         <label
           htmlFor="import-file"

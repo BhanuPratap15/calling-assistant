@@ -143,7 +143,7 @@ export default function DashboardPage() {
               <Link
                 key={c.id}
                 href={`/customers?categoryId=${c.id}`}
-                className="rounded-lg border border-slate-200 bg-white p-4 hover:border-indigo-300"
+                className="rounded-xl border border-slate-200 bg-white shadow-card p-4 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-card-hover"
               >
                 <CategoryBadge category={c} />
                 <p className="mt-2 text-2xl font-semibold text-slate-900">
@@ -153,7 +153,7 @@ export default function DashboardPage() {
             ))}
             <Link
               href="/customers?categoryId=none"
-              className="rounded-lg border border-slate-200 bg-white p-4 hover:border-indigo-300"
+              className="rounded-xl border border-slate-200 bg-white shadow-card p-4 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-card-hover"
             >
               <span className="text-xs text-slate-500">Not rated yet</span>
               <p className="mt-2 text-2xl font-semibold text-slate-900">
@@ -169,7 +169,7 @@ export default function DashboardPage() {
           <Link
             key={item.href}
             href={item.href}
-            className="rounded-lg border border-slate-200 bg-white p-5 hover:border-indigo-300 hover:shadow-sm"
+            className="rounded-xl border border-slate-200 bg-white shadow-card p-5 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-card-hover"
           >
             <p className="font-medium text-slate-900">{item.label}</p>
             <p className="mt-1 text-sm text-slate-500">

@@ -40,7 +40,7 @@ export function TagsCard() {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
       <form onSubmit={create} className="mb-4 flex flex-wrap gap-2">
         <Input
           aria-label="New tag name"

@@ -112,7 +112,7 @@ export function CategoriesCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
       <p className="mb-4 text-sm text-slate-500">
         A customer&apos;s category is set automatically from the Interest Rating
         (0–10) given on a call. Changing a range recalculates{' '}

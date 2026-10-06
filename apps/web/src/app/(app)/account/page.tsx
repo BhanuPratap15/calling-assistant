@@ -15,7 +15,7 @@ export default function AccountPage() {
         title="My account"
         description={`${user.name} · ${ROLE_LABELS[user.role]}`}
       />
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
         <p className="mb-4 text-sm text-slate-600">
           Login email: <b>{user.email}</b>
         </p>

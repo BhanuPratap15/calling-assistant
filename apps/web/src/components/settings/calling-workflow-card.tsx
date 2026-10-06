@@ -58,7 +58,7 @@ export function CallingWorkflowCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         {FIELDS.map((f) => (
           <Field key={f.key} label={f.label} hint={f.hint}>

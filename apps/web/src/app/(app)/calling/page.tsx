@@ -166,7 +166,7 @@ export default function CallingPage() {
             {current.campaign?.script && (
               <details
                 open
-                className="mb-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950"
+                className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950"
               >
                 <summary className="cursor-pointer font-semibold">
                   📜 Script — {current.campaign.name}

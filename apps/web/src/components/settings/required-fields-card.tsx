@@ -46,7 +46,7 @@ export function RequiredFieldsCard({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-slate-200 bg-white shadow-card p-5">
       <p className="mb-4 text-sm text-slate-500">
         Call Outcome and Next Action are always required. Follow-up date/time is
         required when the Next Action needs a follow-up.

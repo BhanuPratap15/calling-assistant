@@ -12,7 +12,7 @@ import {
 
 // Width default w-full; caller className (e.g. "w-44") de to wahi lagegi
 const FIELD =
-  'rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100';
+  'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/15 disabled:bg-slate-50 disabled:text-slate-500';
 
 /**
  * Label + input ka jod. `hint` chhoti madad wali line.
@@ -40,13 +40,13 @@ export function Field({
     <div>
       <label
         htmlFor={id}
-        className="mb-1 block text-sm font-medium text-slate-700"
+        className="mb-1.5 block text-sm font-medium text-slate-700"
       >
         {label}
       </label>
       {control}
       {hint && (
-        <p id={hintId} className="mt-1 text-xs text-slate-400">
+        <p id={hintId} className="mt-1.5 text-xs text-slate-500">
           {hint}
         </p>
       )}
@@ -81,7 +81,7 @@ export function ErrorMessage({ message }: { message: string | null }) {
   return (
     <p
       role="alert"
-      className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700"
+      className="animate-fade-in rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700"
     >
       {message}
     </p>

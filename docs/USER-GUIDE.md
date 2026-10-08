@@ -1,6 +1,6 @@
 # Calling CRM — User Guide
 
-> English user guide for every role. Also available as a shared Claude Doc; keep both in sync when the UI changes. Last updated: 6 Oct 2026.
+> English user guide for every role. Also available as a shared Claude Doc; keep both in sync when the UI changes. Last updated: 7 Oct 2026.
 
 ## 1. Introduction
 

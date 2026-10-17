@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { copyText } from '@/lib/clipboard';
+import { copyText, localPhone } from '@/lib/clipboard';
 import { Icon } from './icons';
 
 /** Ek click me copy (phone number waghera) — 1.5s ke liye ✓ dikhata hai */
@@ -39,12 +39,27 @@ export function CopyButton({
   );
 }
 
+/** Phone number copy (+91 ke bina) */
+export function CopyPhoneButton({
+  phone,
+  label = 'Copy number',
+  className,
+}: {
+  phone: string;
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <CopyButton text={localPhone(phone)} label={label} className={className} />
+  );
+}
+
 /** Number + copy button saath me (lists / tables) */
 export function PhoneText({ phone }: { phone: string }) {
   return (
     <span className="inline-flex items-center gap-1 font-mono">
       {phone}
-      <CopyButton text={phone} label="Copy number" />
+      <CopyPhoneButton phone={phone} />
     </span>
   );
 }

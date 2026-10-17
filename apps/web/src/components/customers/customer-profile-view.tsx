@@ -7,7 +7,7 @@ import { CAMPAIGN_STATUS_TONE, formatCustomValue } from '@/lib/campaign';
 import { formatDateTime, humanize } from '@/lib/format';
 import { formatDuration, SESSION_LABEL, SESSION_TONE } from '@/lib/telephony';
 import type { CustomerProfile } from '@/lib/types';
-import { CopyButton, PhoneText } from '@/components/ui/copy-button';
+import { CopyPhoneButton, PhoneText } from '@/components/ui/copy-button';
 
 const PRIORITY_TONE = {
   LOW: 'gray',
@@ -80,11 +80,7 @@ export function CustomerProfileView({
             >
               📞 {customer.phone}
             </a>
-            <CopyButton
-              text={customer.phone}
-              label="Copy number"
-              className="ml-1"
-            />
+            <CopyPhoneButton phone={customer.phone} className="ml-1" />
             {customer.alternatePhone && (
               <p className="mt-2 text-sm text-slate-600">
                 Alternate: <PhoneText phone={customer.alternatePhone} />

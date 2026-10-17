@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CopyButton } from '@/components/ui/copy-button';
+import { CopyPhoneButton } from '@/components/ui/copy-button';
 import { ErrorMessage } from '@/components/ui/form';
 import { api } from '@/lib/api';
-import { copyText } from '@/lib/clipboard';
+import { copyText, localPhone } from '@/lib/clipboard';
 import {
   formatDuration,
   LIVE_STATUSES,
@@ -68,7 +68,7 @@ export function DialPanel({
       // Clipboard click ke turant baad (await ke baad Safari user-gesture nahi maanta)
       if (externalUrl) {
         const to = number === 'alternate' ? alternatePhone : phone;
-        if (to && (await copyText(to))) setCopied(to);
+        if (to && (await copyText(localPhone(to)))) setCopied(localPhone(to));
       }
       const r = await api<{ session: CallSession; dialUrl: string | null }>(
         '/calling/dial',
@@ -97,7 +97,7 @@ export function DialPanel({
         >
           {icon} {phone}
         </button>
-        {!externalUrl && <CopyButton text={phone} label="Copy number" />}
+        {!externalUrl && <CopyPhoneButton phone={phone} />}
         {alternatePhone && (
           <Button
             variant="secondary"
@@ -108,7 +108,10 @@ export function DialPanel({
           </Button>
         )}
         {alternatePhone && !externalUrl && (
-          <CopyButton text={alternatePhone} label="Copy alternate number" />
+          <CopyPhoneButton
+            phone={alternatePhone}
+            label="Copy alternate number"
+          />
         )}
         {externalUrl && (
           <a

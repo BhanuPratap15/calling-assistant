@@ -1,4 +1,12 @@
 /**
+ * Copy ke liye Indian number bina +91 (10 digit) — dialer panels me seedha paste.
+ * Doosre desh ke numbers jaise hain waise.
+ */
+export function localPhone(phone: string): string {
+  return phone.replace(/^\+91(?=\d{10}$)/, '');
+}
+
+/**
  * Text clipboard me. navigator.clipboard sirf HTTPS / localhost pe chalta hai —
  * http (LAN IP se khola) pe purana execCommand fallback. Copy na ho paye to false.
  */

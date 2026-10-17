@@ -14,6 +14,7 @@ import { api } from '@/lib/api';
 import { formatDateTime, humanize } from '@/lib/format';
 import type { Assignment, Paginated } from '@/lib/types';
 import { toQuery, useApi } from '@/lib/use-api';
+import { PhoneText } from '@/components/ui/copy-button';
 
 const STATUS_TONE = {
   ASSIGNED: 'yellow',
@@ -107,7 +108,7 @@ export default function AssignmentsPage() {
                     {a.customer.name}
                   </Link>
                   <p className="font-mono text-xs text-slate-500">
-                    {a.customer.phone}
+                    <PhoneText phone={a.customer.phone} />
                   </p>
                 </Td>
                 <Td>{a.staff.name}</Td>

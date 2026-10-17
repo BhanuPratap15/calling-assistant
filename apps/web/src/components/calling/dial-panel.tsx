@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CopyButton } from '@/components/ui/copy-button';
 import { ErrorMessage } from '@/components/ui/form';
 import { api } from '@/lib/api';
+import { copyText } from '@/lib/clipboard';
 import {
   formatDuration,
   LIVE_STATUSES,
@@ -95,6 +97,7 @@ export function DialPanel({
         >
           {icon} {phone}
         </button>
+        {!externalUrl && <CopyButton text={phone} label="Copy number" />}
         {alternatePhone && (
           <Button
             variant="secondary"
@@ -103,6 +106,9 @@ export function DialPanel({
           >
             {icon} Alternate {alternatePhone}
           </Button>
+        )}
+        {alternatePhone && !externalUrl && (
+          <CopyButton text={alternatePhone} label="Copy alternate number" />
         )}
         {externalUrl && (
           <a
@@ -204,13 +210,4 @@ export function DialPanel({
       <ErrorMessage message={error ?? list.error} />
     </div>
   );
-}
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false; // http (non-secure) / permission — number button pe dikh hi raha hai
-  }
 }

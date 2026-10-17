@@ -24,6 +24,7 @@ import type {
 } from '@/lib/types';
 import { toQuery, useApi } from '@/lib/use-api';
 import { useInterval } from '@/lib/use-interval';
+import { PhoneText } from '@/components/ui/copy-button';
 
 const TABS: { bucket: FollowUpBucket; label: string }[] = [
   { bucket: 'open', label: 'All open' },
@@ -170,7 +171,7 @@ function FollowUpsContent() {
                       </p>
                     )}
                     <p className="font-mono text-xs text-slate-500">
-                      {f.customer.phone}
+                      <PhoneText phone={f.customer.phone} />
                     </p>
                   </Td>
                   <Td className="whitespace-nowrap">

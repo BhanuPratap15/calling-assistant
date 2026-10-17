@@ -25,6 +25,7 @@ import {
 } from '@/lib/types';
 import { toQuery, useApi } from '@/lib/use-api';
 import { useDebounce } from '@/lib/use-debounce';
+import { PhoneText } from '@/components/ui/copy-button';
 
 const STATUS_TONE = {
   ACTIVE: 'green',
@@ -209,7 +210,7 @@ function CustomersContent() {
                     )}
                   </Td>
                   <Td className="whitespace-nowrap font-mono text-xs">
-                    {c.phone}
+                    <PhoneText phone={c.phone} />
                   </Td>
                   <Td>
                     <CategoryBadge

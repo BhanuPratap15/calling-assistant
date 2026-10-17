@@ -14,6 +14,7 @@ import type { CampaignCustomer, CampaignStatus, Paginated } from '@/lib/types';
 import { toQuery, useApi } from '@/lib/use-api';
 import { useDebounce } from '@/lib/use-debounce';
 import { AddCustomersModal } from './add-customers-modal';
+import { PhoneText } from '@/components/ui/copy-button';
 
 /** Campaign ke customers: pending (abhi call nahi hua) / called + add / remove */
 export function CampaignCustomersTab({
@@ -152,7 +153,7 @@ export function CampaignCustomersTab({
                       {c.name}
                     </Link>
                     <p className="font-mono text-xs text-slate-500">
-                      {c.phone}
+                      <PhoneText phone={c.phone} />
                     </p>
                   </Td>
                   <Td>

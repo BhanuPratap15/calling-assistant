@@ -453,6 +453,8 @@ export interface CallSession {
 export interface TelephonyConfig {
   provider: string;
   mode: 'manual' | 'api';
+  /** manual: provider ka web panel — 📞 number copy karta hai, ye link alag button */
+  externalDialerUrl?: string;
 }
 
 // ---- Dashboard & reports (Phase 8) ----

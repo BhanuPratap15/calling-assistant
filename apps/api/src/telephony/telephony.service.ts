@@ -59,7 +59,10 @@ export class TelephonyService implements OnModuleDestroy {
   ) {}
 
   info() {
-    return { provider: this.provider.name, mode: this.provider.mode };
+    const { name, mode, externalDialerUrl } = this.provider;
+    return externalDialerUrl
+      ? { provider: name, mode, externalDialerUrl }
+      : { provider: name, mode };
   }
 
   /**

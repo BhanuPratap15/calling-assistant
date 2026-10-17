@@ -4,6 +4,21 @@ CRM ka telephony layer provider-independent hai ([ADR 0012](decisions/0012-calli
 Aaj do providers hain: `manual` (default, `tel:` link) aur `mock` (demo / test).
 telecalling.ai jodne ke liye **sirf ek nayi class** chahiye — calling screen, history, webhooks ka baaki code same rahega.
 
+## 0. Abhi ka setup: call telecalling.ai ke panel se, baaki sab CRM me
+
+telecalling.ai public API share nahi karta (Oct 2026), isliye abhi `manual` provider + external dialer:
+
+```bash
+# .env
+TELEPHONY_PROVIDER=manual
+TELEPHONY_EXTERNAL_DIALER_URL=https://voice.telecalling.ai   # unke panel ka login URL (sirf https)
+```
+
+Calling screen pe 📞 ki jagah **📋 number** button: click → number clipboard me copy + attempt record (`DIALED`),
+saath me **Open voice.telecalling.ai ↗** (naya tab). Assistant wahan number paste karke call karta hai, phir CRM me
+call form → Save & Next. Assignment, follow-ups, reports, audit sab CRM me. Recording / call status CRM me **nahi**
+aate (unke panel me hi). Env khaali = purana `tel:` link.
+
 ## 1. telecalling.ai se ye poochhna hai
 
 | #   | Sawaal                                                                                       | Kyun chahiye                                     |

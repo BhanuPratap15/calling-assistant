@@ -20,6 +20,7 @@ const RECORDING_WAIT_MS = 2 * 60_000;
 /**
  * Calling screen ka 📞 — provider ke through call (design doc 17).
  *   manual provider → tel: link khulta hai (mobile / softphone)
+ *   manual + externalDialerUrl → number copy + provider ka panel (wahan se call; API nahi)
  *   api provider    → provider call lagata hai; status webhooks se aata hai (yahan har 2s poll)
  */
 export function DialPanel({
@@ -33,6 +34,7 @@ export function DialPanel({
   const list = useApi<{ sessions: CallSession[] }>('/calling/sessions');
   const [error, setError] = useState<string | null>(null);
   const [dialing, setDialing] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   const sessions = list.data?.sessions ?? [];
@@ -54,10 +56,18 @@ export function DialPanel({
     if (live?.status === 'ANSWERED') setNow(Date.now());
   }, 1000);
 
+  const externalUrl = config.data?.externalDialerUrl;
+
   async function dial(number: 'primary' | 'alternate') {
     setDialing(true);
     setError(null);
+    setCopied(null);
     try {
+      // Clipboard click ke turant baad (await ke baad Safari user-gesture nahi maanta)
+      if (externalUrl) {
+        const to = number === 'alternate' ? alternatePhone : phone;
+        if (to && (await copyText(to))) setCopied(to);
+      }
       const r = await api<{ session: CallSession; dialUrl: string | null }>(
         '/calling/dial',
         { method: 'POST', body: { number } },
@@ -72,6 +82,7 @@ export function DialPanel({
   }
 
   const isApi = config.data?.mode === 'api';
+  const icon = externalUrl ? '📋' : '📞';
 
   return (
     <div className="mt-4 space-y-2">
@@ -82,7 +93,7 @@ export function DialPanel({
           disabled={dialing || Boolean(live)}
           className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 font-mono text-lg font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          📞 {phone}
+          {icon} {phone}
         </button>
         {alternatePhone && (
           <Button
@@ -90,8 +101,18 @@ export function DialPanel({
             onClick={() => dial('alternate')}
             disabled={dialing || Boolean(live)}
           >
-            📞 Alternate {alternatePhone}
+            {icon} Alternate {alternatePhone}
           </Button>
+        )}
+        {externalUrl && (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Open {new URL(externalUrl).hostname} ↗
+          </a>
         )}
         {config.data && (
           <span className="text-xs text-slate-400">
@@ -99,6 +120,16 @@ export function DialPanel({
           </span>
         )}
       </div>
+
+      {copied && (
+        <p
+          role="status"
+          className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-900"
+        >
+          ✓ <span className="font-mono">{copied}</span> copied — paste it in the
+          calling panel, then fill the call form here.
+        </p>
+      )}
 
       {live && (
         <div
@@ -173,4 +204,13 @@ export function DialPanel({
       <ErrorMessage message={error ?? list.error} />
     </div>
   );
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false; // http (non-secure) / permission — number button pe dikh hi raha hai
+  }
 }

@@ -17,7 +17,7 @@ export function createProvider(config: ConfigService): TelephonyProvider {
   const name = config.get<string>('TELEPHONY_PROVIDER', 'manual');
   switch (name) {
     case 'manual':
-      return new ManualProvider();
+      return new ManualProvider(externalDialerUrl(config));
     case 'mock':
       return new MockProvider(config.get<string>('TELEPHONY_WEBHOOK_SECRET'));
     default:
@@ -26,6 +26,23 @@ export function createProvider(config: ConfigService): TelephonyProvider {
         `Unknown TELEPHONY_PROVIDER "${name}" (use: manual, mock)`,
       );
   }
+}
+
+/** TELEPHONY_EXTERNAL_DIALER_URL: sirf https (UI me link banta hai — javascript: / http: nahi) */
+function externalDialerUrl(config: ConfigService): string | undefined {
+  const raw = config.get<string>('TELEPHONY_EXTERNAL_DIALER_URL')?.trim();
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(
+      `TELEPHONY_EXTERNAL_DIALER_URL is not a valid URL: "${raw}"`,
+    );
+  }
+  if (url.protocol !== 'https:')
+    throw new Error('TELEPHONY_EXTERNAL_DIALER_URL must start with https://');
+  return url.toString();
 }
 
 @Module({

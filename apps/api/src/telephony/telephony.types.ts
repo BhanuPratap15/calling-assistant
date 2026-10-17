@@ -61,6 +61,8 @@ export interface TelephonyProvider {
   readonly mode: 'manual' | 'api';
   /** Pehla status jab session banta hai */
   readonly initialStatus: CallSessionStatus;
+  /** manual: bahar ka dialer (provider ka web panel) — UI number copy karke ye link dikhati hai */
+  readonly externalDialerUrl?: string;
   startCall(input: StartCallInput): Promise<StartCallResult>;
   /** Signature verify + body → events. Galat signature → UnauthorizedException */
   parseWebhook(req: WebhookRequest): NormalizedCallEvent[];

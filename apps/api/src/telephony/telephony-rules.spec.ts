@@ -170,6 +170,18 @@ describe('providers', () => {
     expect(() => p.parseWebhook()).toThrow();
   });
 
+  it('manual + external dialer: no tel: link (assistant dials from the provider panel)', async () => {
+    const p = new ManualProvider('https://voice.telecalling.ai/');
+    expect(
+      await p.startCall({
+        sessionId: 's',
+        to: '+919876543210',
+        agent: { id: 'a', name: 'A', phone: null },
+      }),
+    ).toEqual({});
+    expect(p.mode).toBe('manual');
+  });
+
   it('signed JSON parser validates signature and event shape', () => {
     const now = Math.floor(Date.now() / 1000);
     const make = (body: object, secret = 's3') => {

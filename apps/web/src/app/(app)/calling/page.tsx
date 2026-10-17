@@ -20,10 +20,14 @@ import { useApi } from '@/lib/use-api';
  * Phase 10 (ADR 0015):
  *   Save & Stop   → call save, agla customer NAHI, assistant BREAK pe (shift khatam / break)
  *   Stop calling  → bina call ke customer chhodo (dial nahi kiya ho tab) → wapas queue
+ *   Exit calling  → TL / Super Admin: wahi, par dial / number copy ke baad bhi
  */
 export default function CallingPage() {
   const config = useApi<CallConfig>('/call-config');
-  const { refreshUser } = useAuth(); // header ka availability (ON_CALL / AVAILABLE) sync
+  const { user, refreshUser } = useAuth(); // header ka availability (ON_CALL / AVAILABLE) sync
+  // TL / Super Admin dial (number copy) ke baad bhi exit kar sakte hain; assistant ko form bharna hai
+  const canExitAnytime =
+    user?.role === 'TEAM_LEADER' || user?.role === 'SUPER_ADMIN';
   // undefined = abhi load ho raha; null = koi current customer nahi
   const [current, setCurrent] = useState<CurrentAssignment | null | undefined>(
     undefined,
@@ -95,7 +99,9 @@ export default function CallingPage() {
   async function stopCalling() {
     if (
       !window.confirm(
-        'Leave this customer without a call? They go back to the queue and you will be on Break.',
+        canExitAnytime
+          ? 'Exit without saving a call? The customer goes back to the queue and you will be on Break.'
+          : 'Leave this customer without a call? They go back to the queue and you will be on Break.',
       )
     )
       return;
@@ -158,9 +164,13 @@ export default function CallingPage() {
                 variant="ghost"
                 onClick={stopCalling}
                 className="ml-auto text-xs"
-                title="Only before dialling — the customer goes back to the queue"
+                title={
+                  canExitAnytime
+                    ? 'Exit without saving — the customer goes back to the queue'
+                    : 'Only before dialling — the customer goes back to the queue'
+                }
               >
-                ⏹ Stop calling
+                {canExitAnytime ? '⏹ Exit calling' : '⏹ Stop calling'}
               </Button>
             </div>
             {current.campaign?.script && (

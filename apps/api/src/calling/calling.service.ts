@@ -13,11 +13,15 @@ import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ACTIVE_STATUSES } from '../telephony/telephony-rules.js';
 import { TelephonyService } from '../telephony/telephony.service.js';
 import { validateCustomFields } from '../campaigns/campaign-rules.js';
 import { validateCallForm } from './call-form-validation.js';
 import type { CompleteCallDto } from './dto/complete-call.dto.js';
 import { releaseAssignment, type ReleasableAssignment } from './release.js';
+
+/** "Exit" (Stop calling) dial / number copy ke BAAD bhi — assistants ko nahi (unhe form bharna hai) */
+const CAN_EXIT_AFTER_DIAL: AuthUser['role'][] = ['TEAM_LEADER', 'SUPER_ADMIN'];
 
 const clean = (value?: string) => (value?.trim() ? value.trim() : null);
 
@@ -483,10 +487,20 @@ export class CallingService {
       const dials = await tx.callSession.count({
         where: { assignmentId: row.id },
       });
-      if (dials) {
+      // Assistant: dial ke baad form zaroori. TL / Super Admin: kabhi bhi exit (sirf live call ke beech nahi)
+      if (dials && !CAN_EXIT_AFTER_DIAL.includes(actor.role)) {
         throw new ConflictException(
           'You already dialled this customer — save the call form (e.g. "No Answer") instead of stopping',
         );
+      }
+      if (dials) {
+        const live = await tx.callSession.count({
+          where: { assignmentId: row.id, status: { in: ACTIVE_STATUSES } },
+        });
+        if (live)
+          throw new ConflictException(
+            'A call is still in progress — end it before you exit',
+          );
       }
       return releaseAssignment(
         tx,
@@ -498,7 +512,11 @@ export class CallingService {
           staffId: row.staff_id,
           campaignId: row.campaign_id,
         },
-        { actorId: actor.id, reason: 'stopped_by_assistant', note },
+        {
+          actorId: actor.id,
+          reason: dials ? 'stopped_after_dial' : 'stopped_by_assistant',
+          note,
+        },
       );
     });
     await this.setAvailability(actor.id, 'BREAK');

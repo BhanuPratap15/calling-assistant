@@ -261,6 +261,64 @@ describe('Calling workflow — Phase 10 (e2e)', () => {
     await http().post('/api/calling/release').set(as('amit')).expect(409); // ab current hi nahi
   });
 
+  it('Team Leader can exit even after dialling (no form; audited; BREAK)', async () => {
+    const [c] = await makeCustomers(1, 'tl-exit');
+    const created = await http()
+      .post('/api/assignments')
+      .set(as('mgr'))
+      .send({ customerId: c.id, staffId: ids.tl })
+      .expect(201);
+    expect((await start('tl')).body.current.customer.id).toBe(c.id);
+    const dialed = await http()
+      .post('/api/calling/dial')
+      .set(as('tl'))
+      .send({})
+      .expect(200);
+    const sessionId = dialed.body.session.id;
+    // Provider (env) se independent: live call ke beech exit nahi…
+    await prisma.callSession.update({
+      where: { id: sessionId },
+      data: { status: 'ANSWERED', answeredAt: new Date() },
+    });
+    const live = await http()
+      .post('/api/calling/release')
+      .set(as('tl'))
+      .send({})
+      .expect(409);
+    expect(live.body.message).toMatch(/still in progress/);
+    // …call khatam (form bhare bina) → exit
+    await prisma.callSession.update({
+      where: { id: sessionId },
+      data: { status: 'NO_ANSWER', endedAt: new Date() },
+    });
+    await http()
+      .post('/api/calling/release')
+      .set(as('tl'))
+      .send({})
+      .expect(200)
+      .expect(({ body }) => expect(body.result).toBe('requeued'));
+
+    const log = await prisma.auditLog.findFirstOrThrow({
+      where: { action: 'assignment.released', entityId: created.body.id },
+    });
+    expect(log.metadata).toMatchObject({ reason: 'stopped_after_dial' });
+    const me = await http().get('/api/auth/me').set(as('tl')).expect(200);
+    expect(me.body.availability).toBe('BREAK');
+    expect(
+      await prisma.callSession.count({
+        where: { assignmentId: created.body.id },
+      }),
+    ).toBe(1); // attempt record rehta hai
+
+    // Wahi customer wapas TL ki queue me — form save karke saaf karo
+    expect((await start('tl')).body.current.customer.id).toBe(c.id);
+    await http()
+      .post('/api/calling/complete')
+      .set(as('tl'))
+      .send({ ...noAnswer, stop: true })
+      .expect(200);
+  });
+
   it('a manager-assigned customer stays in the same assistant queue after Stop', async () => {
     const [c] = await makeCustomers(1, 'manual');
     const created = await http()

@@ -3,7 +3,10 @@ import { AuditAction } from '../audit/audit.types.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
 /** Bina call save kiye current customer chhodna — kyun? (assignments.release_reason) */
-export type ReleaseReason = 'stopped_by_assistant' | 'assistant_away';
+export type ReleaseReason =
+  | 'stopped_by_assistant'
+  | 'stopped_after_dial' // Team Leader / Super Admin: dial ke baad bhi bina form exit
+  | 'assistant_away';
 
 export interface ReleasableAssignment {
   id: string;

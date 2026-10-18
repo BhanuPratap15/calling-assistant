@@ -61,13 +61,14 @@ export class CategoriesService {
       actorId: string;
     },
   ) {
-    const [customer, categories] = await Promise.all([
-      tx.customer.findUniqueOrThrow({
-        where: { id: args.customerId },
-        select: { categoryId: true, priority: true },
-      }),
-      tx.category.findMany({ where: { isActive: true } }),
-    ]);
+    // tx = ek hi DB connection → ek ke baad ek (Promise.all pe pg warning, pg@9 me error)
+    const customer = await tx.customer.findUniqueOrThrow({
+      where: { id: args.customerId },
+      select: { categoryId: true, priority: true },
+    });
+    const categories = await tx.category.findMany({
+      where: { isActive: true },
+    });
     const target = categoryForRating(args.rating, categories);
     const changed = (target?.id ?? null) !== customer.categoryId;
 

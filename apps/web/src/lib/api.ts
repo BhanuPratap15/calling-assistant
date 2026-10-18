@@ -19,7 +19,11 @@ export class ApiError extends Error {
 }
 
 export const BACKEND_UNREACHABLE_MESSAGE =
-  'Cannot connect to the server (API). Please try again; if it keeps happening, contact your administrator.';
+  'The server is not responding right now. Please try again; if it keeps happening, contact your administrator.';
+
+/** Request browser se nikli hi nahi / beech me toot gayi → zyaadatar staff ka internet (server tak pahunchi hi nahi) */
+export const NETWORK_ERROR_MESSAGE =
+  'Could not reach the server — please check your internet connection and try again.';
 
 interface ApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -42,8 +46,8 @@ export async function api<T = void>(
       credentials: 'same-origin',
     });
   } catch {
-    // Network hi fail (Next.js server bhi band, ya internet nahi)
-    throw new ApiError(0, BACKEND_UNREACHABLE_MESSAGE, true);
+    // Network hi fail — staff ka internet / WiFi drop (server logs me request dikhti hi nahi)
+    throw new ApiError(0, NETWORK_ERROR_MESSAGE, true);
   }
 
   if (!res.ok) {

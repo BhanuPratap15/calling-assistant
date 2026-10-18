@@ -325,14 +325,13 @@ export class CallingService {
         );
       }
 
-      const [outcome, nextAction] = await Promise.all([
-        tx.callOutcome.findFirst({
-          where: { id: dto.outcomeId, isActive: true },
-        }),
-        tx.nextAction.findFirst({
-          where: { id: dto.nextActionId, isActive: true },
-        }),
-      ]);
+      // Transaction = ek hi DB connection → queries ek ke baad ek (Promise.all pe pg warning, pg@9 me error)
+      const outcome = await tx.callOutcome.findFirst({
+        where: { id: dto.outcomeId, isActive: true },
+      });
+      const nextAction = await tx.nextAction.findFirst({
+        where: { id: dto.nextActionId, isActive: true },
+      });
       if (!outcome)
         throw new BadRequestException(
           'outcomeId is not an active call outcome',

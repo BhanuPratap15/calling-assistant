@@ -8,30 +8,19 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import type { CookieOptions, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
-import { AUTH_COOKIE, type AuthUser } from './auth.types.js';
+import {
+  AUTH_COOKIE,
+  authCookieOptions as cookieOptions,
+  type AuthUser,
+} from './auth.types.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
 import { AllowDuringPasswordChange } from './decorators/allow-password-change.decorator.js';
 import { Public } from './decorators/public.decorator.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { SetAvailabilityDto } from './dto/set-availability.dto.js';
-
-/**
- * Cookie settings:
- *  httpOnly  → browser ki JavaScript cookie padh nahi sakti (XSS se token chori nahi)
- *  sameSite  → doosri website se aayi request ke saath cookie nahi jaati (CSRF se bachav)
- *  secure    → sirf HTTPS pe (production default). COOKIE_SECURE=false sirf HTTP pe testing ke liye.
- */
-const cookieOptions = (): CookieOptions => ({
-  httpOnly: true,
-  sameSite: 'lax',
-  secure: process.env.COOKIE_SECURE
-    ? process.env.COOKIE_SECURE === 'true'
-    : process.env.NODE_ENV === 'production',
-  path: '/',
-});
 
 @Controller('auth')
 export class AuthController {

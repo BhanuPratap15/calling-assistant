@@ -32,14 +32,17 @@ const EMPTY: CallFormState = {
 /**
  * Call form (design doc section 6). Kaunsa field zaroori hai — Settings ke rules
  * + chuna hua outcome (connected?) + next action (follow-up?) se LIVE decide hota hai.
+ * inbound: customer ne khud call kiya — ek hi "Save" button (agla customer / break ka sawaal nahi)
  */
 export function CallForm({
   config,
   campaignFields = [],
+  inbound = false,
   onSubmit,
 }: {
   config: CallConfig;
   campaignFields?: CampaignFieldDef[]; // campaign customer ho to extra fields
+  inbound?: boolean;
   onSubmit: (body: Record<string, unknown>) => Promise<void>;
 }) {
   const [form, setForm] = useState<CallFormState>(EMPTY);
@@ -105,7 +108,9 @@ export function CallForm({
       className="space-y-4 rounded-xl border border-slate-200 bg-white shadow-card p-5"
       noValidate
     >
-      <h3 className="font-semibold text-slate-900">Call form</h3>
+      <h3 className="font-semibold text-slate-900">
+        {inbound ? 'Incoming call form' : 'Call form'}
+      </h3>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Call Outcome *">
@@ -250,25 +255,35 @@ export function CallForm({
       )}
       <ErrorMessage message={serverError} />
 
-      <div className="flex gap-3">
+      {inbound ? (
         <Button
           type="submit"
           disabled={saving}
-          className="flex-1 py-3 text-base"
+          className="w-full py-3 text-base"
         >
-          {saving ? 'Saving…' : 'Save & Next →'}
+          {saving ? 'Saving…' : 'Save incoming call ✓'}
         </Button>
-        <Button
-          type="submit"
-          name="stop"
-          variant="secondary"
-          disabled={saving}
-          className="py-3"
-          title="Save the call without opening the next customer (break / end of shift)"
-        >
-          Save & Stop ⏸
-        </Button>
-      </div>
+      ) : (
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="flex-1 py-3 text-base"
+          >
+            {saving ? 'Saving…' : 'Save & Next →'}
+          </Button>
+          <Button
+            type="submit"
+            name="stop"
+            variant="secondary"
+            disabled={saving}
+            className="py-3"
+            title="Save the call without opening the next customer (break / end of shift)"
+          >
+            Save & Stop ⏸
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

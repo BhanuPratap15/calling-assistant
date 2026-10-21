@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { CallForm } from '@/components/calling/call-form';
 import { DialPanel } from '@/components/calling/dial-panel';
@@ -122,6 +123,15 @@ export default function CallingPage() {
       <PageHeader
         title="Calling"
         description="One customer at a time — complete the form to get the next one"
+        actions={
+          // Customer ne khud call kiya (callback) — current customer ko chhue bina form bharo
+          <Link
+            href="/calling/inbound"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-xs hover:border-slate-300 hover:bg-slate-50"
+          >
+            📥 Incoming call
+          </Link>
+        }
       />
       <ErrorMessage message={error ?? config.error} />
       {message && (

@@ -307,6 +307,21 @@ Fields marked \* are always required; others become required according to Settin
 
 Once you have dialled a customer, **Stop calling** is refused: fill the form instead (choose **No Answer** if nobody picked up). This keeps every attempt on record. A released customer goes back to the queue (or stays in your queue if a manager assigned it), so skipping is not possible.
 
+### When a customer calls you back
+
+You called someone, they did not pick up, and later they call you back. Record that call in the CRM too:
+
+1. On the **Calling** screen, press **📥 Incoming call**. Your current customer stays open; nothing is lost.
+2. Type the caller's full number (with or without +91) and press **Find customer**. Their profile and full call history open.
+3. Fill the **Incoming call form** the same way as a normal call form (same mandatory fields) and press **Save incoming call ✓**.
+
+What happens:
+
+- The call appears in the customer's history with a **📥 Incoming** badge.
+- If the customer had an open follow-up (for example "Call Again" after the missed call), it is marked completed, so nobody calls them again for it. You can promise a new follow-up from this form.
+- If the number is not in the CRM, ask your team leader or manager to add the customer, then search again.
+- If the customer is open on someone's Calling screen right now, the form is not shown; that person should save the call.
+
 ### Breaks and end of day
 
 - For a break, use **Save & Stop**, or set your status to **Break** when no customer is open.

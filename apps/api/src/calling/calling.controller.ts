@@ -1,11 +1,16 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { TelephonyService } from '../telephony/telephony.service.js';
 import { CallingService } from './calling.service.js';
 import { DialDto } from './dto/dial.dto.js';
-import { CompleteCallDto, ReleaseCurrentDto } from './dto/complete-call.dto.js';
+import {
+  CompleteCallDto,
+  InboundLookupQueryDto,
+  LogInboundCallDto,
+  ReleaseCurrentDto,
+} from './dto/complete-call.dto.js';
 
 /** Assistant ki calling screen ke APIs. Response me `null` = abhi koi customer nahi. */
 @Roles('ASSISTANT', 'TEAM_LEADER')
@@ -55,5 +60,20 @@ export class CallingController {
   async complete(@CurrentUser() user: AuthUser, @Body() dto: CompleteCallDto) {
     const { call, next } = await this.calling.complete(user, dto);
     return { call, current: next };
+  }
+
+  // GET /api/calling/inbound?phone=… → incoming call: poore number se customer (profile ke saath) ya null
+  @Get('inbound')
+  async findInbound(@Query() query: InboundLookupQueryDto) {
+    return { customer: await this.calling.findInbound(query.phone) };
+  }
+
+  // POST /api/calling/inbound → incoming call ka form save (current customer ko chhue bina)
+  @Post('inbound')
+  async logInbound(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: LogInboundCallDto,
+  ) {
+    return { call: await this.calling.logInbound(user, dto) };
   }
 }

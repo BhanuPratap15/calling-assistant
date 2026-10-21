@@ -180,6 +180,9 @@ export function CustomerProfileView({
                   <span className="text-slate-500">
                     {formatDateTime(call.createdAt)}
                   </span>
+                  {call.direction === 'INBOUND' && (
+                    <Badge tone="green">📥 Incoming</Badge>
+                  )}
                   <Badge tone={call.outcome.isConnected ? 'blue' : 'gray'}>
                     {call.outcome.label}
                   </Badge>

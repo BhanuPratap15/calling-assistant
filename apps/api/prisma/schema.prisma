@@ -329,9 +329,18 @@ model Assignment {
   @@map("assignments")
 }
 
+/// OUTBOUND = humne call kiya (Start Calling flow) · INBOUND = customer ne khud call kiya (callback)
+enum CallDirection {
+  OUTBOUND
+  INBOUND
+
+  @@map("call_direction")
+}
+
 /// Ek call ka record (call form). Customer ki permanent history.
 model Call {
-  id String @id @default(uuid()) @db.Uuid
+  id        String        @id @default(uuid()) @db.Uuid
+  direction CallDirection @default(OUTBOUND)
 
   customerId   String      @map("customer_id") @db.Uuid
   customer     Customer    @relation(fields: [customerId], references: [id])

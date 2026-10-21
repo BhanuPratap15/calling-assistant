@@ -148,9 +148,13 @@ export type AssignmentStatus =
   'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type AssignmentSource = 'AUTO' | 'MANUAL' | 'FOLLOW_UP' | 'DISTRIBUTED';
 
+/** OUTBOUND = humne call kiya · INBOUND = customer ne khud call kiya (callback) */
+export type CallDirection = 'OUTBOUND' | 'INBOUND';
+
 export interface CallRecord {
   id: string;
   createdAt: string;
+  direction: CallDirection;
   userResponse: string | null;
   notes: string | null;
   interestRating: number | null;

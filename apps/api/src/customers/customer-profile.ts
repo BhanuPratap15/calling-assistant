@@ -47,6 +47,7 @@ export const customerProfileInclude = {
     select: {
       id: true,
       createdAt: true,
+      direction: true, // OUTBOUND (humne kiya) / INBOUND (customer ne call back kiya)
       userResponse: true,
       notes: true,
       interestRating: true,

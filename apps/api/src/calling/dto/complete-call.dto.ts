@@ -13,10 +13,10 @@ import {
 } from 'class-validator';
 
 /**
- * "Save & Next" ka body. Kaunsa optional field kab zaroori hai,
+ * Call form ke fields (outbound "Save & Next" + inbound callback dono). Kaunsa optional field kab zaroori hai,
  * ye Settings ke rules decide karte hain (call-form-validation.ts) — DTO sirf format check karta hai.
  */
-export class CompleteCallDto {
+export class CallFormDto {
   @IsUUID()
   outcomeId: string;
 
@@ -43,7 +43,10 @@ export class CompleteCallDto {
   @Type(() => Date) // "2026-10-03T16:00:00+05:30" → Date
   @IsDate()
   followUpAt?: Date;
+}
 
+/** "Save & Next" ka body */
+export class CompleteCallDto extends CallFormDto {
   /** Campaign ke extra fields: { deposit_amount: 5000, game: "Poker" } — service validate karta hai */
   @IsOptional()
   @IsObject()
@@ -53,6 +56,19 @@ export class CompleteCallDto {
   @IsOptional()
   @IsBoolean()
   stop?: boolean;
+}
+
+/** Customer ne khud call kiya (callback) — kis customer ka call log karna hai */
+export class LogInboundCallDto extends CallFormDto {
+  @IsUUID()
+  customerId: string;
+}
+
+/** "Incoming call" screen: number se customer dhundo */
+export class InboundLookupQueryDto {
+  @IsString()
+  @MaxLength(30)
+  phone: string;
 }
 
 /** "Stop calling" (bina call ke current chhodna) — optional wajah, audit me jaati hai */

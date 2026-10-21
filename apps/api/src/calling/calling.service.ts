@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service.js';
 import { AuditAction } from '../audit/audit.types.js';
@@ -10,14 +11,20 @@ import { CallConfigService } from '../call-config/call-config.service.js';
 import { CategoriesService } from '../categories/categories.service.js';
 import { customerProfileInclude } from '../customers/customer-profile.js';
 import { FollowUpsService } from '../follow-ups/follow-ups.service.js';
+import { normalizePhone } from '../common/phone.js';
 import { Prisma } from '../generated/prisma/client.js';
+import type { CallDirection } from '../generated/prisma/enums.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ACTIVE_STATUSES } from '../telephony/telephony-rules.js';
 import { TelephonyService } from '../telephony/telephony.service.js';
 import { validateCustomFields } from '../campaigns/campaign-rules.js';
 import { validateCallForm } from './call-form-validation.js';
-import type { CompleteCallDto } from './dto/complete-call.dto.js';
+import type {
+  CallFormDto,
+  CompleteCallDto,
+  LogInboundCallDto,
+} from './dto/complete-call.dto.js';
 import { releaseAssignment, type ReleasableAssignment } from './release.js';
 
 /** "Exit" (Stop calling) dial / number copy ke BAAD bhi — assistants ko nahi (unhe form bharna hai) */
@@ -32,6 +39,7 @@ const clean = (value?: string) => (value?.trim() ? value.trim() : null);
  *   complete() → "Save & Next": validate → call save → assignment complete → agla customer
  *                ("Save & Stop": stop=true → agla customer NAHI, assistant BREAK pe)
  *   release()  → "Stop calling": bina call ke current chhodo (sirf jab dial nahi kiya) — ADR 0015
+ *   findInbound() / logInbound() → customer ne khud call kiya (callback): number se dhundo → form save
  */
 /** Ek saath kai assistants → unique-constraint takraav pe itni baar dobara (ADR 0014) */
 const MAX_PICK_ATTEMPTS = 10;
@@ -325,126 +333,29 @@ export class CallingService {
         );
       }
 
-      // Transaction = ek hi DB connection → queries ek ke baad ek (Promise.all pe pg warning, pg@9 me error)
-      const outcome = await tx.callOutcome.findFirst({
-        where: { id: dto.outcomeId, isActive: true },
-      });
-      const nextAction = await tx.nextAction.findFirst({
-        where: { id: dto.nextActionId, isActive: true },
-      });
-      if (!outcome)
-        throw new BadRequestException(
-          'outcomeId is not an active call outcome',
-        );
-      if (!nextAction)
-        throw new BadRequestException(
-          'nextActionId is not an active next action',
-        );
-
-      const values = {
-        userResponse: clean(dto.userResponse),
-        notes: clean(dto.notes),
-        interestRating: dto.interestRating ?? null,
-        // follow-up date sirf tab save karo jab action ko chahiye
-        followUpAt: nextAction.requiresFollowUp
-          ? (dto.followUpAt ?? null)
-          : null,
-      };
-      const errors = validateCallForm(values, outcome, nextAction, rules);
-
-      // Campaign custom fields (design doc section 6 "Custom Fields") — campaign ke active fields se
-      const fieldDefs = assignment.campaign_id
-        ? await tx.campaignField.findMany({
-            where: { campaignId: assignment.campaign_id },
-          })
-        : [];
-      const custom = validateCustomFields(fieldDefs, dto.customFields);
-      errors.push(...custom.errors);
-      if (errors.length) {
-        // Next customer release NAHI hoga — current hi khula rahega (design doc section 7)
-        throw new BadRequestException(errors);
-      }
-
-      const now = new Date();
-      const created = await tx.call.create({
-        data: {
+      const created = await this.saveCall(
+        tx,
+        actor,
+        {
           customerId: assignment.customer_id,
-          staffId: actor.id,
           assignmentId: assignment.id,
-          outcomeId: outcome.id,
-          nextActionId: nextAction.id,
-          ...values,
           campaignId: assignment.campaign_id,
-          customFields: Object.keys(custom.clean).length
-            ? custom.clean
-            : undefined,
+          direction: 'OUTBOUND',
         },
-        include: {
-          outcome: { select: { code: true, label: true } },
-          nextAction: { select: { code: true, label: true } },
-        },
-      });
-      await tx.customer.update({
-        where: { id: assignment.customer_id },
-        data: { lastCalledAt: now, callCount: { increment: 1 } },
-      });
-      // Campaign progress (customer beech me campaign se hata diya gaya ho to kuch nahi)
-      if (assignment.campaign_id) {
-        await tx.campaignCustomer.updateMany({
-          where: {
-            campaignId: assignment.campaign_id,
-            customerId: assignment.customer_id,
-          },
-          data: {
-            callCount: { increment: 1 },
-            lastCalledAt: now,
-            lastOutcomeId: outcome.id,
-          },
-        });
-      }
-      // Rating di → latest rating + category engine (category badli to history + priority)
-      if (values.interestRating !== null) {
-        await this.categories.applyRating(tx, {
-          customerId: assignment.customer_id,
-          rating: values.interestRating,
-          callId: created.id,
-          actorId: actor.id,
-        });
-      }
-      // Purana open follow-up complete + (zaroorat ho to) naya follow-up — isi transaction me
-      await this.followUps.onCallSaved(tx, {
-        customerId: assignment.customer_id,
-        callId: created.id,
-        staffId: actor.id,
-        followUpAt: values.followUpAt,
-      });
+        dto,
+        rules,
+      );
       // Is customer pe kiye dial attempts (provider ki duration / recording) → is call se link
       await this.telephony.linkToCall(tx, assignment.id, created.id);
       await tx.assignment.update({
         where: { id: assignment.id },
         data: {
           status: 'COMPLETED',
-          completedAt: now,
+          completedAt: created.createdAt,
           openCustomerId: null, // unique "lock" chhodo
           inProgressStaffId: null,
         },
       });
-      await this.audit.record(
-        {
-          actorId: actor.id,
-          action: AuditAction.CALL_COMPLETED,
-          entityType: 'call',
-          entityId: created.id,
-          metadata: {
-            customerId: assignment.customer_id,
-            outcome: outcome.code,
-            nextAction: nextAction.code,
-            interestRating: values.interestRating,
-            followUpAt: values.followUpAt?.toISOString() ?? null,
-          },
-        },
-        tx,
-      );
       return created;
     });
 
@@ -460,6 +371,188 @@ export class CallingService {
     }
     // Ab agla customer — ye fail ho to bhi call safe hai.
     return { call, next: await this.next(actor) };
+  }
+
+  /**
+   * INCOMING CALL (customer ne khud call kiya — callback). Sirf POORE number se match (phone ya alternate):
+   * assistant poori customer list browse na kar paaye, par jo customer line pe hai uska profile dekh sake.
+   */
+  async findInbound(phoneInput: string) {
+    const phone = normalizePhone(phoneInput);
+    if (!phone) throw new BadRequestException('Enter a valid phone number');
+    return this.prisma.customer.findFirst({
+      where: { OR: [{ phone }, { alternatePhone: phone }] },
+      include: customerProfileInclude,
+    });
+  }
+
+  /**
+   * Incoming call ka form save — assignment ke bina (assistant ka current customer disturb nahi hota).
+   * Wahi rules: mandatory fields, rating → category, open follow-up complete, naya follow-up.
+   * Campaign se nahi judta (campaign progress sirf humari outbound calls se).
+   * Customer abhi kisi ki calling screen pe khula ho → 409 (do log ek saath form na bharein).
+   */
+  async logInbound(actor: AuthUser, dto: LogInboundCallDto) {
+    const rules = await this.callConfig.getRequiredFields();
+    return this.prisma.$transaction(async (tx) => {
+      // Customer lock: isi pal engine use kisi ko de raha ho to wo ruk ke aage badhe
+      const [customer] = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM customers WHERE id = ${dto.customerId}::uuid FOR UPDATE`;
+      if (!customer) throw new NotFoundException('Customer not found');
+      const open = await tx.assignment.findFirst({
+        where: { customerId: customer.id, status: 'IN_PROGRESS' },
+        select: { staffId: true, staff: { select: { name: true } } },
+      });
+      if (open?.staffId === actor.id) {
+        throw new ConflictException(
+          'This is your current customer — save the call form on the Calling screen instead',
+        );
+      }
+      if (open) {
+        throw new ConflictException(
+          `${open.staff.name} has this customer open on their Calling screen right now — ask them to save the call`,
+        );
+      }
+      return this.saveCall(
+        tx,
+        actor,
+        {
+          customerId: customer.id,
+          assignmentId: null,
+          campaignId: null,
+          direction: 'INBOUND',
+        },
+        dto,
+        rules,
+      );
+    });
+  }
+
+  /**
+   * Call form save — outbound (Save & Next) aur inbound (callback) dono ka common hissa:
+   * validate → call → customer summary → campaign progress → rating/category → follow-ups → audit.
+   * Validation fail → BadRequest (transaction rollback, kuch save nahi).
+   */
+  private async saveCall(
+    tx: Prisma.TransactionClient,
+    actor: AuthUser,
+    target: {
+      customerId: string;
+      assignmentId: string | null;
+      campaignId: string | null;
+      direction: CallDirection;
+    },
+    dto: CallFormDto & { customFields?: Record<string, unknown> },
+    rules: Awaited<ReturnType<CallConfigService['getRequiredFields']>>,
+  ) {
+    // Transaction = ek hi DB connection → queries ek ke baad ek (Promise.all pe pg warning, pg@9 me error)
+    const outcome = await tx.callOutcome.findFirst({
+      where: { id: dto.outcomeId, isActive: true },
+    });
+    const nextAction = await tx.nextAction.findFirst({
+      where: { id: dto.nextActionId, isActive: true },
+    });
+    if (!outcome)
+      throw new BadRequestException('outcomeId is not an active call outcome');
+    if (!nextAction)
+      throw new BadRequestException(
+        'nextActionId is not an active next action',
+      );
+
+    const values = {
+      userResponse: clean(dto.userResponse),
+      notes: clean(dto.notes),
+      interestRating: dto.interestRating ?? null,
+      // follow-up date sirf tab save karo jab action ko chahiye
+      followUpAt: nextAction.requiresFollowUp ? (dto.followUpAt ?? null) : null,
+    };
+    const errors = validateCallForm(values, outcome, nextAction, rules);
+
+    // Campaign custom fields (design doc section 6 "Custom Fields") — campaign ke active fields se
+    const fieldDefs = target.campaignId
+      ? await tx.campaignField.findMany({
+          where: { campaignId: target.campaignId },
+        })
+      : [];
+    const custom = validateCustomFields(fieldDefs, dto.customFields);
+    errors.push(...custom.errors);
+    if (errors.length) {
+      // Outbound: next customer release NAHI hoga — current hi khula rahega (design doc section 7)
+      throw new BadRequestException(errors);
+    }
+
+    const now = new Date();
+    const created = await tx.call.create({
+      data: {
+        customerId: target.customerId,
+        staffId: actor.id,
+        assignmentId: target.assignmentId,
+        direction: target.direction,
+        outcomeId: outcome.id,
+        nextActionId: nextAction.id,
+        ...values,
+        campaignId: target.campaignId,
+        customFields: Object.keys(custom.clean).length
+          ? custom.clean
+          : undefined,
+      },
+      include: {
+        outcome: { select: { code: true, label: true } },
+        nextAction: { select: { code: true, label: true } },
+      },
+    });
+    await tx.customer.update({
+      where: { id: target.customerId },
+      data: { lastCalledAt: now, callCount: { increment: 1 } },
+    });
+    // Campaign progress (customer beech me campaign se hata diya gaya ho to kuch nahi)
+    if (target.campaignId) {
+      await tx.campaignCustomer.updateMany({
+        where: {
+          campaignId: target.campaignId,
+          customerId: target.customerId,
+        },
+        data: {
+          callCount: { increment: 1 },
+          lastCalledAt: now,
+          lastOutcomeId: outcome.id,
+        },
+      });
+    }
+    // Rating di → latest rating + category engine (category badli to history + priority)
+    if (values.interestRating !== null) {
+      await this.categories.applyRating(tx, {
+        customerId: target.customerId,
+        rating: values.interestRating,
+        callId: created.id,
+        actorId: actor.id,
+      });
+    }
+    // Purana open follow-up complete + (zaroorat ho to) naya follow-up — isi transaction me
+    await this.followUps.onCallSaved(tx, {
+      customerId: target.customerId,
+      callId: created.id,
+      staffId: actor.id,
+      followUpAt: values.followUpAt,
+    });
+    await this.audit.record(
+      {
+        actorId: actor.id,
+        action: AuditAction.CALL_COMPLETED,
+        entityType: 'call',
+        entityId: created.id,
+        metadata: {
+          customerId: target.customerId,
+          direction: target.direction,
+          outcome: outcome.code,
+          nextAction: nextAction.code,
+          interestRating: values.interestRating,
+          followUpAt: values.followUpAt?.toISOString() ?? null,
+        },
+      },
+      tx,
+    );
+    return created;
   }
 
   /**

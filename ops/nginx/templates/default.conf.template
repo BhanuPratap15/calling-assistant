@@ -1,6 +1,8 @@
 # =====================================================================
-# Nginx — HTTPS + reverse proxy. ${SERVER_NAME} container start pe .env.production se bharta hai.
-#   /api/*  → api:4000 (NestJS)      baaki sab → web:3000 (Next.js)
+# Nginx — HTTPS + reverse proxy. Production me host ka nginx (systemd), container nahi:
+#   sudo ./ops/nginx/install-host-nginx.sh   → ${SERVER_NAME} .env.production se bhar ke /etc/nginx/conf.d/crm.conf
+#   /api/*  → 127.0.0.1:4000 (api, NestJS)      baaki sab → 127.0.0.1:3000 (web, Next.js)
+# api / web ke ports compose me sirf 127.0.0.1 pe publish hain — bahar se seedha nahi khulte.
 # =====================================================================
 
 # Rate limits (har IP): login 20/min, baaki API 50/sec (office NAT pe sab ek IP — generous)
@@ -8,11 +10,9 @@ limit_req_zone $binary_remote_addr zone=login:10m rate=20r/m;
 limit_req_zone $binary_remote_addr zone=api:10m rate=50r/s;
 limit_req_status 429;
 
-# Docker ka DNS: api/web container recreate (deploy) pe naya IP aata hai. Bina "resolve" ke Nginx
-# start pe mila purana IP pakde rehta hai → har deploy ke baad 502 jab tak nginx reload na ho.
-resolver 127.0.0.11 valid=10s ipv6=off;
-upstream crm_api { zone crm_api 64k; server api:4000 resolve; keepalive 16; }
-upstream crm_web { zone crm_web 64k; server web:3000 resolve; keepalive 16; }
+# Fixed localhost ports: container recreate (deploy) pe IP badle to bhi nginx reload ki zaroorat nahi
+upstream crm_api { server 127.0.0.1:4000; keepalive 16; }
+upstream crm_web { server 127.0.0.1:3000; keepalive 16; }
 
 # HTTP → HTTPS (Let's Encrypt challenge ko chhod ke)
 server {

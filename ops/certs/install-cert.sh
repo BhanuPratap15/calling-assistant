@@ -9,5 +9,5 @@ cp -L "$SRC/fullchain.pem" "$SRC/privkey.pem" "$APP_DIR/ops/certs/"
 chmod 644 "$APP_DIR/ops/certs/fullchain.pem"
 chmod 640 "$APP_DIR/ops/certs/privkey.pem"
 # Stack chal raha ho to Nginx naya cert padh le (downtime nahi)
-cd "$APP_DIR" && docker compose -f docker-compose.prod.yml --env-file .env.production exec -T nginx nginx -s reload 2>/dev/null || true
+if systemctl is-active --quiet nginx 2>/dev/null; then nginx -t && systemctl reload nginx; fi
 echo "certificate installed from $SRC"

@@ -33,8 +33,8 @@ Logs me query string / passwords / phone **nahi** jaate (sirf path + status + us
 
 1. `crm ps` — kaun sa container `unhealthy` / `exited`?
 2. `curl -sk https://localhost/api/health` — `database` / `scheduler` kya bol raha hai?
-3. Nginx: `crm logs --tail=50 nginx` (certificate expire? `openssl x509 -enddate -noout -in ops/certs/fullchain.pem`)
-4. Restart: `crm restart api web nginx`
+3. Nginx (host, systemd): `systemctl status nginx`, `journalctl -u nginx -n 50`, `tail -50 /var/log/nginx/error.log` (certificate expire? `openssl x509 -enddate -noout -in ops/certs/fullchain.pem`)
+4. Restart: `crm restart api web` + `sudo nginx -t && sudo systemctl reload nginx`
 
 ### `"database":"down"` (health 503)
 

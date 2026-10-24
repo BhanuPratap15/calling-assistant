@@ -1,12 +1,12 @@
 # Deployment guide — production server pe CRM chalana
 
-Ek Linux server (VPS) + Docker. Saari services `docker-compose.prod.yml` me hain:
+Ek Linux server (VPS) + Docker. App services `docker-compose.prod.yml` me; **Nginx host pe systemd service** hai (container nahi):
 
 ```
-Internet ──► Nginx (80 → 443, HTTPS, security headers, rate limit)
-               ├── /api/*  ──► api (NestJS)  ──► postgres (data)
+Internet ──► Nginx [host, systemd] (80 → 443, HTTPS, security headers, rate limit)
+               ├── /api/*  ──► 127.0.0.1:4000 api (NestJS)  ──► postgres (data)
                │                              └─► redis (scheduler, import queue)
-               └── /*      ──► web (Next.js)
+               └── /*      ──► 127.0.0.1:3000 web (Next.js)
              migrate (har deploy pe pehle DB migrations) · backup (roz pg_dump → ./backups)
 ```
 
@@ -54,7 +54,7 @@ Passwords me sirf letters + numbers (`openssl rand -hex` wala theek hai). `.env.
 
 ## 4. HTTPS certificate (Let's Encrypt, free)
 
-Pehli baar (stack abhi band hai, port 80 free):
+Pehli baar (nginx abhi band hai, port 80 free):
 
 ```bash
 sudo apt install -y certbot
@@ -63,10 +63,16 @@ sudo certbot certonly --standalone -d crm.yourcompany.com -m you@yourcompany.com
 ls ops/certs   # fullchain.pem  privkey.pem
 ```
 
-Renewal (har ~60 din, automatic `certbot.timer`) ke liye webroot pe switch — stack chalte hue port 80 Nginx ke paas hai:
+Nginx (host, systemd) install + config — `/etc/nginx/conf.d/crm.conf` banata hai, `nginx -t`, enable:
 
 ```bash
-sudo certbot reconfigure --cert-name crm.yourcompany.com --webroot -w /opt/calling-crm/ops/certbot-www
+sudo ./ops/nginx/install-host-nginx.sh
+```
+
+Renewal (har ~60 din, automatic `certbot.timer`) ke liye webroot pe switch — nginx chalte hue port 80 uske paas hai:
+
+```bash
+sudo certbot reconfigure --cert-name crm.yourcompany.com --webroot -w /var/www/certbot
 sudo certbot renew --dry-run   # test
 ```
 
@@ -75,6 +81,7 @@ sudo certbot renew --dry-run   # test
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.production ps     # sab "healthy" / migrate "exited (0)"
+sudo systemctl start nginx
 curl -s https://crm.yourcompany.com/api/health                             # "database":"up","scheduler":"up"
 
 # Pehla Super Admin (.env.production ka SEED_ADMIN_*) — pehle login pe password badalna zaroori
@@ -120,6 +127,7 @@ health check me `version` = naya sha. Naya version healthy na ho → workflow **
 ```bash
 cd /opt/calling-crm && git pull
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+sudo ./ops/nginx/install-host-nginx.sh   # sirf jab ops/nginx/templates badla ho
 ```
 
 ## Checklist — go-live se pehle

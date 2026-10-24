@@ -6,7 +6,8 @@
 # =====================================================================
 set -eu
 cd "$(dirname "$0")/../.."
-COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.smoke"
+# Production me nginx host pe (systemd) hai; yahan wahi config container me (profile bundled-nginx)
+COMPOSE="docker compose --profile bundled-nginx -f docker-compose.prod.yml --env-file .env.smoke"
 fail() { echo "❌ $*"; $COMPOSE ps -a; $COMPOSE logs --tail=80; exit 1; }
 ok() { echo "✅ $*"; }
 

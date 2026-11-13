@@ -6,6 +6,8 @@ export interface JwtPayload {
   sub: string; // staff id ("subject" — JWT standard naam)
   role: StaffRole;
   ver: number; // staff.tokenVersion — badla (logout / password change) → ye token bekaar
+  org?: string; // client (organization) id — doosre client ke domain pe ye token nahi chalta
+  typ?: 'platform'; // platform admin token (staff routes pe reject)
 }
 
 /** Login hua staff — guard isko request.user me daalta hai */

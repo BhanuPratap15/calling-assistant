@@ -9,6 +9,7 @@ import {
   type NewNotification,
 } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import { isEffectivelyAvailable } from '../presence/presence.js';
 import { pickEscalationTarget } from './escalation.js';
 
@@ -68,7 +69,7 @@ export class FollowUpSchedulerService {
       const rows = await tx.$queryRaw<FollowUpRow[]>`
         SELECT f.id, f.owner_id, f.due_at, c.name AS customer_name, f.customer_id
         FROM follow_ups f JOIN customers c ON c.id = f.customer_id
-        WHERE f.status = 'PENDING' AND f.reminder_sent_at IS NULL
+        WHERE f.organization_id = ${currentOrgId()}::uuid AND f.status = 'PENDING' AND f.reminder_sent_at IS NULL
           AND f.due_at > ${now}
           AND f.due_at <= ${now}::timestamptz + make_interval(mins => ${timing.reminderMinutesBefore}::int)
         ORDER BY f.due_at LIMIT ${BATCH}
@@ -99,7 +100,7 @@ export class FollowUpSchedulerService {
       const rows = await tx.$queryRaw<FollowUpRow[]>`
         SELECT f.id, f.owner_id, f.due_at, c.name AS customer_name, f.customer_id
         FROM follow_ups f JOIN customers c ON c.id = f.customer_id
-        WHERE f.status = 'PENDING' AND f.due_notified_at IS NULL AND f.due_at <= ${now}
+        WHERE f.organization_id = ${currentOrgId()}::uuid AND f.status = 'PENDING' AND f.due_notified_at IS NULL AND f.due_at <= ${now}
         ORDER BY f.due_at LIMIT ${BATCH}
         FOR UPDATE OF f SKIP LOCKED`;
       if (!rows.length) return 0;
@@ -135,7 +136,7 @@ export class FollowUpSchedulerService {
       >`
         SELECT f.id, f.owner_id, f.due_at, f.overdue_notified_at, c.name AS customer_name, f.customer_id
         FROM follow_ups f JOIN customers c ON c.id = f.customer_id
-        WHERE f.status = 'PENDING'
+        WHERE f.organization_id = ${currentOrgId()}::uuid AND f.status = 'PENDING'
           AND COALESCE(f.escalated_at, f.due_at)
               <= ${now}::timestamptz - make_interval(mins => ${timing.gracePeriodMinutes}::int)
         ORDER BY f.due_at LIMIT ${BATCH}

@@ -7,6 +7,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import { redisConnection } from '../common/redis.js';
+import {
+  currentOrgId,
+  runInOrg,
+  runUnscoped,
+} from '../tenancy/tenant-context.js';
 import { ImportsService } from './imports.service.js';
 
 export const IMPORT_QUEUE = 'imports';
@@ -17,7 +22,8 @@ export const IMPORT_QUEUE = 'imports';
  *   Redis on (normal)        → BullMQ queue "imports" + worker (concurrency 1)
  *   SCHEDULER_ENABLED=false  → same process me turant (tests / Redis ke bina dev)
  *
- * Queue me sirf batchId jaata hai — data DB me hai (DB = source of truth).
+ * Queue me sirf batchId + orgId jaata hai — data DB me hai (DB = source of truth).
+ * Worker job us client (org) ke context me chalata hai.
  * Server restart → QUEUED / PROCESSING batches dobara queue (processBatch idempotent hai).
  */
 @Injectable()
@@ -42,27 +48,33 @@ export class ImportRunner implements OnApplicationBootstrap, OnModuleDestroy {
     });
     this.worker = new Worker(
       IMPORT_QUEUE,
-      async (job) => this.imports.processBatch(job.data.batchId as string),
+      async (job) =>
+        runInOrg(job.data.orgId as string, () =>
+          this.imports.processBatch(job.data.batchId as string),
+        ),
       { connection, concurrency: 1 },
     );
     this.worker.on('error', (e) => this.logger.error('Import worker error', e));
   }
 
   async onApplicationBootstrap() {
-    const pending = await this.imports.pendingBatchIds();
-    for (const id of pending) await this.enqueue(id);
+    const pending = await runUnscoped(() => this.imports.pendingBatches());
+    for (const b of pending)
+      await runInOrg(b.organizationId, () => this.enqueue(b.id));
     if (pending.length)
       this.logger.log(`Re-queued ${pending.length} unfinished import(s)`);
   }
 
+  /** Request (ya runInOrg) ke andar call karo — current client job ke saath jaata hai */
   async enqueue(batchId: string): Promise<void> {
+    const orgId = currentOrgId();
     if (this.queue) {
-      await this.queue.add('import', { batchId }, { jobId: batchId });
+      await this.queue.add('import', { batchId, orgId }, { jobId: batchId });
       return;
     }
     // Redis nahi → isi process me, request ke baad (response turant jaata hai)
     const run = new Promise<void>((resolve) => setImmediate(resolve))
-      .then(() => this.imports.processBatch(batchId))
+      .then(() => runInOrg(orgId, () => this.imports.processBatch(batchId)))
       .finally(() => this.inline.delete(run));
     this.inline.add(run);
   }

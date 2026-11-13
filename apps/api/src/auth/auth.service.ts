@@ -10,6 +10,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { AuditAction } from '../audit/audit.types.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LoginLimiter } from '../security/login-limiter.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import type { Availability } from '../generated/prisma/enums.js';
 import type { AuthUser, JwtPayload } from './auth.types.js';
 import { hashPassword, verifyPassword } from './password.js';
@@ -47,15 +48,16 @@ export class AuthService {
   }> {
     const normalizedEmail = email.trim().toLowerCase();
     // Brute-force: is IP + email pe bahut galat try → kuch der ke liye band (password check bhi nahi)
-    const wait =
-      this.limiter.retryAfterMs(ip, normalizedEmail) ?? this.ipWait(ip);
+    const limitKey = `${currentOrgId()}:${normalizedEmail}`; // har client ka alag counter
+    const wait = this.limiter.retryAfterMs(ip, limitKey) ?? this.ipWait(ip);
     if (wait !== null) {
       throw new HttpException(
         `Too many failed login attempts. Try again in ${Math.ceil(wait / 60_000)} minute(s).`,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    const staff = await this.prisma.staff.findUnique({
+    // Email har client (organization) me unique — current org ka staff (tenant extension)
+    const staff = await this.prisma.staff.findFirst({
       where: { email: normalizedEmail },
     });
 
@@ -65,7 +67,7 @@ export class AuthService {
     );
     // Ek hi generic message — "email galat" ya "password galat" alag se nahi batate
     if (!staff || !passwordOk || !staff.isActive) {
-      this.limiter.fail(ip, normalizedEmail);
+      this.limiter.fail(ip, limitKey);
       this.limiter.fail(ip, '*', 'ip');
       // Failed login bhi record — brute-force / galat access attempts pakadne ke liye
       await this.audit.record({
@@ -85,7 +87,7 @@ export class AuthService {
       });
       throw new UnauthorizedException('Invalid email or password');
     }
-    this.limiter.succeed(ip, normalizedEmail);
+    this.limiter.succeed(ip, limitKey);
 
     await this.prisma.$transaction(async (tx) => {
       const now = new Date();
@@ -139,6 +141,7 @@ export class AuthService {
       sub: staff.id,
       role: staff.role,
       ver: staff.tokenVersion,
+      org: currentOrgId(),
     };
     const accessToken = await this.jwt.signAsync(payload);
     // Token kab expire hoga (JWT ke andar "exp" = seconds) — cookie bhi tab tak

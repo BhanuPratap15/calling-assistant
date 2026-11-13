@@ -68,6 +68,8 @@ services:
       <<: *app-env
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +98,13 @@ services:
       TELEPHONY_WEBHOOK_SECRET: ${TELEPHONY_WEBHOOK_SECRET:-}
       TELEPHONY_EXTERNAL_DIALER_URL: ${TELEPHONY_EXTERNAL_DIALER_URL:-}
       TELEPHONY_MOCK_AUTOPLAY: 'false'
+      # White-label platform (docs/WHITE-LABEL.md)
+      PLATFORM_BASE_DOMAIN: ${PLATFORM_BASE_DOMAIN:-}
+      PLATFORM_SERVER_IP: ${PLATFORM_SERVER_IP:-}
+      PLATFORM_CNAME_TARGET: ${PLATFORM_CNAME_TARGET:-}
+      PLATFORM_SYNC_TOKEN: ${PLATFORM_SYNC_TOKEN:-}
+      PLATFORM_HOSTS: ${PLATFORM_HOSTS:-}
+      TENANT_FALLBACK_SLUG: ${TENANT_FALLBACK_SLUG-default}
     ports: ['127.0.0.1:4000:4000'] # sirf host nginx ke liye (bahar se band)
     depends_on:
       migrate:
@@ -126,6 +135,7 @@ services:
       SERVER_NAME: ${SERVER_NAME}
     volumes:
       - ./ops/nginx/templates:/etc/nginx/templates:ro # SERVER_NAME envsubst → conf.d
+      - ./ops/nginx/templates/crm-locations.conf:/etc/nginx/snippets/crm-locations.conf:ro
       - ${CERTS_DIR:-./ops/certs}:/etc/nginx/certs:ro # fullchain.pem + privkey.pem
       - ./ops/certbot-www:/var/www/certbot:ro # Let's Encrypt HTTP challenge (host ka certbot yahan likhta hai)
     depends_on:

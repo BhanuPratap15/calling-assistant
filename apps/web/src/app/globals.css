@@ -7,7 +7,10 @@
  *                Components me ye `indigo-*` naam se use hota hai
  *                (bg-indigo-600 …) — isliye rang badalna = sirf ye values.
  *  --gray-*    = neutral (text, borders, backgrounds) → `slate-*` classes.
- *  --sidebar-* = left menu (dark).
+ *  --sidebar-* = left menu (dark / light / brand).
+ *
+ * WHITE-LABEL: har client ka rang root layout `lib/theme.ts` se :root pe override karta hai
+ * (platform panel → Branding). Yahan ki values = default (violet + dark sidebar).
  *
  * Naya theme try karna ho: neeche brand ki 11 values badlo (50 = sabse halka,
  * 950 = sabse gehra). Ready palettes: uicolors.app / tailwindcss.com/docs/colors
@@ -47,6 +50,12 @@
   --sidebar-text-active: #ffffff;
   --sidebar-hover: rgb(255 255 255 / 0.05);
   --sidebar-active: rgb(134 98 246 / 0.16);
+  --sidebar-title: #ffffff;
+  --sidebar-muted: rgb(255 255 255 / 0.3);
+  --sidebar-icon: rgb(255 255 255 / 0.4);
+  --sidebar-icon-active: var(--brand-300);
+  --sidebar-hover-text: #ffffff;
+  --sidebar-rule: rgb(255 255 255 / 0.06);
 
   /* Page */
   --page-bg: #f6f7fb;
@@ -130,7 +139,7 @@
   }
 }
 
-/* Header "Addaplay": neeche se aata hai + gradient dheere-dheere chalta rehta hai */
+/* Header brand name (white-label): neeche se aata hai + gradient dheere-dheere chalta rehta hai */
 @keyframes brand-in {
   from {
     opacity: 0;

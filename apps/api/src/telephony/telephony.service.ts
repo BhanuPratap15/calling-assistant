@@ -13,6 +13,9 @@ import { AuditAction } from '../audit/audit.types.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId, runInOrg } from '../tenancy/tenant-context.js';
+import { TenantResolver } from '../tenancy/tenant-resolver.service.js';
+import { ManualProvider } from './providers/manual.provider.js';
 import { ACTIVE_STATUSES, applyEvent } from './telephony-rules.js';
 import {
   TELEPHONY_PROVIDER,
@@ -56,10 +59,25 @@ export class TelephonyService implements OnModuleDestroy {
     private readonly audit: AuditService,
     private readonly config: ConfigService,
     @Inject(TELEPHONY_PROVIDER) private readonly provider: TelephonyProvider,
+    private readonly tenants: TenantResolver,
   ) {}
 
-  info() {
-    const { name, mode, externalDialerUrl } = this.provider;
+  /**
+   * Current client ka dialer (platform panel → Dialer):
+   *   PLATFORM        → hamara integrated provider (server ka TELEPHONY_PROVIDER)
+   *   EXTERNAL_PANEL  → client ka apna dialer panel (number copy + panel link)
+   *   PHONE           → tel: link (mobile / softphone)
+   */
+  async providerForOrg(): Promise<TelephonyProvider> {
+    const org = await this.tenants.byOrgId(currentOrgId());
+    if (!org || org.dialerMode === 'PLATFORM') return this.provider;
+    if (org.dialerMode === 'EXTERNAL_PANEL' && org.externalDialerUrl)
+      return new ManualProvider(org.externalDialerUrl);
+    return new ManualProvider();
+  }
+
+  async info() {
+    const { name, mode, externalDialerUrl } = await this.providerForOrg();
     return externalDialerUrl
       ? { provider: name, mode, externalDialerUrl }
       : { provider: name, mode };
@@ -86,6 +104,7 @@ export class TelephonyService implements OnModuleDestroy {
         ? assignment.customer.alternatePhone
         : assignment.customer.phone;
     if (!to) throw new BadRequestException('Customer has no alternate phone');
+    const provider = await this.providerForOrg();
 
     const staff = await this.prisma.staff.findUniqueOrThrow({
       where: { id: actor.id },
@@ -94,7 +113,7 @@ export class TelephonyService implements OnModuleDestroy {
 
     // Ek waqt ek hi live call (double click / do tabs se do calls nahi)
     const session = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM assignments WHERE id = ${assignment.id}::uuid FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM assignments WHERE id = ${assignment.id}::uuid AND organization_id = ${currentOrgId()}::uuid FOR UPDATE`;
       const live = await tx.callSession.findFirst({
         where: { assignmentId: assignment.id, status: { in: ACTIVE_STATUSES } },
         select: { id: true },
@@ -105,12 +124,12 @@ export class TelephonyService implements OnModuleDestroy {
         );
       const created = await tx.callSession.create({
         data: {
-          provider: this.provider.name,
+          provider: provider.name,
           customerId: assignment.customer.id,
           staffId: actor.id,
           assignmentId: assignment.id,
           toNumber: to,
-          status: this.provider.initialStatus,
+          status: provider.initialStatus,
         },
         select: { id: true },
       });
@@ -122,7 +141,7 @@ export class TelephonyService implements OnModuleDestroy {
           entityId: created.id,
           metadata: {
             customerId: assignment.customer.id,
-            provider: this.provider.name,
+            provider: provider.name,
             number,
           },
         },
@@ -134,7 +153,7 @@ export class TelephonyService implements OnModuleDestroy {
     // Provider ko network call transaction ke BAHAR (slow API pe DB lock na rahe)
     let result;
     try {
-      result = await this.provider.startCall({
+      result = await provider.startCall({
         sessionId: session.id,
         to,
         agent: staff,
@@ -145,10 +164,7 @@ export class TelephonyService implements OnModuleDestroy {
         where: { id: session.id },
         data: { status: 'FAILED', endedAt: new Date(), failReason: reason },
       });
-      this.logger.error(
-        `startCall failed (${this.provider.name})`,
-        error as Error,
-      );
+      this.logger.error(`startCall failed (${provider.name})`, error as Error);
       throw new BadGatewayException(`Calling provider error: ${reason}`);
     }
 
@@ -211,54 +227,15 @@ export class TelephonyService implements OnModuleDestroy {
       unknown: 0,
     };
     for (const event of events) {
-      const outcome = await this.prisma.$transaction(async (tx) => {
-        const [session] = await tx.$queryRaw<{ id: string }[]>`
-          SELECT id FROM call_sessions
-          WHERE provider = ${this.provider.name} AND provider_call_id = ${event.providerCallId}
-          FOR UPDATE`;
-        if (!session) return 'unknown' as const;
-
-        if (event.eventId) {
-          const seen = await tx.callEvent.findUnique({
-            where: {
-              provider_eventId: {
-                provider: this.provider.name,
-                eventId: event.eventId,
-              },
-            },
-            select: { id: true },
-          });
-          if (seen) return 'duplicate' as const;
-        }
-        const state = await tx.callSession.findUniqueOrThrow({
-          where: { id: session.id },
-          select: {
-            status: true,
-            answeredAt: true,
-            endedAt: true,
-            durationSec: true,
-            recordingUrl: true,
-          },
-        });
-        const patch = applyEvent(state, event);
-        if (patch)
-          await tx.callSession.update({
-            where: { id: session.id },
-            data: patch,
-          });
-        await tx.callEvent.create({
-          data: {
-            sessionId: session.id,
-            provider: this.provider.name,
-            eventId: event.eventId,
-            type: event.type,
-            payload: event.payload as Prisma.InputJsonValue,
-            applied: patch !== null,
-            occurredAt: event.occurredAt,
-          },
-        });
-        return patch ? ('applied' as const) : ('stale' as const);
-      });
+      // Webhook ka koi client context nahi — session jis client ka hai, usi ke context me
+      const [owner] = await this.prisma.$queryRaw<
+        { organization_id: string }[]
+      >`
+        SELECT organization_id FROM call_sessions
+        WHERE provider = ${this.provider.name} AND provider_call_id = ${event.providerCallId}`;
+      const outcome = !owner
+        ? ('unknown' as const)
+        : await runInOrg(owner.organization_id, () => this.applyEvent(event));
       if (outcome === 'applied') result.applied++;
       else if (outcome === 'stale') result.stale++;
       else if (outcome === 'duplicate') result.duplicates++;
@@ -270,6 +247,59 @@ export class TelephonyService implements OnModuleDestroy {
       }
     }
     return result;
+  }
+
+  /** Ek event: session row lock → duplicate check → status machine */
+  private applyEvent(event: NormalizedCallEvent) {
+    return this.prisma.$transaction(async (tx) => {
+      const [session] = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM call_sessions
+        WHERE provider = ${this.provider.name} AND provider_call_id = ${event.providerCallId}
+          AND organization_id = ${currentOrgId()}::uuid
+        FOR UPDATE`;
+      if (!session) return 'unknown' as const;
+
+      if (event.eventId) {
+        const seen = await tx.callEvent.findUnique({
+          where: {
+            provider_eventId: {
+              provider: this.provider.name,
+              eventId: event.eventId,
+            },
+          },
+          select: { id: true },
+        });
+        if (seen) return 'duplicate' as const;
+      }
+      const state = await tx.callSession.findUniqueOrThrow({
+        where: { id: session.id },
+        select: {
+          status: true,
+          answeredAt: true,
+          endedAt: true,
+          durationSec: true,
+          recordingUrl: true,
+        },
+      });
+      const patch = applyEvent(state, event);
+      if (patch)
+        await tx.callSession.update({
+          where: { id: session.id },
+          data: patch,
+        });
+      await tx.callEvent.create({
+        data: {
+          sessionId: session.id,
+          provider: this.provider.name,
+          eventId: event.eventId,
+          type: event.type,
+          payload: event.payload as Prisma.InputJsonValue,
+          applied: patch !== null,
+          occurredAt: event.occurredAt,
+        },
+      });
+      return patch ? ('applied' as const) : ('stale' as const);
+    });
   }
 
   // ---------------- mock autoplay (sirf dev / demo) ----------------

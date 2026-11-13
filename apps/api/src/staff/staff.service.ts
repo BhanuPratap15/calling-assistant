@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,6 +13,8 @@ import { hashPassword } from '../auth/password.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
 import type { StaffRole } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
+import { TenantResolver } from '../tenancy/tenant-resolver.service.js';
 import type { CreateStaffDto } from './dto/create-staff.dto.js';
 import type { ListStaffQueryDto } from './dto/list-staff-query.dto.js';
 import type { UpdateStaffDto } from './dto/update-staff.dto.js';
@@ -23,11 +26,24 @@ export class StaffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly tenants: TenantResolver,
   ) {}
+
+  /** Plan ki limit (platform panel → Max staff): itne active users se zyada nahi */
+  private async assertStaffLimit() {
+    const org = await this.tenants.byOrgId(currentOrgId());
+    if (!org?.maxStaff) return;
+    const active = await this.prisma.staff.count({ where: { isActive: true } });
+    if (active >= org.maxStaff)
+      throw new ConflictException(
+        `User limit reached — your plan allows ${org.maxStaff} active users. Deactivate someone or contact support.`,
+      );
+  }
 
   async create(dto: CreateStaffDto, actor: AuthUser) {
     this.assertCanManage(actor, dto.role);
     if (dto.teamId) await this.assertActiveTeam(dto.teamId);
+    await this.assertStaffLimit();
     const passwordHash = await hashPassword(dto.password);
 
     return withUniqueConflict(
@@ -103,6 +119,8 @@ export class StaffService {
       );
     }
     if (dto.teamId) await this.assertActiveTeam(dto.teamId);
+    if (dto.isActive === true && !target.isActive)
+      await this.assertStaffLimit();
 
     // TEAM_LEADER nahi raha (role badla ya deactivate hua) → uski teams se leader hatao.
     const leavesLeaderRole =

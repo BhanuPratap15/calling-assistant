@@ -5,6 +5,31 @@ import type { SVGProps } from 'react';
  *   <Icon name="phone" className="h-4 w-4" />
  */
 const PATHS = {
+  building: (
+    <>
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 22a10 10 0 1 1 10-10c0 2.5-2 4-4.5 4H16a2 2 0 0 0-1.5 3.3A1.6 1.6 0 0 1 12 22z" />
+      <circle cx="7.5" cy="10.5" r="1" />
+      <circle cx="12" cy="7.5" r="1" />
+      <circle cx="16.5" cy="10.5" r="1" />
+    </>
+  ),
+  shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  external: (
+    <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+  ),
   dashboard: (
     <>
       <rect x="3" y="3" width="7" height="9" rx="1.5" />

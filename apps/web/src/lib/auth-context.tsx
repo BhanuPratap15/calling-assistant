@@ -32,13 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
-  // /login pe session check ki zaroorat nahi (proxy ne confirm kiya ki cookie nahi hai)
-  const [loading, setLoading] = useState(pathname !== '/login');
+  // /login pe session check ki zaroorat nahi (proxy ne confirm kiya ki cookie nahi hai).
+  // /platform/* = platform panel — staff session nahi, apna alag login.
+  const skipSession = pathname === '/login' || pathname.startsWith('/platform');
+  const [loading, setLoading] = useState(!skipSession);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Page load pe: cookie valid hai? → backend se user lao
   useEffect(() => {
-    if (pathname === '/login') return;
+    if (skipSession) return;
     api<AuthUser>('/auth/me')
       .then(setUser)
       .catch(async (error: unknown) => {

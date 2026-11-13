@@ -1,0 +1,40 @@
+# ADR 0016 — Multi-tenant white-label platform
+
+- **Status:** Accepted
+- **Date:** 2026-11-13
+
+## Context
+
+Product ab clients ko **as a service** bechna hai: har client ka apna brand (naam, logo, rang), apna domain,
+apna dialer choice — aur hum (platform) ek jagah se sab clients bana / chala sakein. Pehle system single-client tha
+(ek database = ek company).
+
+## Decisions
+
+| Topic              | Decision                                                                                                                                                                           | Reason                                                                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tenancy model      | **Ek database, har table me `organization_id`** (shared schema)                                                                                                                    | Ek deploy, ek backup, naya client = ek row (seconds me). DB-per-client = har client ka alag stack / migration — chhote clients ke liye mehenga |
+| Isolation (Prisma) | `PrismaService` = client **+ tenant extension**: har tenant table ki query me `organizationId = current org` khud lagta hai (where / create / createMany / upsert / nested create) | Service code wahi rehta hai; filter bhoolna mumkin nahi                                                                                        |
+| Context            | `AsyncLocalStorage` (`tenancy/tenant-context.ts`). Request: `TenantMiddleware` Host → org. Jobs: `runInOrg(orgId, …)`. Platform: `runUnscoped`                                     | Context na ho to query **error** deti hai (galat client ka data dikhne se behtar)                                                              |
+| Fail-safe (DB)     | `organization_id` ka DB default `current_setting('app.tenant_id')` — app kabhi set nahi karta, isliye agar code org dena bhoole to INSERT **fail**                                 | Row kabhi galti se kisi aur client me nahi jaati                                                                                               |
+| Raw SQL            | `$queryRaw` pe extension nahi lagta → har raw query me `organization_id = ${currentOrgId()}` khud (engine, reports, scheduler, distribute, categories)                             | Calling engine / reports ke critical paths                                                                                                     |
+| RLS kyun nahi      | Postgres RLS + per-connection setting **Prisma ke findUnique batching** ke saath galat client ka context le sakta hai (do requests ek tick me)                                     | Extension per-call org lagata hai — batching-safe (unit + e2e tests)                                                                           |
+| Uniques            | email / phone / externalId / codes / names / settings key → **per organization** (`@@unique([organizationId, x])`)                                                                 | Do clients ka same customer phone / same staff email ho sakta hai                                                                              |
+| Webhooks           | Provider call ID global unique; webhook pe session dhoondh ke **usi session ke org** me apply                                                                                      | Provider ko client ka pata nahi hota                                                                                                           |
+| Scheduler          | Har tick: saare ACTIVE orgs, har ek apne settings ke saath (`runInOrg`). Ek org ka error baaki ko nahi rokta                                                                       | Follow-up timing / workflow per client                                                                                                         |
+| Host → client      | `organization_domains.hostname` exact → `<slug>.PLATFORM_BASE_DOMAIN` → `TENANT_FALLBACK_SLUG`                                                                                     | Custom domain + free sub-domain; fallback = purana single-client setup bina badlaav chalta rahe                                                |
+| Tokens             | Staff JWT me `org`; doosre client ke host pe reject. Platform admin token (`typ: platform`) alag cookie `platform_token`, staff routes pe reject                                   | Cookie host-scoped hai, phir bhi token chura ke doosre domain pe na chale                                                                      |
+| Platform admins    | Alag table `platform_admins` (+ `platform_audit_logs`)                                                                                                                             | Client ke Super Admin se bilkul alag — client ka admin kabhi doosra client nahi dekh sakta                                                     |
+| Branding           | Org pe: brand name, tagline, logo / favicon (data URL, ≤300 KB, DB me), theme preset ya custom hex, sidebar (dark/light/brand), login style, support contact                       | CDN / file storage ki zaroorat nahi; logo chhota hota hai                                                                                      |
+| Theme apply        | Web root layout (server) host se `/api/branding` laata hai → `:root` CSS variables (`lib/theme.ts`) → pehli paint se client ka rang                                                | Koi "flash" nahi; components `indigo-*` classes hi use karte hain (= `--brand-*`)                                                              |
+| Dialer per client  | `dialerMode`: PLATFORM (hamara integrated provider) / EXTERNAL_PANEL (client ka dialer link) / PHONE (tel:)                                                                        | Brochure ka Option A / Option B                                                                                                                |
+| Plan limit         | `maxStaff` — active users ki limit (staff create / reactivate pe 409)                                                                                                              | Plan ke hisaab se billing                                                                                                                      |
+| Suspend            | Status SUSPENDED → saari API 403 (sirf branding chalti hai), sab tokens revoke                                                                                                     | Payment pending — data delete nahi                                                                                                             |
+| SSL for domains    | Host pe `ops/platform/sync-domains.sh` (cron): API se domains → DNS check → certbot webroot → `tenant-<host>.conf` → reload → status API ko                                        | Panel se domain add = baaki automatic. Container ke andar certbot / nginx control nahi kar sakte                                               |
+| Existing data      | Migration: ek "default" org (brand **Addaplay**), saara purana data usme. Purane tokens (bina `org`) chalte rahte hain                                                             | Deploy pe koi downtime / re-login nahi                                                                                                         |
+
+## Consequences
+
+- Naya tenant table banao → `organizationId` field (+ `TENANT_MODELS` me naam). Naya raw SQL → org filter khud.
+- Client ka data hard-delete abhi nahi (sirf suspend). Zaroorat pe script (FK order — `test/platform-tenancy.e2e-spec.ts` ka `purgeOrg`).
+- Per-client provider credentials (client ka apna API dialer) — jab provider adapter banega tab org-level config.

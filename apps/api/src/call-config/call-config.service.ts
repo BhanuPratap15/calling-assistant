@@ -6,6 +6,7 @@ import type { AuthUser } from '../auth/auth.types.js';
 import { withUniqueConflict } from '../common/prisma-errors.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import {
   CALLING_WORKFLOW_KEY,
   DEFAULT_CALLING_WORKFLOW,
@@ -28,6 +29,11 @@ import type {
 } from './dto/call-config.dto.js';
 
 const ORDER = [{ sortOrder: 'asc' as const }, { label: 'asc' as const }];
+
+/** Settings har client ki alag — primary key (organizationId, key) */
+const settingKey = (key: string) => ({
+  organizationId_key: { organizationId: currentOrgId(), key },
+});
 
 @Injectable()
 export class CallConfigService {
@@ -66,7 +72,7 @@ export class CallConfigService {
 
   async getRequiredFields(): Promise<RequiredFieldsConfig> {
     const row = await this.prisma.systemSetting.findUnique({
-      where: { key: REQUIRED_FIELDS_KEY },
+      where: settingKey(REQUIRED_FIELDS_KEY),
     });
     // DB value + defaults (naya field add ho to purani setting me missing na rahe)
     return {
@@ -77,7 +83,7 @@ export class CallConfigService {
 
   async getFollowUpTiming(): Promise<FollowUpTimingConfig> {
     const row = await this.prisma.systemSetting.findUnique({
-      where: { key: FOLLOW_UP_TIMING_KEY },
+      where: settingKey(FOLLOW_UP_TIMING_KEY),
     });
     return {
       ...DEFAULT_FOLLOW_UP_TIMING,
@@ -94,7 +100,7 @@ export class CallConfigService {
     };
     await this.prisma.$transaction(async (tx) => {
       await tx.systemSetting.upsert({
-        where: { key: FOLLOW_UP_TIMING_KEY },
+        where: settingKey(FOLLOW_UP_TIMING_KEY),
         create: {
           key: FOLLOW_UP_TIMING_KEY,
           value: { ...value },
@@ -120,7 +126,7 @@ export class CallConfigService {
 
   async getCallingWorkflow(): Promise<CallingWorkflowConfig> {
     const row = await this.prisma.systemSetting.findUnique({
-      where: { key: CALLING_WORKFLOW_KEY },
+      where: settingKey(CALLING_WORKFLOW_KEY),
     });
     return {
       ...DEFAULT_CALLING_WORKFLOW,
@@ -136,7 +142,7 @@ export class CallConfigService {
     };
     await this.prisma.$transaction(async (tx) => {
       await tx.systemSetting.upsert({
-        where: { key: CALLING_WORKFLOW_KEY },
+        where: settingKey(CALLING_WORKFLOW_KEY),
         create: {
           key: CALLING_WORKFLOW_KEY,
           value: { ...value },
@@ -265,7 +271,7 @@ export class CallConfigService {
     await this.prisma.$transaction(async (tx) => {
       // upsert = hai to update, nahi to create
       await tx.systemSetting.upsert({
-        where: { key: REQUIRED_FIELDS_KEY },
+        where: settingKey(REQUIRED_FIELDS_KEY),
         create: {
           key: REQUIRED_FIELDS_KEY,
           value: { ...value },

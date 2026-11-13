@@ -12,6 +12,7 @@ import { normalizePhone } from '../common/phone.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import type {
   ConfirmImportDto,
   ListImportRowsQueryDto,
@@ -385,13 +386,13 @@ export class ImportsService {
   }
 
   /** Server restart ke baad adhoore imports (QUEUED / PROCESSING) — dobara queue karne ke liye */
-  async pendingBatchIds(): Promise<string[]> {
-    const rows = await this.prisma.importBatch.findMany({
+  /** Restart ke baad adhoore imports — saare clients ke (unscoped context me chalao) */
+  async pendingBatches(): Promise<{ id: string; organizationId: string }[]> {
+    return this.prisma.importBatch.findMany({
       where: { status: { in: ['QUEUED', 'PROCESSING'] } },
-      select: { id: true },
+      select: { id: true, organizationId: true },
       orderBy: { confirmedAt: 'asc' },
     });
-    return rows.map((r) => r.id);
   }
 
   // ---------------- 3) background processing ----------------
@@ -525,7 +526,7 @@ export class ImportsService {
             UPDATE import_rows AS r
             SET status = 'IMPORTED'::import_row_status, customer_id = v.customer_id
             FROM unnest(${rowIds}::uuid[], ${customerIds}::uuid[]) AS v(row_id, customer_id)
-            WHERE r.id = v.row_id`;
+            WHERE r.id = v.row_id AND r.organization_id = ${currentOrgId()}::uuid`;
         }
         if (skipped.length) {
           await tx.importRow.updateMany({

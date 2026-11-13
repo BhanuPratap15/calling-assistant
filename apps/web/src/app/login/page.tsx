@@ -2,9 +2,10 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, type FormEvent } from 'react';
-import { Icon } from '@/components/ui/icons';
+import { BrandMark } from '@/components/brand-mark';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useBranding } from '@/lib/branding-context';
 
 function LoginForm() {
   const { login } = useAuth();
@@ -99,29 +100,116 @@ function LoginForm() {
   );
 }
 
+/** Support contact (client ne platform panel me diya ho) */
+function SupportLine() {
+  const brand = useBranding();
+  const contact = [brand.supportEmail, brand.supportPhone].filter(Boolean);
+  if (!contact.length) return null;
+  return (
+    <p className="mt-6 text-center text-xs text-slate-500">
+      Need help? {contact.join(' · ')}
+    </p>
+  );
+}
+
+function FormBlock() {
+  const brand = useBranding();
+  if (brand.status === 'NOT_FOUND') {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700"
+      >
+        <p className="font-semibold text-slate-900">
+          No workspace at this address
+        </p>
+        <p className="mt-1">
+          Please check the link you were given, or contact your administrator.
+        </p>
+      </div>
+    );
+  }
+  if (brand.status === 'SUSPENDED') {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"
+      >
+        <p className="font-semibold">This workspace is currently suspended.</p>
+        <p className="mt-1">
+          Please contact your administrator
+          {brand.supportEmail ? ` (${brand.supportEmail})` : ''}.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        Welcome back
+      </h1>
+      <p className="mb-8 mt-1.5 text-sm text-slate-500">
+        Sign in to {brand.brandName} to continue
+      </p>
+      {/* useSearchParams ke liye Suspense zaroori hai (Next.js rule) */}
+      <Suspense>
+        <LoginForm />
+      </Suspense>
+    </>
+  );
+}
+
 export default function LoginPage() {
+  const brand = useBranding(); // white-label: client ka naam / logo / layout
+  const year = new Date().getFullYear();
+
+  if (brand.loginStyle === 'centered') {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+        <div className="pointer-events-none absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-indigo-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-[32rem] w-[32rem] rounded-full bg-indigo-600/15 blur-3xl" />
+        <div className="relative w-full max-w-md animate-fade-up">
+          <div className="mb-6 flex flex-col items-center text-center">
+            <BrandMark size={56} />
+            <p className="mt-3 text-xl font-semibold tracking-tight text-slate-900">
+              {brand.brandName}
+            </p>
+            {brand.tagline && (
+              <p className="mt-1 text-sm text-slate-500">{brand.tagline}</p>
+            )}
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-pop">
+            <FormBlock />
+          </div>
+          <SupportLine />
+          <p className="mt-4 text-center text-xs text-slate-400">
+            © {year} {brand.brandName}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       {/* Brand panel */}
-      <div className="relative hidden overflow-hidden bg-[var(--sidebar-bg)] lg:flex lg:flex-col lg:justify-between lg:p-12">
+      <div className="relative hidden overflow-hidden bg-[linear-gradient(160deg,var(--brand-950)_0%,var(--brand-900)_55%,var(--brand-800)_100%)] lg:flex lg:flex-col lg:justify-between lg:p-12">
         <div className="pointer-events-none absolute -left-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-indigo-600/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 right-0 h-[30rem] w-[30rem] rounded-full bg-fuchsia-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 right-0 h-[30rem] w-[30rem] rounded-full bg-indigo-400/15 blur-3xl" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(rgb(255_255_255/0.06)_1px,transparent_1px)] [background-size:22px_22px]" />
 
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-700 text-white shadow-lg shadow-indigo-900/50 ring-1 ring-white/15">
-            <Icon name="phone" className="h-5 w-5" />
-          </div>
+          <BrandMark size={40} />
           <span className="text-lg font-semibold tracking-tight text-white">
-            Calling CRM
+            {brand.brandName}
           </span>
         </div>
 
         <div className="relative max-w-md animate-fade-up">
           <h2 className="text-4xl font-semibold leading-tight tracking-tight text-white">
-            Every call counts.
+            {brand.tagline ?? 'Every call counts.'}
             <br />
-            <span className="bg-gradient-to-r from-indigo-300 to-fuchsia-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent">
               Never miss a follow-up.
             </span>
           </h2>
@@ -144,7 +232,7 @@ export default function LoginPage() {
         </div>
 
         <p className="relative text-xs text-white/40">
-          © {new Date().getFullYear()} Calling CRM
+          © {year} {brand.brandName}
         </p>
       </div>
 
@@ -152,23 +240,13 @@ export default function LoginPage() {
       <div className="flex items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-sm animate-fade-up">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-700 text-white shadow-lg shadow-indigo-500/30">
-              <Icon name="phone" className="h-5 w-5" />
-            </div>
+            <BrandMark size={40} />
             <span className="text-lg font-semibold tracking-tight">
-              Calling CRM
+              {brand.brandName}
             </span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Welcome back
-          </h1>
-          <p className="mb-8 mt-1.5 text-sm text-slate-500">
-            Sign in to your account to continue
-          </p>
-          {/* useSearchParams ke liye Suspense zaroori hai (Next.js rule) */}
-          <Suspense>
-            <LoginForm />
-          </Suspense>
+          <FormBlock />
+          <SupportLine />
         </div>
       </div>
     </div>

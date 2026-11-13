@@ -128,7 +128,7 @@ describe('Audit log (e2e)', () => {
   });
 
   it('does not write an update entry when nothing changed', async () => {
-    const staff = await prisma.staff.findUniqueOrThrow({
+    const staff = await prisma.staff.findFirstOrThrow({
       where: { email: email('amit') },
     });
     await http()
@@ -141,7 +141,7 @@ describe('Audit log (e2e)', () => {
   });
 
   it('records password reset without any password value', async () => {
-    const staff = await prisma.staff.findUniqueOrThrow({
+    const staff = await prisma.staff.findFirstOrThrow({
       where: { email: email('amit') },
     });
     await http()

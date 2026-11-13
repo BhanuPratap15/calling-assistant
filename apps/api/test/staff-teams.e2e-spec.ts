@@ -46,7 +46,7 @@ describe('Staff & Teams management (e2e)', () => {
       ],
     });
     managerId = (
-      await prisma.staff.findUniqueOrThrow({ where: { email: email('mgr') } })
+      await prisma.staff.findFirstOrThrow({ where: { email: email('mgr') } })
     ).id;
     superToken = await login(email('super'));
     managerToken = await login(email('mgr'));
@@ -260,7 +260,7 @@ describe('Staff & Teams management (e2e)', () => {
 
     // SUPER_ADMIN sabko manage kar sakta hai, par khud ko deactivate nahi (lockout)
     const superId = (
-      await prisma.staff.findUniqueOrThrow({ where: { email: email('super') } })
+      await prisma.staff.findFirstOrThrow({ where: { email: email('super') } })
     ).id;
     await http()
       .patch(`/api/staff/${superId}`)

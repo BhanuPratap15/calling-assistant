@@ -10,7 +10,7 @@ import { hashPassword } from './password.js';
 describe('AuthService', () => {
   let service: AuthService;
   const prismaMock = {
-    staff: { findUnique: vi.fn(), update: vi.fn() },
+    staff: { findFirst: vi.fn(), update: vi.fn() },
     // $transaction(fn) → fn ko isi mock ke saath chala do
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prismaMock)),
   };
@@ -23,6 +23,12 @@ describe('AuthService', () => {
 
   beforeAll(async () => {
     passwordHash = await hashPassword('Correct@123');
+    // Login ek client (organization) ke andar hota hai — test me implicit org
+    process.env.TENANT_IMPLICIT_ORG_ID = 'org-1';
+  });
+
+  afterAll(() => {
+    delete process.env.TENANT_IMPLICIT_ORG_ID;
   });
 
   beforeEach(async () => {
@@ -51,18 +57,19 @@ describe('AuthService', () => {
   });
 
   it('returns token and user for correct credentials', async () => {
-    prismaMock.staff.findUnique.mockResolvedValue(activeStaff());
+    prismaMock.staff.findFirst.mockResolvedValue(activeStaff());
 
     const result = await service.login('  AMIT@crm.local ', 'Correct@123');
 
     // email normalize hua (trim + lowercase)
-    expect(prismaMock.staff.findUnique).toHaveBeenCalledWith({
+    expect(prismaMock.staff.findFirst).toHaveBeenCalledWith({
       where: { email: 'amit@crm.local' },
     });
     expect(jwtMock.signAsync).toHaveBeenCalledWith({
       sub: 'staff-1',
       role: 'ASSISTANT',
       ver: 4, // tokenVersion token me jaata hai (logout / password change pe purane token bekaar)
+      org: 'org-1', // client id — doosre client ke domain pe token nahi chalta
     });
     expect(result).toEqual({
       accessToken: 'signed-token',
@@ -83,7 +90,7 @@ describe('AuthService', () => {
   });
 
   it('rejects wrong password', async () => {
-    prismaMock.staff.findUnique.mockResolvedValue(activeStaff());
+    prismaMock.staff.findFirst.mockResolvedValue(activeStaff());
     await expect(service.login('amit@crm.local', 'wrong')).rejects.toThrow(
       UnauthorizedException,
     );
@@ -101,14 +108,14 @@ describe('AuthService', () => {
   });
 
   it('rejects unknown email', async () => {
-    prismaMock.staff.findUnique.mockResolvedValue(null);
+    prismaMock.staff.findFirst.mockResolvedValue(null);
     await expect(service.login('nobody@crm.local', 'x')).rejects.toThrow(
       UnauthorizedException,
     );
   });
 
   it('rejects deactivated staff even with correct password', async () => {
-    prismaMock.staff.findUnique.mockResolvedValue({
+    prismaMock.staff.findFirst.mockResolvedValue({
       ...activeStaff(),
       isActive: false,
     });
@@ -118,7 +125,7 @@ describe('AuthService', () => {
   });
 
   it('locks an IP + email after repeated failures (429), even with the right password', async () => {
-    prismaMock.staff.findUnique.mockResolvedValue(activeStaff());
+    prismaMock.staff.findFirst.mockResolvedValue(activeStaff());
     for (let i = 0; i < 3; i++) {
       await expect(
         service.login('amit@crm.local', 'wrong', '9.9.9.9'),

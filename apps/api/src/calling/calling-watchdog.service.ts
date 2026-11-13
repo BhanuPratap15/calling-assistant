@@ -7,6 +7,7 @@ import {
   type NewNotification,
 } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import { ACTIVE_STATUSES } from '../telephony/telephony-rules.js';
 import { releaseAssignment, type ReleasableAssignment } from './release.js';
 
@@ -81,7 +82,8 @@ export class CallingWatchdogService {
       >`
         SELECT a.id, a.staff_id, c.name AS customer_name
         FROM assignments a JOIN customers c ON c.id = a.customer_id
-        WHERE a.status = 'IN_PROGRESS' AND a.stale_notified_at IS NULL
+        WHERE a.organization_id = ${currentOrgId()}::uuid
+          AND a.status = 'IN_PROGRESS' AND a.stale_notified_at IS NULL
           AND a.started_at <= ${now}::timestamptz - make_interval(mins => ${minutes}::int)
         ORDER BY a.started_at LIMIT ${BATCH}
         FOR UPDATE OF a SKIP LOCKED`;
@@ -119,7 +121,8 @@ export class CallingWatchdogService {
         FROM assignments a
         JOIN customers c ON c.id = a.customer_id
         JOIN staff s ON s.id = a.staff_id
-        WHERE a.status = 'IN_PROGRESS'
+        WHERE a.organization_id = ${currentOrgId()}::uuid
+          AND a.status = 'IN_PROGRESS'
           AND a.started_at <= ${now}::timestamptz - make_interval(mins => ${minutes}::int)
           AND (s.availability IN ('BREAK', 'OFFLINE') OR s.last_seen_at IS NULL
                OR s.last_seen_at < ${now}::timestamptz - make_interval(mins => ${presenceTimeoutMinutes}::int))

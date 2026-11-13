@@ -3,6 +3,10 @@
 #   sudo ./ops/nginx/install-host-nginx.sh   → ${SERVER_NAME} .env.production se bhar ke /etc/nginx/conf.d/crm.conf
 #   /api/*  → 127.0.0.1:4000 (api, NestJS)      baaki sab → 127.0.0.1:3000 (web, Next.js)
 # api / web ke ports compose me sirf 127.0.0.1 pe publish hain — bahar se seedha nahi khulte.
+#
+# White-label: har client domain ka apna server block — /etc/nginx/conf.d/tenant-<host>.conf
+# (ops/platform/sync-domains.sh banata hai, tenant.conf.template se). Common rules:
+# /etc/nginx/snippets/crm-locations.conf
 # =====================================================================
 
 # Rate limits (har IP): login 20/min, baaki API 50/sec (office NAT pe sab ek IP — generous)
@@ -14,16 +18,18 @@ limit_req_status 429;
 upstream crm_api { server 127.0.0.1:4000; keepalive 16; }
 upstream crm_web { server 127.0.0.1:3000; keepalive 16; }
 
-# HTTP → HTTPS (Let's Encrypt challenge ko chhod ke)
+# Port 80 — KISI BHI domain ke liye: Let's Encrypt challenge (naye client domains ka SSL bhi)
+# + baaki sab HTTPS pe redirect
 server {
-    listen 80;
-    server_name ${SERVER_NAME};
+    listen 80 default_server;
+    server_name _;
     server_tokens off;
 
     location /.well-known/acme-challenge/ { root /var/www/certbot; }
     location / { return 301 https://$host$request_uri; }
 }
 
+# Main domain (platform / pehla client)
 server {
     listen 443 ssl;
     http2 on;
@@ -36,45 +42,5 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
 
-    client_max_body_size 12m; # import file max 10 MB
-    gzip on;
-    gzip_types text/css application/javascript application/json image/svg+xml text/csv;
-
-    # Security headers (browser ko) — API ke apne helmet headers neeche hide, duplicate na hon
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "DENY" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
-
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-
-    location = /api/auth/login {
-        limit_req zone=login burst=20 nodelay;
-        proxy_hide_header Strict-Transport-Security;
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header X-Frame-Options;
-        proxy_hide_header Content-Security-Policy;
-        proxy_pass http://crm_api;
-    }
-
-    location /api/ {
-        limit_req zone=api burst=200 nodelay;
-        proxy_read_timeout 120s; # 20k rows import preview
-        proxy_hide_header Strict-Transport-Security;
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header X-Frame-Options;
-        proxy_hide_header Content-Security-Policy;
-        proxy_pass http://crm_api;
-    }
-
-    location / {
-        proxy_pass http://crm_web;
-    }
+    include /etc/nginx/snippets/crm-locations.conf;
 }

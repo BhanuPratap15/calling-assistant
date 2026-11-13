@@ -115,7 +115,7 @@ describe('Auth & RBAC (e2e)', () => {
 
   it('blocks a deactivated staff even with a previously valid token', async () => {
     const { body } = await login(assistant.email, assistant.password);
-    await prisma.staff.update({
+    await prisma.staff.updateMany({
       where: { email: assistant.email },
       data: { isActive: false },
     });

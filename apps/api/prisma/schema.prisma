@@ -63,19 +63,175 @@ enum Priority {
   @@map("priority")
 }
 
+// =====================================================================
+// PLATFORM (white-label / SaaS) — ek hi system, kai clients (organizations).
+// Har client ka data alag (organization_id), apna brand, theme, domain aur dialer.
+// Platform admins (aap) /platform panel se clients banate / manage karte hain.
+// =====================================================================
+
+enum OrganizationStatus {
+  ACTIVE // login + calling chalu
+  SUSPENDED // login band (data safe) — e.g. payment pending
+
+  @@map("organization_status")
+}
+
+/// Calling kaise hogi (client ka choice — brochure ka "Option A / Option B")
+enum DialerMode {
+  PLATFORM // hamara integrated dialer (server ka TELEPHONY_PROVIDER)
+  EXTERNAL_PANEL // client ka apna dialer panel — CRM number copy karta hai + panel ka link
+  PHONE // tel: link — mobile / softphone se call
+
+  @@map("dialer_mode")
+}
+
+enum DomainType {
+  SUBDOMAIN // <slug>.<PLATFORM_BASE_DOMAIN>
+  CUSTOM // client ka apna domain (crm.client.com)
+
+  @@map("domain_type")
+}
+
+enum DomainStatus {
+  PENDING // DNS / SSL ka wait (sync script certificate banayegi)
+  ACTIVE // HTTPS live
+  FAILED // certificate nahi bana (DNS galat?) — error dekho
+
+  @@map("domain_status")
+}
+
+model Organization {
+  id     String             @id @default(uuid()) @db.Uuid
+  name   String // company ka legal / internal naam
+  slug   String             @unique // URL-safe: subdomain + pehchaan ("acme")
+  status OrganizationStatus @default(ACTIVE)
+
+  // ---- Branding (white-label) ----
+  brandName    String  @map("brand_name") // header / login / browser tab pe
+  tagline      String? // login page pe chhota text
+  logoUrl      String? @map("logo_url") // data:image/... (chhota) — header + login
+  faviconUrl   String? @map("favicon_url") // browser tab icon (data:image/...)
+  themePreset  String  @default("violet") @map("theme_preset") // violet | blue | emerald | ...
+  primaryColor String? @map("primary_color") // #RRGGBB — preset ki jagah custom rang
+  sidebarStyle String  @default("dark") @map("sidebar_style") // dark | light | brand
+  loginStyle   String  @default("split") @map("login_style") // split | centered
+  supportEmail String? @map("support_email")
+  supportPhone String? @map("support_phone")
+
+  // ---- Dialer ----
+  dialerMode        DialerMode @default(PLATFORM) @map("dialer_mode")
+  externalDialerUrl String?    @map("external_dialer_url") // EXTERNAL_PANEL: https://...
+
+  // ---- Plan / limits ----
+  plan     String? // "Starter", "Pro" ... (sirf label)
+  maxStaff Int?    @map("max_staff") // null = unlimited
+
+  // ---- Client contact (platform ke liye) ----
+  contactName  String? @map("contact_name")
+  contactEmail String? @map("contact_email")
+  contactPhone String? @map("contact_phone")
+  notes        String?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  domains           OrganizationDomain[]
+  staff             Staff[]
+  teams             Team[]
+  customers         Customer[]
+  auditLogs         AuditLog[]
+  callOutcomes      CallOutcome[]
+  nextActions       NextAction[]
+  settings          SystemSetting[]
+  assignments       Assignment[]
+  calls             Call[]
+  followUps         FollowUp[]
+  notifications     Notification[]
+  categories        Category[]
+  categoryChanges   CustomerCategoryChange[]
+  tags              Tag[]
+  customerTags      CustomerTag[]
+  campaigns         Campaign[]
+  campaignCustomers CampaignCustomer[]
+  campaignStaff     CampaignStaff[]
+  campaignTeams     CampaignTeam[]
+  campaignFields    CampaignField[]
+  importBatches     ImportBatch[]
+  importRows        ImportRow[]
+  callSessions      CallSession[]
+  callEvents        CallEvent[]
+
+  @@map("organizations")
+}
+
+/// Kis web address pe kaunsa client khulta hai (Host header → organization)
+model OrganizationDomain {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  hostname       String       @unique // lowercase, port ke bina: "crm.acme.com"
+  type           DomainType
+  status         DomainStatus @default(PENDING)
+  isPrimary      Boolean      @default(false) @map("is_primary")
+  error          String? // sync script ka aakhri error
+  checkedAt      DateTime?    @map("checked_at") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([organizationId])
+  @@map("organization_domains")
+}
+
+/// Platform ke admins (aap / aapki team) — client ke staff se bilkul alag login
+model PlatformAdmin {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  isActive     Boolean   @default(true) @map("is_active")
+  tokenVersion Int       @default(0) @map("token_version")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  auditLogs PlatformAuditLog[]
+
+  @@map("platform_admins")
+}
+
+/// Platform panel me kisne kya kiya (client banaya, branding badli, suspend ...)
+model PlatformAuditLog {
+  id             String         @id @default(uuid()) @db.Uuid
+  actorId        String?        @map("actor_id") @db.Uuid
+  actor          PlatformAdmin? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  organizationId String?        @map("organization_id") @db.Uuid // kis client pe (FK nahi — history bachi rahe)
+  action         String
+  changes        Json?
+  metadata       Json?
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([organizationId, createdAt])
+  @@index([createdAt])
+  @@map("platform_audit_logs")
+}
+
 // ---------------------------------------------------------------------
 // Staff — CRM me LOGIN karne wale log (assistants, TL, managers, admins)
 // Note: jinko call kiya jaata hai (customers) wo alag table hoga (Step 1.5)
 // ---------------------------------------------------------------------
 model Staff {
-  id           String       @id @default(uuid()) @db.Uuid
-  name         String
-  email        String       @unique
-  phone        String?
-  passwordHash String       @map("password_hash") // plain password KABHI save nahi hota
-  role         StaffRole    @default(ASSISTANT)
-  availability Availability @default(OFFLINE)
-  isActive     Boolean      @default(true) @map("is_active") // delete ki jagah deactivate (history bachi rahe)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String
+  email          String
+  phone          String?
+  passwordHash   String       @map("password_hash") // plain password KABHI save nahi hota
+  role           StaffRole    @default(ASSISTANT)
+  availability   Availability @default(OFFLINE)
+  isActive       Boolean      @default(true) @map("is_active") // delete ki jagah deactivate (history bachi rahe)
 
   // Security (Phase 9)
   tokenVersion       Int     @default(0) @map("token_version") // badla → saare purane login tokens bekaar (logout / password change)
@@ -110,8 +266,10 @@ model Staff {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, email])
   @@index([teamId])
   @@index([role, availability]) // "kaunse assistants AVAILABLE hain" query fast hogi
+  @@index([organizationId])
   @@map("staff")
 }
 
@@ -119,10 +277,14 @@ model Staff {
 // Team — assistants ka group, ek Team Leader ke under
 // ---------------------------------------------------------------------
 model Team {
-  id          String  @id @default(uuid()) @db.Uuid
-  name        String  @unique
-  description String?
-  isActive    Boolean @default(true) @map("is_active")
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  isActive       Boolean      @default(true) @map("is_active")
 
   leaderId String? @map("leader_id") @db.Uuid
   leader   Staff?  @relation("TeamLeader", fields: [leaderId], references: [id], onDelete: SetNull)
@@ -134,7 +296,9 @@ model Team {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, name])
   @@index([leaderId])
+  @@index([organizationId])
   @@map("teams")
 }
 
@@ -143,10 +307,14 @@ model Team {
 // Design doc me inhe "users" kaha gaya hai; code me "customers" taaki staff se confusion na ho.
 // ---------------------------------------------------------------------
 model Customer {
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String         @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   id             String         @id @default(uuid()) @db.Uuid
-  externalId     String?        @unique @map("external_id") // casino platform ki user ID (import/match ke liye)
+  externalId     String?        @map("external_id") // casino platform ki user ID (import/match ke liye)
   name           String
-  phone          String         @unique // E.164 format me normalize: +919876543210 → duplicate check pakka
+  phone          String // E.164 format me normalize: +919876543210 → duplicate check pakka
   alternatePhone String?        @map("alternate_phone")
   email          String?
   status         CustomerStatus @default(ACTIVE)
@@ -178,10 +346,13 @@ model Customer {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, externalId])
+  @@unique([organizationId, phone])
   @@index([status, priority]) // "call karne layak, high priority pehle" query fast
   @@index([name])
   @@index([status, lastCalledAt, priority, createdAt]) // assignment engine ki query
   @@index([categoryId])
+  @@index([organizationId, status, priority])
   @@map("customers")
 }
 
@@ -190,7 +361,11 @@ model Customer {
 // APPEND-ONLY: sirf naye rows bante hain; update/delete ki koi API nahi.
 // ---------------------------------------------------------------------
 model AuditLog {
-  id String @id @default(uuid()) @db.Uuid
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
 
   actorId String? @map("actor_id") @db.Uuid // null = system ya anonymous (e.g. failed login)
   actor   Staff?  @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
@@ -207,6 +382,7 @@ model AuditLog {
   @@index([actorId, createdAt]) // "Amit ne kya kya kiya"
   @@index([action, createdAt])
   @@index([createdAt])
+  @@index([organizationId, createdAt])
   @@map("audit_logs")
 }
 
@@ -218,45 +394,63 @@ model AuditLog {
 
 /// Call ka nateeja: Connected, No Answer, Busy... (design doc section 6)
 model CallOutcome {
-  id          String  @id @default(uuid()) @db.Uuid
-  code        String  @unique // e.g. "NO_ANSWER" — kabhi nahi badalta (reports isi se)
-  label       String // screen pe dikhne wala naam — badal sakte hain
-  isConnected Boolean @default(false) @map("is_connected") // customer se baat hui? (connected = notes/rating maange ja sakte hain)
-  isActive    Boolean @default(true) @map("is_active")
-  sortOrder   Int     @default(0) @map("sort_order") // dropdown me kis order me
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  code           String // e.g. "NO_ANSWER" — kabhi nahi badalta (reports isi se)
+  label          String // screen pe dikhne wala naam — badal sakte hain
+  isConnected    Boolean      @default(false) @map("is_connected") // customer se baat hui? (connected = notes/rating maange ja sakte hain)
+  isActive       Boolean      @default(true) @map("is_active")
+  sortOrder      Int          @default(0) @map("sort_order") // dropdown me kis order me
 
   calls Call[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@map("call_outcomes")
 }
 
 /// Call ke baad kya karna hai: No Further Action, Follow-up, Call Again...
 model NextAction {
-  id               String  @id @default(uuid()) @db.Uuid
-  code             String  @unique
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId   String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id               String       @id @default(uuid()) @db.Uuid
+  code             String
   label            String
-  requiresFollowUp Boolean @default(false) @map("requires_follow_up") // true → follow-up date/time mandatory
-  isActive         Boolean @default(true) @map("is_active")
-  sortOrder        Int     @default(0) @map("sort_order")
+  requiresFollowUp Boolean      @default(false) @map("requires_follow_up") // true → follow-up date/time mandatory
+  isActive         Boolean      @default(true) @map("is_active")
+  sortOrder        Int          @default(0) @map("sort_order")
 
   calls Call[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@map("next_actions")
 }
 
 /// Key-value settings (JSON). e.g. key "call_form.required_fields"
 model SystemSetting {
-  key         String   @id
-  value       Json
-  updatedById String?  @map("updated_by_id") @db.Uuid
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  key            String
+  value          Json
+  updatedById    String?      @map("updated_by_id") @db.Uuid
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@id([organizationId, key])
+  @@index([organizationId])
   @@map("system_settings")
 }
 
@@ -286,9 +480,13 @@ enum AssignmentSource {
 
 /// Kaunsa customer kis staff ke paas hai. Ek customer = ek waqt me sirf EK open assignment.
 model Assignment {
-  id     String           @id @default(uuid()) @db.Uuid
-  status AssignmentStatus
-  source AssignmentSource
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String           @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String           @id @default(uuid()) @db.Uuid
+  status         AssignmentStatus
+  source         AssignmentSource
 
   customerId String   @map("customer_id") @db.Uuid
   customer   Customer @relation(fields: [customerId], references: [id])
@@ -326,6 +524,7 @@ model Assignment {
 
   @@index([staffId, status])
   @@index([customerId, createdAt])
+  @@index([organizationId, status])
   @@map("assignments")
 }
 
@@ -339,8 +538,12 @@ enum CallDirection {
 
 /// Ek call ka record (call form). Customer ki permanent history.
 model Call {
-  id        String        @id @default(uuid()) @db.Uuid
-  direction CallDirection @default(OUTBOUND)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String        @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String        @id @default(uuid()) @db.Uuid
+  direction      CallDirection @default(OUTBOUND)
 
   customerId   String      @map("customer_id") @db.Uuid
   customer     Customer    @relation(fields: [customerId], references: [id])
@@ -374,6 +577,7 @@ model Call {
   @@index([staffId, createdAt]) // assistant ki calls (reports)
   @@index([campaignId, createdAt]) // campaign reports
   @@index([createdAt])
+  @@index([organizationId, createdAt])
   @@map("calls")
 }
 
@@ -394,9 +598,13 @@ enum FollowUpStatus {
 
 /// "Call me at 4 PM" — alag record, comment me dabba nahi (reminder, escalation, report ke liye)
 model FollowUp {
-  id     String         @id @default(uuid()) @db.Uuid
-  status FollowUpStatus @default(PENDING)
-  dueAt  DateTime       @map("due_at") @db.Timestamptz(3)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String         @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String         @id @default(uuid()) @db.Uuid
+  status         FollowUpStatus @default(PENDING)
+  dueAt          DateTime       @map("due_at") @db.Timestamptz(3)
 
   customerId String   @map("customer_id") @db.Uuid
   customer   Customer @relation(fields: [customerId], references: [id])
@@ -431,6 +639,7 @@ model FollowUp {
 
   @@index([status, dueAt]) // scheduler: "kaun se due / overdue"
   @@index([ownerId, status, dueAt]) // "meri due follow-ups" (engine + list)
+  @@index([organizationId, status, dueAt])
   @@map("follow_ups")
 }
 
@@ -453,18 +662,23 @@ enum NotificationType {
 
 /// In-app notification (header ka 🔔). Email/SMS baad me isi table se.
 model Notification {
-  id          String           @id @default(uuid()) @db.Uuid
-  recipientId String           @map("recipient_id") @db.Uuid
-  recipient   Staff            @relation(fields: [recipientId], references: [id], onDelete: Cascade)
-  type        NotificationType
-  title       String
-  body        String?
-  link        String? // click → kaunsa page
-  data        Json?
-  readAt      DateTime?        @map("read_at") @db.Timestamptz(3)
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String           @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String           @id @default(uuid()) @db.Uuid
+  recipientId    String           @map("recipient_id") @db.Uuid
+  recipient      Staff            @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  type           NotificationType
+  title          String
+  body           String?
+  link           String? // click → kaunsa page
+  data           Json?
+  readAt         DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([recipientId, readAt, createdAt])
+  @@index([organizationId])
   @@map("notifications")
 }
 
@@ -475,15 +689,19 @@ model Notification {
 
 /// Interest category: rating range → category (e.g. 8–9 → High Interest). Manager Settings se badalta hai.
 model Category {
-  id        String    @id @default(uuid()) @db.Uuid
-  code      String    @unique // "HIGH_INTEREST" — permanent (reports)
-  label     String
-  minRating Int       @map("min_rating") // inclusive
-  maxRating Int       @map("max_rating") // inclusive
-  color     String    @default("gray") // UI badge tone
-  priority  Priority? // is category me aate hi customer ki priority (null = mat chhedo)
-  isActive  Boolean   @default(true) @map("is_active")
-  sortOrder Int       @default(0) @map("sort_order")
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  code           String // "HIGH_INTEREST" — permanent (reports)
+  label          String
+  minRating      Int          @map("min_rating") // inclusive
+  maxRating      Int          @map("max_rating") // inclusive
+  color          String       @default("gray") // UI badge tone
+  priority       Priority? // is category me aate hi customer ki priority (null = mat chhedo)
+  isActive       Boolean      @default(true) @map("is_active")
+  sortOrder      Int          @default(0) @map("sort_order")
 
   customers   Customer[]
   changesFrom CustomerCategoryChange[] @relation("CategoryChangeFrom")
@@ -492,56 +710,74 @@ model Category {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, code])
+  @@index([organizationId])
   @@map("categories")
 }
 
 /// Category badalne ki history (design doc section 12: "Category Changes")
 model CustomerCategoryChange {
-  id          String    @id @default(uuid()) @db.Uuid
-  customerId  String    @map("customer_id") @db.Uuid
-  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  fromId      String?   @map("from_category_id") @db.Uuid
-  from        Category? @relation("CategoryChangeFrom", fields: [fromId], references: [id], onDelete: SetNull)
-  toId        String?   @map("to_category_id") @db.Uuid
-  to          Category? @relation("CategoryChangeTo", fields: [toId], references: [id], onDelete: SetNull)
-  rating      Int? // kis rating pe badla
-  reason      String // "call_rating" | "threshold_change"
-  callId      String?   @map("call_id") @db.Uuid
-  call        Call?     @relation(fields: [callId], references: [id], onDelete: SetNull)
-  changedById String?   @map("changed_by_id") @db.Uuid
-  changedBy   Staff?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  customerId     String       @map("customer_id") @db.Uuid
+  customer       Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fromId         String?      @map("from_category_id") @db.Uuid
+  from           Category?    @relation("CategoryChangeFrom", fields: [fromId], references: [id], onDelete: SetNull)
+  toId           String?      @map("to_category_id") @db.Uuid
+  to             Category?    @relation("CategoryChangeTo", fields: [toId], references: [id], onDelete: SetNull)
+  rating         Int? // kis rating pe badla
+  reason         String // "call_rating" | "threshold_change"
+  callId         String?      @map("call_id") @db.Uuid
+  call           Call?        @relation(fields: [callId], references: [id], onDelete: SetNull)
+  changedById    String?      @map("changed_by_id") @db.Uuid
+  changedBy      Staff?       @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([customerId, createdAt])
+  @@index([organizationId])
   @@map("customer_category_changes")
 }
 
 /// Free labels: "Callback Requested", "Big Spender", "Language: Tamil"...
 model Tag {
-  id        String        @id @default(uuid()) @db.Uuid
-  name      String        @unique
-  color     String        @default("gray")
-  isActive  Boolean       @default(true) @map("is_active")
-  customers CustomerTag[]
-  imports   ImportBatch[]
-  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String        @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  color          String        @default("gray")
+  isActive       Boolean       @default(true) @map("is_active")
+  customers      CustomerTag[]
+  imports        ImportBatch[]
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, name])
+  @@index([organizationId])
   @@map("tags")
 }
 
 /// Customer ↔ Tag (many-to-many "join table")
 model CustomerTag {
-  customerId String   @map("customer_id") @db.Uuid
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tagId      String   @map("tag_id") @db.Uuid
-  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  addedById  String?  @map("added_by_id") @db.Uuid
-  addedBy    Staff?   @relation(fields: [addedById], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customerId     String       @map("customer_id") @db.Uuid
+  customer       Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tagId          String       @map("tag_id") @db.Uuid
+  tag            Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  addedById      String?      @map("added_by_id") @db.Uuid
+  addedBy        Staff?       @relation(fields: [addedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@id([customerId, tagId]) // composite primary key: ek tag ek customer pe ek hi baar
   @@index([tagId])
+  @@index([organizationId])
   @@map("customer_tags")
 }
 
@@ -561,8 +797,12 @@ enum CampaignStatus {
 }
 
 model Campaign {
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId      String         @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   id                  String         @id @default(uuid()) @db.Uuid
-  name                String         @unique
+  name                String
   description         String?
   status              CampaignStatus @default(DRAFT)
   priority            Int            @default(0) // bada number = engine pehle is campaign ke customers deta hai
@@ -586,16 +826,22 @@ model Campaign {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([organizationId, name])
   @@index([status, priority])
+  @@index([organizationId])
   @@map("campaigns")
 }
 
 /// Campaign ki "user population". Ek customer kai campaigns me ho sakta hai.
 model CampaignCustomer {
-  campaignId String   @map("campaign_id") @db.Uuid
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  customerId String   @map("customer_id") @db.Uuid
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  campaignId     String       @map("campaign_id") @db.Uuid
+  campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customerId     String       @map("customer_id") @db.Uuid
+  customer       Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   // Is campaign ke andar progress (customer ki overall calls se alag)
   callCount     Int       @default(0) @map("call_count")
@@ -609,30 +855,41 @@ model CampaignCustomer {
   @@id([campaignId, customerId])
   @@index([campaignId, callCount, addedAt]) // engine: "is campaign me agla uncalled customer"
   @@index([customerId])
+  @@index([organizationId])
   @@map("campaign_customers")
 }
 
 /// Campaign kaun call kar sakta hai — seedhe staff...
 model CampaignStaff {
-  campaignId String   @map("campaign_id") @db.Uuid
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  staffId    String   @map("staff_id") @db.Uuid
-  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  campaignId     String       @map("campaign_id") @db.Uuid
+  campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  staffId        String       @map("staff_id") @db.Uuid
+  staff          Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@id([campaignId, staffId])
   @@index([staffId])
+  @@index([organizationId])
   @@map("campaign_staff")
 }
 
 /// ...ya poori team. (Na staff na team = sab call kar sakte hain)
 model CampaignTeam {
-  campaignId String   @map("campaign_id") @db.Uuid
-  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  teamId     String   @map("team_id") @db.Uuid
-  team       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  campaignId     String       @map("campaign_id") @db.Uuid
+  campaign       Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  teamId         String       @map("team_id") @db.Uuid
+  team           Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@id([campaignId, teamId])
   @@index([teamId])
+  @@index([organizationId])
   @@map("campaign_teams")
 }
 
@@ -647,21 +904,26 @@ enum CampaignFieldType {
 
 /// Campaign-specific call form field (design doc section 6 "Custom Fields")
 model CampaignField {
-  id         String            @id @default(uuid()) @db.Uuid
-  campaignId String            @map("campaign_id") @db.Uuid
-  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  key        String // "deposit_interest" — call.customFields me isi naam se save (permanent)
-  label      String
-  type       CampaignFieldType
-  options    String[]          @default([]) // SELECT ke options
-  required   Boolean           @default(false)
-  isActive   Boolean           @default(true) @map("is_active")
-  sortOrder  Int               @default(0) @map("sort_order")
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String            @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String            @id @default(uuid()) @db.Uuid
+  campaignId     String            @map("campaign_id") @db.Uuid
+  campaign       Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  key            String // "deposit_interest" — call.customFields me isi naam se save (permanent)
+  label          String
+  type           CampaignFieldType
+  options        String[]          @default([]) // SELECT ke options
+  required       Boolean           @default(false)
+  isActive       Boolean           @default(true) @map("is_active")
+  sortOrder      Int               @default(0) @map("sort_order")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@unique([campaignId, key])
+  @@index([organizationId])
   @@map("campaign_fields")
 }
 
@@ -693,9 +955,13 @@ enum ImportRowStatus {
 
 /// Ek upload = ek batch (import history: kisne, kab, kitne, kitne fail)
 model ImportBatch {
-  id       String       @id @default(uuid()) @db.Uuid
-  fileName String       @map("file_name")
-  status   ImportStatus @default(PREVIEW)
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  fileName       String       @map("file_name")
+  status         ImportStatus @default(PREVIEW)
 
   totalRows     Int @map("total_rows")
   validRows     Int @map("valid_rows")
@@ -726,24 +992,30 @@ model ImportBatch {
 
   @@index([createdAt])
   @@index([status])
+  @@index([organizationId])
   @@map("import_batches")
 }
 
 /// File ki har line — preview, error report aur "kaunsa customer bana" ke liye
 model ImportRow {
-  id        String          @id @default(uuid()) @db.Uuid
-  batchId   String          @map("batch_id") @db.Uuid
-  batch     ImportBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  rowNumber Int             @map("row_number") // file ki line (header = 1, data 2 se)
-  raw       Json // file me jaisa likha tha (error CSV me wapas)
-  data      Json? // normalized values (sirf VALID me) — inhi se customer banta hai
-  status    ImportRowStatus
-  errors    String[]
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String          @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String          @id @default(uuid()) @db.Uuid
+  batchId        String          @map("batch_id") @db.Uuid
+  batch          ImportBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  rowNumber      Int             @map("row_number") // file ki line (header = 1, data 2 se)
+  raw            Json // file me jaisa likha tha (error CSV me wapas)
+  data           Json? // normalized values (sirf VALID me) — inhi se customer banta hai
+  status         ImportRowStatus
+  errors         String[]
 
   customerId String? @map("customer_id") @db.Uuid // IMPORTED: kaunsa customer bana / DUPLICATE: kis se match hua
 
   @@unique([batchId, rowNumber])
   @@index([batchId, status, rowNumber])
+  @@index([organizationId])
   @@map("import_rows")
 }
 
@@ -769,9 +1041,13 @@ enum CallSessionStatus {
 
 /// Ek dial attempt (assistant ne "Call" dabaya). Ek CRM call (form) ke kai attempts ho sakte hain.
 model CallSession {
-  id             String  @id @default(uuid()) @db.Uuid
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
   provider       String // "manual" | "mock" | "telecalling" ...
-  providerCallId String? @map("provider_call_id") // provider ki call ID (webhook isi se match)
+  providerCallId String?      @map("provider_call_id") // provider ki call ID (webhook isi se match)
 
   customerId   String      @map("customer_id") @db.Uuid
   customer     Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -799,24 +1075,30 @@ model CallSession {
   @@index([assignmentId, createdAt])
   @@index([customerId, createdAt])
   @@index([staffId, createdAt])
+  @@index([organizationId, createdAt])
   @@map("call_sessions")
 }
 
 /// Provider se aaya har webhook event (debug + audit). eventId se duplicate ignore.
 model CallEvent {
-  id        String      @id @default(uuid()) @db.Uuid
-  sessionId String      @map("session_id") @db.Uuid
-  session   CallSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  provider  String
-  eventId   String?     @map("event_id") // provider ki event ID (retry pe same aati hai)
-  type      String // ringing | answered | completed | no_answer | busy | failed | canceled
-  payload   Json // jaisa aaya waisa (sensitive headers nahi)
-  applied   Boolean // false = purana / out-of-order event, status nahi badla
+  // Multi-tenant: har row kisi ek client (organization) ki hai. App (tenant extension) khud
+  // bharta hai; DB default jaan-bujh ke fail karta hai agar app bhool jaaye (galat client me row nahi)
+  organizationId String       @default(dbgenerated("(current_setting('app.tenant_id'::text))::uuid")) @map("organization_id") @db.Uuid
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id             String       @id @default(uuid()) @db.Uuid
+  sessionId      String       @map("session_id") @db.Uuid
+  session        CallSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  provider       String
+  eventId        String?      @map("event_id") // provider ki event ID (retry pe same aati hai)
+  type           String // ringing | answered | completed | no_answer | busy | failed | canceled
+  payload        Json // jaisa aaya waisa (sensitive headers nahi)
+  applied        Boolean // false = purana / out-of-order event, status nahi badla
 
   occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
   receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
 
   @@unique([provider, eventId])
   @@index([sessionId, occurredAt])
+  @@index([organizationId])
   @@map("call_events")
 }

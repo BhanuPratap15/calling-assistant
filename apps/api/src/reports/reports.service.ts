@@ -12,6 +12,7 @@ import { toCsv } from '../common/csv.js';
 import { staffScope } from '../common/team-scope.js';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import type { ExportType, ReportQueryDto } from './dto/report-query.dto.js';
 import {
   previousRange,
@@ -101,10 +102,16 @@ export class ReportsService {
     return { range, staffIds, campaignId: q.campaignId };
   }
 
+  /** Multi-tenant: sirf current client ki rows (raw SQL me tenant extension nahi lagta) */
+  private orgCond(alias: string) {
+    return Prisma.sql`AND ${Prisma.raw(alias)}.organization_id = ${currentOrgId()}::uuid`;
+  }
+
+  /** Org filter + (assistant / TL) staff scope */
   private staffCond(alias: string, ids: string[] | null) {
     return ids === null
-      ? Prisma.empty
-      : Prisma.sql`AND ${Prisma.raw(alias)}.staff_id = ANY(${ids}::uuid[])`;
+      ? this.orgCond(alias)
+      : Prisma.sql`${this.orgCond(alias)} AND ${Prisma.raw(alias)}.staff_id = ANY(${ids}::uuid[])`;
   }
 
   private campaignCond(alias: string, campaignId?: string) {
@@ -208,7 +215,7 @@ export class ReportsService {
                                 AND f.due_at < ${new Date(now.getTime() - grace)})::int AS overdue_now
         FROM follow_ups f
         JOIN calls sc ON sc.id = f.source_call_id
-        WHERE TRUE ${s.staffIds === null ? Prisma.empty : Prisma.sql`AND f.owner_id = ANY(${s.staffIds}::uuid[])`}
+        WHERE TRUE ${this.orgCond('f')} ${s.staffIds === null ? Prisma.empty : Prisma.sql`AND f.owner_id = ANY(${s.staffIds}::uuid[])`}
           ${this.campaignCond('sc', s.campaignId)}`,
       ]);
 
@@ -299,13 +306,13 @@ export class ReportsService {
         FROM calls c
         JOIN call_outcomes o ON o.id = c.outcome_id
         JOIN next_actions na ON na.id = c.next_action_id
-        WHERE c.created_at >= ${start} AND c.created_at < ${end} ${this.campaignCond('c', s.campaignId)}
+        WHERE c.created_at >= ${start} AND c.created_at < ${end} ${this.orgCond('c')} ${this.campaignCond('c', s.campaignId)}
         GROUP BY c.staff_id
       ), t AS (
         SELECT s.staff_id, count(*)::int AS dials,
                coalesce(sum(s.duration_sec) FILTER (WHERE s.status = 'COMPLETED'), 0)::int AS talk_sec
         FROM call_sessions s
-        WHERE s.created_at >= ${start} AND s.created_at < ${end}
+        WHERE s.created_at >= ${start} AND s.created_at < ${end} ${this.orgCond('s')}
           ${s.campaignId ? Prisma.sql`AND EXISTS (SELECT 1 FROM calls cc WHERE cc.id = s.call_id AND cc.campaign_id = ${s.campaignId}::uuid)` : Prisma.empty}
         GROUP BY s.staff_id
       ), f AS (
@@ -314,7 +321,7 @@ export class ReportsService {
                count(*) FILTER (WHERE f.due_at >= ${start} AND f.due_at < ${end} AND f.status = 'COMPLETED')::int AS completed,
                count(*) FILTER (WHERE f.status IN ('PENDING', 'IN_PROGRESS')
                                 AND f.due_at < ${new Date(Date.now() - grace)})::int AS overdue_now
-        FROM follow_ups f GROUP BY f.owner_id
+        FROM follow_ups f WHERE TRUE ${this.orgCond('f')} GROUP BY f.owner_id
       )
       SELECT st.id, st.name, st.role::text AS role, tm.name AS team, st.availability::text AS availability,
              st.last_seen_at,
@@ -328,7 +335,7 @@ export class ReportsService {
       LEFT JOIN c ON c.staff_id = st.id
       LEFT JOIN t ON t.staff_id = st.id
       LEFT JOIN f ON f.owner_id = st.id
-      WHERE st.role::text IN ('ASSISTANT', 'TEAM_LEADER')
+      WHERE st.role::text IN ('ASSISTANT', 'TEAM_LEADER') ${this.orgCond('st')}
         AND (st.is_active OR c.calls > 0)
         ${s.staffIds === null ? Prisma.empty : Prisma.sql`AND st.id = ANY(${s.staffIds}::uuid[])`}
       ORDER BY coalesce(c.calls, 0) DESC, st.name`;
@@ -387,7 +394,7 @@ export class ReportsService {
       ), p AS (
         SELECT cc.campaign_id, count(*)::int AS customers,
                count(*) FILTER (WHERE cc.call_count > 0)::int AS called
-        FROM campaign_customers cc GROUP BY cc.campaign_id
+        FROM campaign_customers cc WHERE TRUE ${this.orgCond('cc')} GROUP BY cc.campaign_id
       )
       SELECT k.id, k.name, k.status::text AS status, k.priority,
              coalesce(p.customers, 0) AS customers, coalesce(p.called, 0) AS called,
@@ -395,7 +402,7 @@ export class ReportsService {
       FROM campaigns k
       LEFT JOIN p ON p.campaign_id = k.id
       LEFT JOIN x ON x.campaign_id = k.id
-      WHERE (k.status::text <> 'DRAFT' OR x.calls > 0)
+      WHERE (k.status::text <> 'DRAFT' OR x.calls > 0) ${this.orgCond('k')}
         ${s.campaignId ? Prisma.sql`AND k.id = ${s.campaignId}::uuid` : Prisma.empty}
       ORDER BY (k.status::text = 'ACTIVE') DESC, coalesce(x.calls, 0) DESC, k.name`;
 

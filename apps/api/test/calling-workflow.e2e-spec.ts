@@ -8,6 +8,7 @@ import { hashPassword } from '../src/auth/password.js';
 import { CallingWatchdogService } from '../src/calling/calling-watchdog.service.js';
 import type { StaffRole } from '../src/generated/prisma/enums.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { DEFAULT_ORG_ID } from '../src/tenancy/tenant-context.js';
 
 /**
  * Phase 10 (ADR 0015): Save & Stop, Stop calling (release), watchdog, bulk distribute,
@@ -89,7 +90,12 @@ describe('Calling workflow — Phase 10 (e2e)', () => {
     watchdog = app.get(CallingWatchdogService);
     originalWorkflow = (
       await prisma.systemSetting.findUnique({
-        where: { key: 'calling.workflow' },
+        where: {
+          organizationId_key: {
+            organizationId: DEFAULT_ORG_ID,
+            key: 'calling.workflow',
+          },
+        },
       })
     )?.value;
 
@@ -142,7 +148,12 @@ describe('Calling workflow — Phase 10 (e2e)', () => {
   afterAll(async () => {
     if (originalWorkflow)
       await prisma.systemSetting.update({
-        where: { key: 'calling.workflow' },
+        where: {
+          organizationId_key: {
+            organizationId: DEFAULT_ORG_ID,
+            key: 'calling.workflow',
+          },
+        },
         data: { value: originalWorkflow as object },
       });
     else

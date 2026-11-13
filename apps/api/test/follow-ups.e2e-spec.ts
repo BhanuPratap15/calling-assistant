@@ -8,6 +8,7 @@ import { hashPassword } from '../src/auth/password.js';
 import { FollowUpSchedulerService } from '../src/follow-ups/follow-up-scheduler.service.js';
 import type { StaffRole } from '../src/generated/prisma/enums.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { DEFAULT_ORG_ID } from '../src/tenancy/tenant-context.js';
 
 /**
  * Design doc section 8.1 — "4 PM example" end-to-end.
@@ -66,11 +67,21 @@ describe('Follow-ups, availability, escalation, notifications (e2e)', () => {
     // Known timing (test ke baad restore)
     originalTiming = (
       await prisma.systemSetting.findUnique({
-        where: { key: 'follow_up.timing' },
+        where: {
+          organizationId_key: {
+            organizationId: DEFAULT_ORG_ID,
+            key: 'follow_up.timing',
+          },
+        },
       })
     )?.value;
     await prisma.systemSetting.update({
-      where: { key: 'follow_up.timing' },
+      where: {
+        organizationId_key: {
+          organizationId: DEFAULT_ORG_ID,
+          key: 'follow_up.timing',
+        },
+      },
       data: {
         value: {
           reminderMinutesBefore: 1,
@@ -131,7 +142,12 @@ describe('Follow-ups, availability, escalation, notifications (e2e)', () => {
   afterAll(async () => {
     if (originalTiming) {
       await prisma.systemSetting.update({
-        where: { key: 'follow_up.timing' },
+        where: {
+          organizationId_key: {
+            organizationId: DEFAULT_ORG_ID,
+            key: 'follow_up.timing',
+          },
+        },
         data: { value: originalTiming as object },
       });
     }

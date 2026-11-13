@@ -4,6 +4,7 @@ import { AuditAction } from '../audit/audit.types.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import { categoryForRating, validateCategoryRanges } from './category-rules.js';
 import type { SaveCategoriesDto } from './dto/category.dto.js';
 
@@ -190,22 +191,25 @@ export class CategoriesService {
    * Returns: kitne customers ki category badli.
    */
   private recalculateAll(tx: Tx, actorId: string): Promise<number> {
+    const orgId = currentOrgId(); // sirf is client ke customers + categories
     return tx.$executeRaw`
       WITH target AS (
         SELECT c.id AS customer_id, c.category_id AS from_id, c.interest_rating AS rating,
           (SELECT cat.id FROM categories cat
-            WHERE cat.is_active AND c.interest_rating BETWEEN cat.min_rating AND cat.max_rating
+            WHERE cat.organization_id = ${orgId}::uuid AND cat.is_active
+              AND c.interest_rating BETWEEN cat.min_rating AND cat.max_rating
             ORDER BY cat.sort_order LIMIT 1) AS to_id
         FROM customers c
-        WHERE c.interest_rating IS NOT NULL OR c.category_id IS NOT NULL
+        WHERE c.organization_id = ${orgId}::uuid
+          AND (c.interest_rating IS NOT NULL OR c.category_id IS NOT NULL)
       ),
       changed AS (
         SELECT * FROM target WHERE to_id IS DISTINCT FROM from_id
       ),
       history AS (
         INSERT INTO customer_category_changes
-          (id, customer_id, from_category_id, to_category_id, rating, reason, changed_by_id, created_at)
-        SELECT gen_random_uuid(), customer_id, from_id, to_id, rating, 'threshold_change', ${actorId}::uuid, now()
+          (id, organization_id, customer_id, from_category_id, to_category_id, rating, reason, changed_by_id, created_at)
+        SELECT gen_random_uuid(), ${orgId}::uuid, customer_id, from_id, to_id, rating, 'threshold_change', ${actorId}::uuid, now()
         FROM changed
       )
       UPDATE customers c
@@ -214,6 +218,6 @@ export class CategoriesService {
           updated_at = now(),
           priority = COALESCE((SELECT cat.priority FROM categories cat WHERE cat.id = ch.to_id), c.priority)
       FROM changed ch
-      WHERE c.id = ch.customer_id`;
+      WHERE c.id = ch.customer_id AND c.organization_id = ${orgId}::uuid`;
   }
 }

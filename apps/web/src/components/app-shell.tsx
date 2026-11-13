@@ -6,8 +6,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { AvailabilitySelect } from '@/components/layout/availability-select';
 import { ChangePasswordForm } from '@/components/account/change-password-form';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { BrandMark } from '@/components/brand-mark';
 import { Icon } from '@/components/ui/icons';
 import { useAuth } from '@/lib/auth-context';
+import { useBranding } from '@/lib/branding-context';
 import { canSee, findNavItem, NAV_ITEMS } from '@/lib/navigation';
 import { ROLE_LABELS } from '@/lib/types';
 
@@ -16,6 +18,7 @@ import { ROLE_LABELS } from '@/lib/types';
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading, sessionError, logout } = useAuth();
+  const brand = useBranding(); // white-label: client ka naam / logo
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -90,12 +93,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <div className="flex h-full flex-col bg-[linear-gradient(180deg,var(--sidebar-bg)_0%,var(--sidebar-bg-2)_100%)]">
       <div className="flex items-center gap-3 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-700 text-white shadow-lg shadow-indigo-900/40 ring-1 ring-white/15">
-          <Icon name="phone" className="h-4 w-4" />
-        </div>
+        <BrandMark size={36} />
         <div className="min-w-0">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-white">
-            Calling CRM
+          <p className="truncate text-[15px] font-semibold tracking-tight text-[var(--sidebar-title)]">
+            {brand.brandName}
           </p>
           <p className="truncate text-xs text-[var(--sidebar-text)]">
             {ROLE_LABELS[user.role]}
@@ -103,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <p className="px-6 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+      <p className="px-6 pb-2 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--sidebar-muted)]">
         Menu
       </p>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
@@ -117,15 +118,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
                 active
                   ? 'bg-[var(--sidebar-active)] font-medium text-[var(--sidebar-text-active)]'
-                  : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-white'
+                  : 'text-[var(--sidebar-text)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-hover-text)]'
               }`}
             >
               {active && (
-                <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-indigo-400" />
+                <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-[var(--sidebar-icon-active)]" />
               )}
               <Icon
                 name={item.icon}
-                className={`h-[18px] w-[18px] shrink-0 ${active ? 'text-indigo-300' : 'text-white/40 group-hover:text-white/70'}`}
+                className={`h-[18px] w-[18px] shrink-0 ${active ? 'text-[var(--sidebar-icon-active)]' : 'text-[var(--sidebar-icon)] group-hover:text-[var(--sidebar-hover-text)]'}`}
               />
               {item.label}
             </Link>
@@ -133,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         })}
       </nav>
 
-      <div className="border-t border-[var(--sidebar-border)] p-3">
+      <div className="border-t border-[var(--sidebar-rule)] p-3">
         <Link
           href="/account"
           onClick={() => setMobileOpen(false)}
@@ -144,7 +145,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {initials}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-white">
+            <span className="block truncate text-sm font-medium text-[var(--sidebar-title)]">
               {user.name}
             </span>
             <span className="block truncate text-xs text-[var(--sidebar-text)]">
@@ -191,18 +192,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          {/* Brand — bilkul center me */}
+          {/* Brand (client ka naam — white-label) — bilkul center me */}
           <Link
             href="/dashboard"
-            aria-label="Addaplay — go to dashboard"
-            className="group flex items-center gap-2 justify-self-center"
+            aria-label={`${brand.brandName} — go to dashboard`}
+            className="group flex min-w-0 items-center gap-2 justify-self-center"
           >
-            <span className="relative flex h-2 w-2" aria-hidden>
+            <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-70" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
             </span>
-            <span className="animate-brand-in bg-[linear-gradient(110deg,var(--brand-700)_0%,var(--brand-500)_30%,#d946ef_50%,var(--brand-500)_70%,var(--brand-700)_100%)] bg-[length:200%_auto] bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">
-              Addaplay
+            <span className="animate-brand-in truncate bg-[linear-gradient(110deg,var(--brand-700)_0%,var(--brand-500)_30%,var(--brand-400)_50%,var(--brand-500)_70%,var(--brand-700)_100%)] bg-[length:200%_auto] bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl">
+              {brand.brandName}
             </span>
           </Link>
 

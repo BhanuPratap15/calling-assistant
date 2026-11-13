@@ -16,6 +16,7 @@ import { Prisma } from '../generated/prisma/client.js';
 import type { CallDirection } from '../generated/prisma/enums.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import { ACTIVE_STATUSES } from '../telephony/telephony-rules.js';
 import { TelephonyService } from '../telephony/telephony.service.js';
 import { validateCustomFields } from '../campaigns/campaign-rules.js';
@@ -154,7 +155,8 @@ export class CallingService {
     >`
       SELECT f.id, f.customer_id, sc.campaign_id FROM follow_ups f
       JOIN calls sc ON sc.id = f.source_call_id
-      WHERE f.owner_id = ${actor.id}::uuid AND f.status = 'PENDING' AND f.due_at <= ${now}
+      WHERE f.organization_id = ${currentOrgId()}::uuid
+        AND f.owner_id = ${actor.id}::uuid AND f.status = 'PENDING' AND f.due_at <= ${now}
         AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = f.customer_id)
       ORDER BY f.due_at ASC
       LIMIT 1
@@ -177,7 +179,8 @@ export class CallingService {
     const [queued] = await tx.$queryRaw<{ id: string }[]>`
       SELECT a.id FROM assignments a
       JOIN customers c ON c.id = a.customer_id
-      WHERE a.staff_id = ${actor.id}::uuid AND a.status = 'ASSIGNED'
+      WHERE a.organization_id = ${currentOrgId()}::uuid
+        AND a.staff_id = ${actor.id}::uuid AND a.status = 'ASSIGNED'
       ORDER BY c.priority DESC, a.created_at ASC
       LIMIT 1
       FOR UPDATE OF a SKIP LOCKED`;
@@ -207,7 +210,8 @@ export class CallingService {
       FROM campaign_customers cc
       JOIN campaigns k ON k.id = cc.campaign_id
       JOIN customers c ON c.id = cc.customer_id
-      WHERE k.status = 'ACTIVE'
+      WHERE k.organization_id = ${currentOrgId()}::uuid
+        AND k.status = 'ACTIVE'
         AND (k.starts_at IS NULL OR k.starts_at <= ${now})
         AND (k.ends_at IS NULL OR k.ends_at > ${now})
         AND cc.call_count = 0
@@ -239,7 +243,8 @@ export class CallingService {
     //    priority DESC = URGENT > HIGH > NORMAL > LOW (enum order), phir purane pehle.
     const [customer] = await tx.$queryRaw<{ id: string }[]>`
       SELECT c.id FROM customers c
-      WHERE c.status = 'ACTIVE'
+      WHERE c.organization_id = ${currentOrgId()}::uuid
+        AND c.status = 'ACTIVE'
         AND c.last_called_at IS NULL
         AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = c.id)
         AND NOT EXISTS (
@@ -325,7 +330,7 @@ export class CallingService {
         { id: string; customer_id: string; campaign_id: string | null }[]
       >`
         SELECT id, customer_id, campaign_id FROM assignments
-        WHERE in_progress_staff_id = ${actor.id}::uuid
+        WHERE in_progress_staff_id = ${actor.id}::uuid AND organization_id = ${currentOrgId()}::uuid
         FOR UPDATE`;
       if (!assignment) {
         throw new ConflictException(
@@ -397,7 +402,9 @@ export class CallingService {
     return this.prisma.$transaction(async (tx) => {
       // Customer lock: isi pal engine use kisi ko de raha ho to wo ruk ke aage badhe
       const [customer] = await tx.$queryRaw<{ id: string }[]>`
-        SELECT id FROM customers WHERE id = ${dto.customerId}::uuid FOR UPDATE`;
+        SELECT id FROM customers
+        WHERE id = ${dto.customerId}::uuid AND organization_id = ${currentOrgId()}::uuid
+        FOR UPDATE`;
       if (!customer) throw new NotFoundException('Customer not found');
       const open = await tx.assignment.findFirst({
         where: { customerId: customer.id, status: 'IN_PROGRESS' },
@@ -573,7 +580,7 @@ export class CallingService {
         }[]
       >`
         SELECT id, source::text AS source, customer_id, staff_id, campaign_id FROM assignments
-        WHERE in_progress_staff_id = ${actor.id}::uuid
+        WHERE in_progress_staff_id = ${actor.id}::uuid AND organization_id = ${currentOrgId()}::uuid
         FOR UPDATE`;
       if (!row) throw new ConflictException('You have no current customer');
       const dials = await tx.callSession.count({
@@ -633,7 +640,8 @@ export class CallingService {
       { id: string; name: string; created_by_id: string | null }[]
     >`
       UPDATE campaigns k SET exhausted_notified_at = now()
-      WHERE k.id = ${campaignId}::uuid AND k.status = 'ACTIVE' AND k.exhausted_notified_at IS NULL
+      WHERE k.id = ${campaignId}::uuid AND k.organization_id = ${currentOrgId()}::uuid
+        AND k.status = 'ACTIVE' AND k.exhausted_notified_at IS NULL
         AND NOT EXISTS (
           SELECT 1 FROM campaign_customers cc JOIN customers c ON c.id = cc.customer_id
           WHERE cc.campaign_id = k.id AND cc.call_count = 0 AND c.status = 'ACTIVE')

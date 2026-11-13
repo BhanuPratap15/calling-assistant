@@ -276,7 +276,7 @@ describe('Bulk import (e2e)', () => {
     });
     expect(done.finishedAt).not.toBeNull();
 
-    const rahul = await prisma.customer.findUniqueOrThrow({
+    const rahul = await prisma.customer.findFirstOrThrow({
       where: { phone: e164(2) },
       include: { tags: true, campaigns: true },
     });
@@ -396,7 +396,7 @@ describe('Bulk import (e2e)', () => {
     const res = await upload(buffer, 'users.xlsx').expect(201);
     expect(res.body).toMatchObject({ totalRows: 1, validRows: 1 });
     await confirm(res.body.id);
-    const c = await prisma.customer.findUniqueOrThrow({
+    const c = await prisma.customer.findFirstOrThrow({
       where: { phone: e164(30) },
     });
     expect(c.alternatePhone).toBe(e164(31));

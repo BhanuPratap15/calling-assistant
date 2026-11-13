@@ -6,6 +6,7 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { hashPassword } from '../src/auth/password.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { DEFAULT_ORG_ID } from '../src/tenancy/tenant-context.js';
 
 describe('Call config (e2e)', () => {
   let app: INestApplication;
@@ -44,7 +45,12 @@ describe('Call config (e2e)', () => {
     assistantToken = await login(email('asst'));
     originalRequired = (
       await prisma.systemSetting.findUnique({
-        where: { key: 'call_form.required_fields' },
+        where: {
+          organizationId_key: {
+            organizationId: DEFAULT_ORG_ID,
+            key: 'call_form.required_fields',
+          },
+        },
       })
     )?.value;
   });
@@ -53,7 +59,12 @@ describe('Call config (e2e)', () => {
     // Shared settings wapas waise hi (doosre tests / dev data pe asar na ho)
     if (originalRequired) {
       await prisma.systemSetting.update({
-        where: { key: 'call_form.required_fields' },
+        where: {
+          organizationId_key: {
+            organizationId: DEFAULT_ORG_ID,
+            key: 'call_form.required_fields',
+          },
+        },
         data: { value: originalRequired as object },
       });
     }
@@ -138,7 +149,7 @@ describe('Call config (e2e)', () => {
   });
 
   it('deactivated outcome disappears from the form but stays in admin list', async () => {
-    const outcome = await prisma.callOutcome.findUniqueOrThrow({
+    const outcome = await prisma.callOutcome.findFirstOrThrow({
       where: { code: `CALLBACK_${codeSuffix}` },
     });
     await http()

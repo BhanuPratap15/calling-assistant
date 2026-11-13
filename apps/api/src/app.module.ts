@@ -21,6 +21,8 @@ import { ReportsModule } from './reports/reports.module.js';
 import { TelephonyModule } from './telephony/telephony.module.js';
 import { TagsModule } from './tags/tags.module.js';
 import { TeamsModule } from './teams/teams.module.js';
+import { TenancyModule } from './tenancy/tenancy.module.js';
+import { PlatformModule } from './platform/platform.module.js';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { TeamsModule } from './teams/teams.module.js';
       ],
     }),
     PrismaModule,
+    TenancyModule,
     AuditModule,
     NotificationsModule,
     AuthModule,
@@ -50,6 +53,7 @@ import { TeamsModule } from './teams/teams.module.js';
     ImportsModule,
     TelephonyModule,
     ReportsModule,
+    PlatformModule,
     // Background jobs (Redis). ConfigModule upar .env load kar chuka hai, isliye process.env yahan ready hai.
     // Tests: SCHEDULER_ENABLED=false (vitest config) → Redis ki zaroorat nahi.
     ...(process.env.SCHEDULER_ENABLED === 'false' ? [] : [SchedulerModule]),

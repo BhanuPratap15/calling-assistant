@@ -29,6 +29,9 @@ ln -sfn "$CERTS_ABS" /etc/nginx/certs
 mkdir -p /var/www/certbot
 
 export SERVER_NAME
+# Common rules (main + har white-label client domain) — tenant-*.conf bhi isi ko include karte hain
+mkdir -p /etc/nginx/snippets
+cp "$APP_DIR/ops/nginx/templates/crm-locations.conf" /etc/nginx/snippets/crm-locations.conf
 envsubst '${SERVER_NAME}' < "$APP_DIR/ops/nginx/templates/default.conf.template" > /etc/nginx/conf.d/crm.conf
 nginx -t
 systemctl enable nginx > /dev/null 2>&1

@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
+import { BrandingProvider } from '@/lib/branding-context';
+import { getBranding } from '@/lib/branding.server';
+import { themeCss } from '@/lib/theme';
 import './globals.css';
 
 const geistSans = Geist({
@@ -13,19 +16,38 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const metadata: Metadata = {
-  title: 'Calling CRM',
-  description: 'Calling CRM & Lead Management System',
-};
+/** Browser tab: client ka naam + favicon (white-label) */
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getBranding();
+  return {
+    title: { default: brand.brandName, template: `%s · ${brand.brandName}` },
+    description: brand.tagline ?? `${brand.brandName} — calling CRM`,
+    icons: brand.faviconUrl
+      ? { icon: brand.faviconUrl }
+      : brand.logoUrl
+        ? { icon: brand.logoUrl }
+        : undefined,
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  // Host → client branding (server pe) → theme CSS variables pehli paint se hi
+  const branding = await getBranding();
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <style
+          id="brand-theme"
+          dangerouslySetInnerHTML={{ __html: themeCss(branding) }}
+        />
+      </head>
       <body className="min-h-full">
-        <AuthProvider>{children}</AuthProvider>
+        <BrandingProvider branding={branding}>
+          <AuthProvider>{children}</AuthProvider>
+        </BrandingProvider>
       </body>
     </html>
   );

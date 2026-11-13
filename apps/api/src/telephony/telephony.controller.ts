@@ -19,7 +19,7 @@ export class TelephonyController {
   /** UI: kaunsa provider chal raha hai (button ka text / behaviour) — koi bhi logged-in user */
   @Get('config')
   config() {
-    return this.telephony.info();
+    return this.telephony.info(); // current client ka dialer mode
   }
 
   /**

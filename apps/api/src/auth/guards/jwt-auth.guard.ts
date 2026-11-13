@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { currentOrgId } from '../../tenancy/tenant-context.js';
 import {
   AUTH_COOKIE,
   authCookieOptions,
@@ -69,6 +70,14 @@ export class JwtAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid or expired access token');
     }
+    // Platform admin ka token staff routes pe nahi; doosre client ka token is client pe nahi
+    // (purane tokens me `org` nahi — unka staff lookup waise bhi sirf is client me hota hai)
+    if (
+      payload.typ === 'platform' ||
+      (payload.org && payload.org !== currentOrgId())
+    ) {
+      throw new UnauthorizedException('Session expired — please log in again');
+    }
 
     const staff = await this.prisma.staff.findUnique({
       where: { id: payload.sub },
@@ -121,6 +130,7 @@ export class JwtAuthGuard implements CanActivate {
         sub: staff.id,
         role: staff.role,
         ver: staff.tokenVersion,
+        org: currentOrgId(),
       } satisfies JwtPayload);
       const { exp } = this.jwt.decode<{ exp: number }>(fresh);
       context

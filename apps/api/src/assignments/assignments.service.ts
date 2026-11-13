@@ -14,6 +14,7 @@ import { staffScope } from '../common/team-scope.js';
 import { Prisma, type AssignmentStatus } from '../generated/prisma/client.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { currentOrgId } from '../tenancy/tenant-context.js';
 import { planDistribution } from './distribution.js';
 import type {
   CreateAssignmentDto,
@@ -297,7 +298,8 @@ export class AssignmentsService {
       const customers = await tx.$queryRaw<{ id: string }[]>`
         SELECT c.id FROM customers c
         ${dto.campaignId ? Prisma.sql`JOIN campaign_customers cc ON cc.customer_id = c.id AND cc.campaign_id = ${dto.campaignId}::uuid` : Prisma.empty}
-        WHERE c.status = 'ACTIVE'
+        WHERE c.organization_id = ${currentOrgId()}::uuid
+          AND c.status = 'ACTIVE'
           AND NOT EXISTS (SELECT 1 FROM assignments a WHERE a.open_customer_id = c.id)
           AND NOT EXISTS (SELECT 1 FROM follow_ups f WHERE f.open_customer_id = c.id)
           ${
@@ -495,7 +497,8 @@ export class AssignmentsService {
   private async lockOpen(tx: Prisma.TransactionClient, id: string) {
     const rows = await tx.$queryRaw<{ id: string }[]>`
       SELECT id FROM assignments
-      WHERE id = ${id}::uuid AND status IN ('ASSIGNED', 'IN_PROGRESS')
+      WHERE id = ${id}::uuid AND organization_id = ${currentOrgId()}::uuid
+        AND status IN ('ASSIGNED', 'IN_PROGRESS')
       FOR UPDATE`;
     if (!rows.length)
       throw new ConflictException('Assignment was just completed or changed');

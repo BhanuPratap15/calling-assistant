@@ -6,6 +6,9 @@ import { requestHost, type TenantRequest } from './tenant.types.js';
 /** Inn routes pe client (tenant) nahi hota */
 const isPlatformPath = (p: string) =>
   p === '/api/platform' || p.startsWith('/api/platform/');
+/** Host pe chalne wali sync script (127.0.0.1 se) — apna X-Sync-Token guard; PLATFORM_HOSTS nahi lagta */
+const isDomainSyncPath = (p: string) =>
+  p.startsWith('/api/platform/domain-sync/');
 const isUnscopedPath = (p: string) =>
   p === '/api/health' || p.startsWith('/api/telephony/webhooks/');
 
@@ -27,7 +30,11 @@ export function tenantMiddleware(
 
     const host = requestHost(req);
     if (isPlatformPath(path)) {
-      if (platformHosts.length && !platformHosts.includes(host)) {
+      if (
+        platformHosts.length &&
+        !platformHosts.includes(host) &&
+        !isDomainSyncPath(path)
+      ) {
         res.status(404).json({ statusCode: 404, message: 'Not Found' });
         return;
       }
